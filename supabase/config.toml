@@ -1,0 +1,25 @@
+# KKN SPACE — Supabase Edge Functions Configuration
+
+[functions.admin-list-users]
+verify_jwt = true
+
+[functions.admin-invite-user]
+verify_jwt = true
+
+[functions.admin-update-membership]
+verify_jwt = true
+
+[functions.admin-revoke-invitation]
+verify_jwt = true
+
+[functions.admin-accept-invitation]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.workspace-get-signed-url]
+verify_jwt = true
+
+[functions.public-team-photo]
+verify_jwt = false

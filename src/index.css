@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 7% 97%; /* #F7F7F5 warm white */
+    --foreground: 120 5% 15%; /* #252925 charcoal */
+
+    --card: 0 0% 100%; /* #FFFFFF surface */
+    --card-foreground: 120 5% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 120 5% 15%;
+
+    --primary: 135 13% 37%; /* #526B58 sage */
+    --primary-foreground: 60 7% 98%;
+
+    --secondary: 120 12% 92%; /* #E8EEE8 sage light */
+    --secondary-foreground: 135 15% 25%;
+
+    --muted: 100 8% 93%;
+    --muted-foreground: 120 3% 46%; /* #737A73 */
+
+    --accent: 120 12% 92%;
+    --accent-foreground: 120 5% 15%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 96 10% 89%; /* #E4E7E2 */
+    --input: 96 10% 89%;
+    --ring: 135 13% 37%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+    background-color: #F7F7F5;
+    color: #252925;
+  }
+}
+
+/* Custom scrollbar matching Notion/clean workspace */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8DCD6;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B6BCB3;
+}
+
+@layer components {
+  .modal-surface-adaptive {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  @media (min-width: 640px) {
+    .modal-surface-adaptive {
+      max-height: calc(100vh - 32px);
+      max-height: calc(100dvh - 32px);
+    }
+  }
+
+  .modal-body-scroll {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
