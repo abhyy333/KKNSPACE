@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AnnouncementModal } from '@/components/workspace/AnnouncementModal'
 import { PoskoMemberAvatar } from '@/components/workspace/PoskoMemberAvatar'
 import { PoskoMemberPhotoModal } from '@/components/workspace/PoskoMemberPhotoModal'
+import { fetchTeamDirectory } from '@/services/membersApi'
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -25,7 +26,6 @@ import {
   updateAnnouncement,
   type AnnouncementFormInput,
 } from '@/services/dashboardApi'
-import { fetchTeamDirectory } from '@/services/membersApi'
 import type {
   Announcement,
   KknRole,
@@ -228,7 +228,17 @@ export const OverviewPage: React.FC = () => {
   const [editingAnnouncement, setEditingAnnouncement] =
     useState<Announcement | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<Announcement | null>(null)
-  const [selectedPhotoMember, setSelectedPhotoMember] = useState<KknTeamDirectoryMember | null>(null)
+  const [managingPhotoMember, setManagingPhotoMember] = useState<KknTeamDirectoryMember | null>(null)
+
+  const { data: teamDirectory = [] } = useQuery({
+    queryKey: ['workspace', 'team-directory'],
+    queryFn: fetchTeamDirectory,
+    staleTime: 60_000,
+  })
+
+  const activeTeamDirectory = useMemo(() => {
+    return teamDirectory.filter((m) => m.is_active)
+  }, [teamDirectory])
 
   const {
     data,
@@ -242,17 +252,6 @@ export const OverviewPage: React.FC = () => {
     queryFn: fetchDashboardSummary,
     staleTime: 30_000,
   })
-
-  const { data: teamDirectory = [] } = useQuery({
-    queryKey: ['workspace', 'team-directory'],
-    queryFn: fetchTeamDirectory,
-    staleTime: 60_000,
-  })
-
-  const activeTeamMembers = useMemo(
-    () => teamDirectory.filter((m) => m.is_active),
-    [teamDirectory]
-  )
 
   const invalidateDashboard = async () => {
     await Promise.all([
@@ -987,7 +986,7 @@ export const OverviewPage: React.FC = () => {
                   Struktur Tim Posko
                 </CardTitle>
                 <CardDescription className="text-[11px]">
-                  Anggota aktif terdaftar ({activeTeamMembers.length > 0 ? activeTeamMembers.length : (data?.members?.length ?? 11)})
+                  Anggota aktif terdaftar ({activeTeamDirectory.length > 0 ? activeTeamDirectory.length : (data?.members?.length ?? 11)})
                 </CardDescription>
               </div>
               <Link
@@ -999,15 +998,27 @@ export const OverviewPage: React.FC = () => {
               </Link>
             </CardHeader>
             <CardContent className="space-y-2">
-              {activeTeamMembers.length === 0 && (!data?.members || data.members.length === 0) ? (
+              {activeTeamDirectory.length === 0 && (!data?.members || data.members.length === 0) ? (
                 <p className="text-xs text-charcoal-muted text-center py-4">
                   Belum ada anggota aktif.
                 </p>
-              ) : activeTeamMembers.length > 0 ? (
-                <div className="space-y-2 max-h-[520px] overflow-y-auto pr-0.5">
-                  {activeTeamMembers.map((member) => {
+              ) : (
+                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-0.5">
+                  {(activeTeamDirectory.length > 0
+                    ? activeTeamDirectory
+                    : (data?.members ?? []).map((m) => ({
+                        id: m.user_id,
+                        full_name: m.full_name,
+                        role: m.role,
+                        position_label: ROLE_BADGE_LABELS[m.role] || m.role,
+                        account_email: m.email,
+                        photo_file_id: m.avatar_file_id,
+                        is_active: true,
+                        linked_user_id: m.user_id,
+                      } as unknown as KknTeamDirectoryMember))
+                  ).map((member) => {
                     const isSelf = Boolean(user?.id && member.linked_user_id === user.id)
-                    const canManagePhoto = Boolean(isSuperAdmin || isSelf)
+                    const canManagePhoto = isSuperAdmin || isSelf
 
                     return (
                       <div
@@ -1015,7 +1026,7 @@ export const OverviewPage: React.FC = () => {
                         className="flex items-center justify-between gap-2 rounded-md border border-warm-200 bg-warm-50/50 px-3 py-2 transition-colors hover:bg-warm-100/60"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <PoskoMemberAvatar member={member} />
+                          <PoskoMemberAvatar member={member} sizeClass="h-7 w-7" textClass="text-[11px]" />
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-charcoal truncate">
                               {member.full_name}
@@ -1025,13 +1036,14 @@ export const OverviewPage: React.FC = () => {
                             </p>
                           </div>
                         </div>
+
                         <div className="flex items-center gap-1.5 shrink-0">
                           {canManagePhoto && (
                             <button
                               type="button"
-                              onClick={() => setSelectedPhotoMember(member)}
+                              onClick={() => setManagingPhotoMember(member)}
                               className="rounded p-1 text-charcoal-muted hover:text-sage-800 hover:bg-warm-200/60 transition-colors"
-                              title="Kelola foto profil"
+                              title="Kelola Foto Profil"
                             >
                               <Camera className="h-3 w-3" />
                             </button>
@@ -1044,30 +1056,6 @@ export const OverviewPage: React.FC = () => {
                     )
                   })}
                 </div>
-              ) : (
-                data?.members.map((member) => (
-                  <div
-                    key={member.user_id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-warm-200 bg-warm-50/50 px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sage-100 text-sage-800 text-[11px] font-semibold">
-                        {member.full_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-charcoal truncate">
-                          {member.full_name}
-                        </p>
-                        <p className="text-[10px] text-charcoal-muted truncate">
-                          {member.email}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">
-                      {ROLE_BADGE_LABELS[member.role] || member.role}
-                    </Badge>
-                  </div>
-                ))
               )}
 
               <div className="pt-1 flex items-center gap-2 text-[11px] text-charcoal-muted">
@@ -1091,10 +1079,9 @@ export const OverviewPage: React.FC = () => {
       />
 
       <PoskoMemberPhotoModal
-        key={selectedPhotoMember?.id}
-        open={Boolean(selectedPhotoMember)}
-        onClose={() => setSelectedPhotoMember(null)}
-        member={selectedPhotoMember}
+        open={Boolean(managingPhotoMember)}
+        onClose={() => setManagingPhotoMember(null)}
+        member={managingPhotoMember}
       />
 
       <ConfirmDialog

@@ -1,33 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import React, { useRef, useState } from 'react'
 import { Modal } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
-import { optimizeImageFile } from '@/lib/imageOptimization'
 import {
-  removeDirectoryMemberPhoto,
-  saveOwnDirectoryProfile,
   uploadDirectoryMemberPhoto,
+  removeDirectoryMemberPhoto,
   uploadOwnProfilePhoto,
+  saveOwnDirectoryProfile,
 } from '@/services/membersApi'
 import { fetchPublicTeamPhotoUrl } from '@/services/publicApi'
+import { optimizeImageFile } from '@/lib/imageOptimization'
 import type { KknTeamDirectoryMember } from '@/types/database'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  AlertCircle,
   Camera,
-  Check,
   Image as ImageIcon,
-  Loader2,
-  ShieldCheck,
   Trash2,
-  Upload,
-  X,
+  AlertCircle,
+  Loader2,
+  Check,
 } from 'lucide-react'
-
-const ALLOWED_PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
 
 interface PoskoMemberPhotoModalProps {
   open: boolean
@@ -44,89 +38,69 @@ export const PoskoMemberPhotoModal: React.FC<PoskoMemberPhotoModalProps> = ({
   const { toast } = useToast()
   const { user, isSuperAdmin } = useAuth()
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [stagedFile, setStagedFile] = useState<File | null>(null)
   const [stagedPreview, setStagedPreview] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isRemoving, setIsRemoving] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const cameraInputRef = useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = useRef<HTMLInputElement | null>(null)
 
   const isSelf = Boolean(user?.id && member?.linked_user_id === user.id)
-  const canManage = Boolean(isSuperAdmin || isSelf)
+  const canManage = isSuperAdmin || isSelf
 
-  // Fetch current signed photo URL from existing public-team-photo mechanism
-  const { data: currentPhotoUrl, refetch: refetchPhoto } = useQuery({
+  // Fetch current photo URL
+  const { data: currentPhotoUrl } = useQuery({
     queryKey: ['workspace', 'team-photo', member?.id],
-    queryFn: () => (member ? fetchPublicTeamPhotoUrl(member.id) : null),
+    queryFn: () => (member ? fetchPublicTeamPhotoUrl(member.id) : Promise.resolve(null)),
     enabled: Boolean(open && member?.photo_file_id),
-    staleTime: 120_000,
+    staleTime: 60_000,
   })
 
-  // Cleanup staged preview URL on unmount or reset
-  useEffect(() => {
-    return () => {
-      if (stagedPreview) {
-        URL.revokeObjectURL(stagedPreview)
-      }
-    }
-  }, [stagedPreview])
-
-  if (!member) return null
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-
-    setErrorMsg(null)
-
-    if (!ALLOWED_PHOTO_MIME_TYPES.has(file.type)) {
-      setErrorMsg('Format foto tidak valid. Gunakan file JPG, JPEG, PNG, atau WebP.')
-      return
-    }
-
-    if (file.size <= 0 || file.size > MAX_PHOTO_BYTES) {
-      setErrorMsg('Ukuran file foto maksimal 5 MB.')
-      return
-    }
-
-    if (stagedPreview) {
-      URL.revokeObjectURL(stagedPreview)
-    }
-
-    const previewUrl = URL.createObjectURL(file)
-    setStagedFile(file)
-    setStagedPreview(previewUrl)
-  }
-
-  const handleCancelStaged = () => {
-    if (stagedPreview) {
-      URL.revokeObjectURL(stagedPreview)
-    }
+  const resetStaged = () => {
+    if (stagedPreview) URL.revokeObjectURL(stagedPreview)
     setStagedFile(null)
     setStagedPreview(null)
-    setErrorMsg(null)
+    setFormError(null)
   }
 
-  const handleSavePhoto = async () => {
-    if (!stagedFile || !member) return
-    setIsSaving(true)
-    setErrorMsg(null)
+  const handleClose = () => {
+    resetStaged()
+    onClose()
+  }
 
-    try {
-      // 1. Client-side compression & downscale optimization
-      const optimized = await optimizeImageFile(stagedFile, 1200, 0.85)
+  const handleFileSelect = (file: File | undefined) => {
+    if (!file) return
+    setFormError(null)
+
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validMimes.includes(file.type)) {
+      setFormError('Format foto tidak valid. Gunakan file JPG, JPEG, PNG, atau WebP.')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError('Ukuran file foto melebihi batas maksimal 5 MB.')
+      return
+    }
+
+    if (stagedPreview) URL.revokeObjectURL(stagedPreview)
+    setStagedFile(file)
+    setStagedPreview(URL.createObjectURL(file))
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!member || !stagedFile) throw new Error('Berkas foto belum dipilih.')
+      const optimized = await optimizeImageFile(stagedFile)
 
       if (isSuperAdmin) {
-        // Direct Super Admin photo upload linked to directory member
-        await uploadDirectoryMemberPhoto(member.id, optimized)
+        return uploadDirectoryMemberPhoto(member.id, optimized)
       } else if (isSelf) {
-        // Self-managed photo upload
         const staged = await uploadOwnProfilePhoto(optimized)
-        await saveOwnDirectoryProfile({
+        return saveOwnDirectoryProfile({
           fullName: member.full_name,
           identityNumber: member.identity_number,
-          university: member.university,
+          university: member.university ?? null,
           studyProgram: member.study_program,
           photoAction: 'replace',
           photoFileId: staged.fileId,
@@ -134,264 +108,242 @@ export const PoskoMemberPhotoModal: React.FC<PoskoMemberPhotoModalProps> = ({
       } else {
         throw new Error('Anda tidak memiliki wewenang untuk mengubah foto anggota ini.')
       }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-photo', member.id] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory-photos'] }),
-        queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member.id] }),
-        queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile'] }),
-        refetchPhoto(),
-      ])
-
+    },
+    onSuccess: () => {
       toast({
         variant: 'success',
-        title: 'Foto Profil Disimpan',
-        description: `Foto profil untuk ${member.full_name} berhasil diperbarui.`,
+        title: 'Foto Profil Diperbarui',
+        description: `Foto profil untuk ${member?.full_name} berhasil disimpan.`,
       })
+      handleClose()
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-photo', member?.id] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory-photos'] })
+      queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member?.id] })
+      queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] })
+    },
+    onError: (err: Error) => {
+      setFormError(err.message || 'Gagal menyimpan foto profil.')
+    },
+  })
 
-      handleCancelStaged()
-      onClose()
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Gagal menyimpan foto.')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleRemovePhoto = async () => {
-    if (!member) return
-    const confirmed = window.confirm(
-      `Apakah Anda yakin ingin menghapus foto profil ${member.full_name}? Avatar inisial nama akan digunakan kembali.`
-    )
-    if (!confirmed) return
-
-    setIsRemoving(true)
-    setErrorMsg(null)
-
-    try {
+  const removeMutation = useMutation({
+    mutationFn: async () => {
+      if (!member) return
       if (isSuperAdmin) {
-        await removeDirectoryMemberPhoto(member.id)
+        return removeDirectoryMemberPhoto(member.id)
       } else if (isSelf) {
-        await saveOwnDirectoryProfile({
+        return saveOwnDirectoryProfile({
           fullName: member.full_name,
           identityNumber: member.identity_number,
-          university: member.university,
+          university: member.university ?? null,
           studyProgram: member.study_program,
           photoAction: 'remove',
         })
       } else {
         throw new Error('Anda tidak memiliki wewenang untuk menghapus foto anggota ini.')
       }
-
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-photo', member.id] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory-photos'] }),
-        queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member.id] }),
-        queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] }),
-        queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile'] }),
-      ])
-
+    },
+    onSuccess: () => {
       toast({
         variant: 'success',
-        title: 'Foto Dihapus',
-        description: `Foto profil ${member.full_name} berhasil dihapus. Avatar kembali ke inisial.`,
+        title: 'Foto Profil Dihapus',
+        description: `Foto profil untuk ${member?.full_name} telah dihapus. Tampilan kembali ke avatar inisial.`,
       })
+      handleClose()
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-photo', member?.id] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'team-directory-photos'] })
+      queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member?.id] })
+      queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] })
+    },
+    onError: (err: Error) => {
+      setFormError(err.message || 'Gagal menghapus foto profil.')
+    },
+  })
 
-      handleCancelStaged()
-      onClose()
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Gagal menghapus foto.')
-    } finally {
-      setIsRemoving(false)
-    }
-  }
+  if (!member) return null
 
-  const activeDisplayUrl = stagedPreview || (member.photo_file_id ? currentPhotoUrl : null)
+  const initial = member.full_name?.trim().charAt(0).toUpperCase() || 'K'
 
   return (
     <Modal
       open={open}
-      onClose={() => {
-        if (!isSaving && !isRemoving) {
-          handleCancelStaged()
-          onClose()
-        }
-      }}
-      title="Foto Profil Anggota Posko"
-      description="Pratinjau dan pengelolaan foto profil resmi yang terhubung dengan record direktori tim KKN."
+      onClose={handleClose}
+      title={`Foto Profil: ${member.full_name}`}
+      description={`${member.position_label} · Terhubung langsung ke record resmi kkn_team_directory.`}
       maxWidthClass="max-w-md"
     >
-      <div className="space-y-5">
-        {/* Member Identity Banner */}
-        <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-3.5 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm font-semibold text-charcoal truncate">
-                {member.full_name}
-              </span>
-              <Badge variant="outline" className="text-[10px]">
-                {member.position_label}
-              </Badge>
-            </div>
-            <p className="text-xs text-charcoal-muted mt-0.5 truncate">
-              {member.study_program} · {member.university || 'Universitas Mataram'}
-            </p>
-          </div>
-          {isSelf && (
-            <Badge variant="secondary" className="text-[10px] shrink-0">
-              Profil Anda
-            </Badge>
-          )}
-        </div>
-
-        {/* Circular Avatar Preview */}
-        <div className="flex flex-col items-center justify-center py-2 space-y-3">
+      <div className="space-y-4">
+        {/* Large Avatar Preview */}
+        <div className="flex flex-col items-center justify-center p-4 bg-warm-50/70 rounded-lg border border-warm-200">
           <div className="relative">
-            {activeDisplayUrl ? (
+            {stagedPreview ? (
               <img
-                src={activeDisplayUrl}
-                alt={`Foto profil ${member.full_name}`}
-                className="h-28 w-28 rounded-full object-cover border-2 border-sage-300 shadow-md bg-sage-50"
+                src={stagedPreview}
+                alt={`Pratinjau baru ${member.full_name}`}
+                className="h-28 w-28 rounded-full object-cover border-2 border-sage-500 shadow-md"
+              />
+            ) : currentPhotoUrl && member.photo_file_id ? (
+              <img
+                src={currentPhotoUrl}
+                alt={member.full_name}
+                className="h-28 w-28 rounded-full object-cover border-2 border-sage-400 shadow-sm"
               />
             ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-full bg-sage-100 text-sage-800 font-serif font-bold text-3xl border-2 border-sage-300 shadow-md">
-                {member.full_name.charAt(0).toUpperCase()}
+              <div className="h-28 w-28 rounded-full bg-sage-100 text-sage-800 text-3xl font-serif font-bold flex items-center justify-center border-2 border-sage-200 shadow-sm">
+                {initial}
               </div>
             )}
 
-            {stagedFile && (
-              <span className="absolute bottom-0 right-0 rounded-full bg-emerald-600 text-white p-1 shadow">
-                <Check className="h-4 w-4" />
-              </span>
+            {stagedPreview && (
+              <Badge className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] bg-sage-800 text-white shadow">
+                Pratinjau Baru
+              </Badge>
             )}
           </div>
 
-          <div className="text-center">
-            {stagedFile ? (
-              <p className="text-xs font-semibold text-emerald-800">
-                Pratinjau Foto Baru ({Math.round(stagedFile.size / 1024)} KB)
-              </p>
-            ) : member.photo_file_id ? (
-              <p className="text-xs font-medium text-charcoal-muted">
-                Foto profil resmi aktif di direktori tim
-              </p>
-            ) : (
-              <p className="text-xs text-charcoal-muted">
-                Belum ada foto — menggunakan avatar inisial
-              </p>
-            )}
+          <div className="mt-3 text-center">
+            <h4 className="text-sm font-semibold text-charcoal">{member.full_name}</h4>
+            <p className="text-xs text-charcoal-muted mt-0.5">
+              {member.account_email || 'posko@pringgaselaselatan.desa.id'}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-1.5">
+              <Badge variant="outline" className="text-[10px]">
+                {member.position_label}
+              </Badge>
+              {member.photo_file_id && !stagedPreview && (
+                <Badge variant="secondary" className="text-[10px] text-emerald-800 bg-emerald-50 border-emerald-200">
+                  Foto Aktif
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Error Alert */}
-        {errorMsg && (
-          <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+        {/* Error message */}
+        {formError && (
+          <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 p-2.5 rounded-md border border-red-200">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{formError}</span>
           </div>
         )}
 
-        {/* Action Controls */}
+        {/* Actions for Authorized User */}
         {canManage ? (
-          <div className="space-y-3 pt-1 border-t border-warm-200">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-
+          <div className="space-y-3">
             {stagedFile ? (
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resetStaged}
+                  className="text-xs"
+                  disabled={saveMutation.isPending}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  className="text-xs gap-1.5 bg-sage-800 text-white hover:bg-sage-900"
+                >
+                  {saveMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  <span>Simpan Foto Profil</span>
+                </Button>
+              </div>
+            ) : (
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="user"
+                    onChange={(e) => {
+                      handleFileSelect(e.target.files?.[0])
+                      e.target.value = ''
+                    }}
+                    className="hidden"
+                  />
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      handleFileSelect(e.target.files?.[0])
+                      e.target.value = ''
+                    }}
+                    className="hidden"
+                  />
+
                   <Button
                     type="button"
-                    onClick={handleSavePhoto}
-                    disabled={isSaving}
-                    className="flex-1 text-xs gap-1.5"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="text-xs gap-1.5 flex-1"
                   >
-                    {isSaving ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    <span>{isSaving ? 'Menyimpan...' : 'Simpan Foto Ini'}</span>
+                    <Camera className="h-3.5 w-3.5 text-sage-700" />
+                    <span>Ambil Foto</span>
                   </Button>
 
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleCancelStaged}
-                    disabled={isSaving}
-                    className="text-xs gap-1"
+                    size="sm"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="text-xs gap-1.5 flex-1"
                   >
-                    <X className="h-3.5 w-3.5" />
-                    <span>Batal</span>
+                    <ImageIcon className="h-3.5 w-3.5 text-sage-700" />
+                    <span>Pilih dari Galeri</span>
                   </Button>
                 </div>
-                <p className="text-[11px] text-charcoal-muted text-center">
-                  Foto akan dioptimasi secara otomatis sebelum disimpan ke storage privat.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isSaving || isRemoving}
-                  className="w-full sm:flex-1 text-xs gap-1.5"
-                >
-                  <Camera className="h-3.5 w-3.5 text-sage-700" />
-                  <span>{member.photo_file_id ? 'Ganti Foto' : 'Unggah Foto'}</span>
-                </Button>
 
                 {member.photo_file_id && (
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={handleRemovePhoto}
-                    disabled={isSaving || isRemoving}
-                    className="w-full sm:w-auto text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1.5"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm(`Hapus foto profil ${member.full_name}? Tampilan akan kembali ke avatar inisial.`)) {
+                        removeMutation.mutate()
+                      }
+                    }}
+                    disabled={removeMutation.isPending}
+                    className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1.5"
                   >
-                    {isRemoving ? (
+                    {removeMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Trash2 className="h-3.5 w-3.5" />
                     )}
-                    <span>Hapus Foto</span>
+                    <span>Hapus Foto (Kembalikan ke Inisial)</span>
                   </Button>
                 )}
               </div>
             )}
+
+            <p className="text-[11px] text-charcoal-muted leading-relaxed text-center">
+              Maksimal 5 MB (JPG, PNG, WebP). Foto otomatis dioptimasi dan disimpan aman di penyimpanan privat terotorisasi.
+            </p>
           </div>
         ) : (
-          <div className="pt-2 border-t border-warm-200 flex items-center gap-2 text-[11px] text-charcoal-muted">
-            <ShieldCheck className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-            <span>Pengelolaan foto profil memerlukan hak akses Super Admin atau pemilik akun.</span>
+          <div className="p-3 bg-warm-100/60 rounded text-center text-xs text-charcoal-muted">
+            Foto profil dikelola oleh pemilik akun atau Super Admin posko KKN.
           </div>
         )}
-
-        {/* Informative Security & Privacy Note */}
-        <div className="rounded-md bg-warm-100/60 p-2.5 text-[11px] text-charcoal-muted space-y-1">
-          <div className="flex items-center gap-1.5 font-medium text-charcoal">
-            <ImageIcon className="h-3.5 w-3.5 text-sage-700" />
-            <span>Ketentuan Foto Profil:</span>
-          </div>
-          <ul className="list-disc pl-4 space-y-0.5">
-            <li>Format diterima: JPG, JPEG, PNG, dan WebP (maks. 5 MB).</li>
-            <li>Foto terhubung langsung dengan ID record direktori tim.</li>
-            <li>Foto profil bersifat opsional; inisial digunakan jika foto kosong.</li>
-          </ul>
-        </div>
       </div>
     </Modal>
   )

@@ -108,8 +108,6 @@ Deno.serve(async (req) => {
         financeRes,
         dailyLogAttRes,
         surveyAttRes,
-        inventoryPhotoRes,
-        inventoryItemRes,
       ] = await Promise.all([
         supabaseAdmin
           .from('media_assets')
@@ -166,15 +164,15 @@ Deno.serve(async (req) => {
           .limit(1)
           .maybeSingle(),
         supabaseAdmin
-          .from('inventory_photos')
-          .select('id')
-          .eq('file_id', fileObj.id)
-          .limit(1)
-          .maybeSingle(),
-        supabaseAdmin
           .from('inventory_items')
           .select('id')
           .eq('photo_file_id', fileObj.id)
+          .limit(1)
+          .maybeSingle(),
+        supabaseAdmin
+          .from('inventory_photos')
+          .select('id')
+          .eq('file_id', fileObj.id)
           .limit(1)
           .maybeSingle(),
       ])
@@ -187,9 +185,9 @@ Deno.serve(async (req) => {
       else if (directoryPhotoRes.data) matchedDomainTable = 'kkn_team_directory'
       else if (financeRes.data) matchedDomainTable = 'finance_attachments'
       else if (surveyAttRes.data) matchedDomainTable = 'survey_attachments'
-      else if (inventoryPhotoRes.data) matchedDomainTable = 'inventory_photos'
-      else if (inventoryItemRes.data) matchedDomainTable = 'inventory_items'
       else if (dailyLogAttRes.data) matchedDomainTable = 'daily_log_attachments'
+      else if (inventoryItemRes.data) matchedDomainTable = 'inventory_items'
+      else if (inventoryPhotoRes.data) matchedDomainTable = 'inventory_photos'
 
       let isAuthorizedDailyLogAttachment = false
       if (dailyLogAttRes.data) {
@@ -219,8 +217,8 @@ Deno.serve(async (req) => {
           directoryPhotoRes.data ||
           financeRes.data ||
           surveyAttRes.data ||
-          inventoryPhotoRes.data ||
           inventoryItemRes.data ||
+          inventoryPhotoRes.data ||
           isAuthorizedDailyLogAttachment
       )
     }

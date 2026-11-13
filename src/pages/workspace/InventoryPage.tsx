@@ -17,7 +17,7 @@ import {
   returnInventoryLoan,
   adjustInventoryStock,
   fetchInventoryMovements,
-  fetchInventoryItemPhotos,
+  fetchInventorySignedPhotoUrls,
   type CreateInventoryItemInput,
 } from '@/services/inventoryApi'
 import { fetchTeamDirectory } from '@/services/membersApi'
@@ -29,8 +29,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal, ConfirmDialog } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { InventoryItemThumbnail } from '@/components/workspace/InventoryItemThumbnail'
-import { InventoryItemPhotoGalleryModal } from '@/components/workspace/InventoryItemPhotoGalleryModal'
+import { InventoryPhotoGalleryModal } from '@/components/workspace/InventoryPhotoGalleryModal'
+import { optimizeImageFile } from '@/lib/imageOptimization'
 import type {
   InventoryItem,
   InventoryLoan,
@@ -61,6 +61,10 @@ import {
   Handshake,
   Download,
   Camera,
+  Image as ImageIcon,
+  Eye,
+  Upload,
+  X,
 } from 'lucide-react'
 
 // -------------------------------------------------------------
@@ -179,7 +183,7 @@ export const InventoryPage: React.FC = () => {
   const [stockAdjustmentItem, setStockAdjustmentItem] = useState<InventoryItem | null>(null)
   const [isClosingReportOpen, setIsClosingReportOpen] = useState(false)
   const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState(false)
-  const [galleryItem, setGalleryItem] = useState<InventoryItem | null>(null)
+  const [galleryModalItem, setGalleryModalItem] = useState<InventoryItem | null>(null)
 
   // Queries
   const {
@@ -194,6 +198,17 @@ export const InventoryPage: React.FC = () => {
         current_location: selectedLocation === 'all' ? undefined : selectedLocation,
         search: searchTerm,
       }),
+  })
+
+  const itemPhotoFileIds = useMemo(() => {
+    return items.map((i) => i.photo_file_id).filter(Boolean) as string[]
+  }, [items])
+
+  const { data: itemPhotoUrls = {} } = useQuery({
+    queryKey: ['inventory-photo-urls', itemPhotoFileIds],
+    queryFn: () => fetchInventorySignedPhotoUrls(itemPhotoFileIds),
+    enabled: itemPhotoFileIds.length > 0,
+    staleTime: 1000 * 60 * 30,
   })
 
   const { data: directoryMembers = [] } = useQuery({
@@ -590,24 +605,45 @@ export const InventoryPage: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-3 mt-2.5">
-                            <InventoryItemThumbnail
-                              photoFileId={item.photo_file_id}
-                              category={item.category}
-                              name={item.name}
-                              sizeClass="h-14 w-14"
-                              className="flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-                              onClick={() => setGalleryItem(item)}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <CardTitle className="text-base font-serif font-semibold text-charcoal line-clamp-1">
-                                {item.name}
-                              </CardTitle>
-                              <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
-                                {item.description || 'Tidak ada deskripsi tambahan.'}
-                              </CardDescription>
+                          <CardTitle className="text-base font-serif font-semibold text-charcoal mt-2 line-clamp-1">
+                            {item.name}
+                          </CardTitle>
+
+                          <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
+                            {item.description || 'Tidak ada deskripsi tambahan.'}
+                          </CardDescription>
+
+                          {/* Item Photo Visual Identification */}
+                          {item.photo_file_id && itemPhotoUrls[item.photo_file_id] ? (
+                            <div
+                              onClick={() => setGalleryModalItem(item)}
+                              className="relative group cursor-pointer overflow-hidden rounded-md border border-warm-200 bg-warm-100 h-32 w-full mt-2"
+                              title="Buka galeri foto lengkap"
+                            >
+                              <img
+                                src={itemPhotoUrls[item.photo_file_id]}
+                                alt={item.name}
+                                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1.5 font-medium">
+                                <Eye className="h-4 w-4" />
+                                <span>Buka Galeri Foto</span>
+                              </div>
+                              <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
+                                <Camera className="h-3 w-3" />
+                                <span>Foto</span>
+                              </span>
                             </div>
-                          </div>
+                          ) : (
+                            <div
+                              onClick={() => setGalleryModalItem(item)}
+                              className="mt-2 h-14 w-full rounded-md border border-dashed border-warm-200 bg-warm-50/70 hover:bg-warm-100/80 flex items-center justify-center gap-1.5 text-charcoal-muted cursor-pointer transition-colors"
+                              title="Belum ada foto. Ketuk untuk menambah foto."
+                            >
+                              <Camera className="h-3.5 w-3.5 text-charcoal-muted" />
+                              <span className="text-[11px]">Tambah Foto Dokumentasi</span>
+                            </div>
+                          )}
                         </CardHeader>
 
                         <CardContent className="p-4 pt-0 space-y-3">
@@ -659,9 +695,9 @@ export const InventoryPage: React.FC = () => {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => setGalleryItem(item)}
-                                className="h-7 px-2 text-xs text-sage-800 hover:text-sage-900 hover:bg-sage-50"
-                                title="Dokumentasi & Galeri Foto Barang"
+                                onClick={() => setGalleryModalItem(item)}
+                                className="h-7 px-2 text-xs text-charcoal-muted hover:text-charcoal"
+                                title="Lihat & Kelola Foto Dokumentasi"
                               >
                                 <Camera className="h-3.5 w-3.5" />
                                 <span className="ml-1 hidden sm:inline">Foto</span>
@@ -959,14 +995,24 @@ export const InventoryPage: React.FC = () => {
                         }`}
                       >
                         <div className="flex items-start gap-3 max-w-xl">
-                          <InventoryItemThumbnail
-                            photoFileId={item.photo_file_id}
-                            category={item.category}
-                            name={item.name}
-                            sizeClass="h-12 w-12"
-                            className="flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setGalleryItem(item)}
-                          />
+                          {item.photo_file_id && itemPhotoUrls[item.photo_file_id] ? (
+                            <img
+                              src={itemPhotoUrls[item.photo_file_id]}
+                              alt={item.name}
+                              onClick={() => setGalleryModalItem(item)}
+                              className="h-12 w-12 flex-shrink-0 rounded-md object-cover border border-warm-200 cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
+                              title="Buka Galeri Foto"
+                            />
+                          ) : (
+                            <div
+                              onClick={() => setGalleryModalItem(item)}
+                              className="h-12 w-12 flex-shrink-0 rounded-md border border-dashed border-warm-300 bg-warm-50 flex items-center justify-center text-charcoal-muted cursor-pointer hover:bg-warm-100 transition-colors mt-0.5"
+                              title="Tambah Foto Dokumentasi"
+                            >
+                              <Camera className="h-4 w-4" />
+                            </div>
+                          )}
+
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-semibold text-xs text-charcoal">{item.name}</span>
@@ -1004,14 +1050,15 @@ export const InventoryPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            variant="ghost"
-                            onClick={() => setGalleryItem(item)}
-                            className="text-xs h-8 text-sage-800 hover:text-sage-900 hover:bg-sage-50 gap-1"
-                            title="Buka Galeri Foto"
+                            variant="outline"
+                            onClick={() => setGalleryModalItem(item)}
+                            className="text-xs h-8 gap-1 text-charcoal"
+                            title="Lihat Galeri Foto"
                           >
-                            <Camera className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Foto</span>
+                            <Camera className="h-3.5 w-3.5 text-charcoal-muted" />
+                            <span>Foto</span>
                           </Button>
+
                           <Button
                             size="sm"
                             variant={isResolved ? 'outline' : 'default'}
@@ -1222,9 +1269,11 @@ export const InventoryPage: React.FC = () => {
           open={Boolean(reconcilingItem)}
           onClose={() => setReconcilingItem(null)}
           item={reconcilingItem}
+          photoUrls={itemPhotoUrls}
           onSuccess={() => {
             setReconcilingItem(null)
             refetchItems()
+            queryClient.invalidateQueries({ queryKey: ['inventory-photo-urls'] })
           }}
         />
       )}
@@ -1242,6 +1291,8 @@ export const InventoryPage: React.FC = () => {
         open={isQuickScanModalOpen}
         onClose={() => setIsQuickScanModalOpen(false)}
         items={items}
+        photoUrls={itemPhotoUrls}
+        onOpenGallery={(item) => setGalleryModalItem(item)}
       />
 
       {/* 7. Modal Mutasi Stok Opname */}
@@ -1271,6 +1322,18 @@ export const InventoryPage: React.FC = () => {
         />
       )}
 
+      {/* 9. Modal Galeri & Dokumentasi Foto Inventaris */}
+      <InventoryPhotoGalleryModal
+        open={Boolean(galleryModalItem)}
+        onClose={() => setGalleryModalItem(null)}
+        item={galleryModalItem}
+        canManage={canManage}
+        onPhotoUpdated={() => {
+          refetchItems()
+          queryClient.invalidateQueries({ queryKey: ['inventory-photo-urls'] })
+        }}
+      />
+
       {/* 9. Konfirmasi Hapus Barang */}
       <ConfirmDialog
         open={Boolean(itemToDelete)}
@@ -1286,18 +1349,6 @@ export const InventoryPage: React.FC = () => {
         variant="destructive"
         isLoading={deleteMutation.isPending}
       />
-
-      {/* 10. Modal Galeri & Dokumentasi Foto Barang */}
-      {galleryItem && (
-        <InventoryItemPhotoGalleryModal
-          open={Boolean(galleryItem)}
-          onClose={() => setGalleryItem(null)}
-          item={galleryItem}
-          onItemUpdated={() => {
-            refetchItems()
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -1349,7 +1400,19 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
   const [purchaseCost, setPurchaseCost] = useState<number | ''>('')
   const [notes, setNotes] = useState('')
 
+  // Photo Documentation State
+  const [stagedPhotoFile, setStagedPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false)
+  const cameraInputRef = React.useRef<HTMLInputElement | null>(null)
+  const galleryInputRef = React.useRef<HTMLInputElement | null>(null)
+
   React.useEffect(() => {
+    setStagedPhotoFile(null)
+    setPhotoPreview(null)
+    setPhotoError(null)
+
     if (initialData) {
       setTrackingModel(initialData.tracking_model || 'tracked')
       setOwnershipType(initialData.ownership_type || 'GROUP_OWNED')
@@ -1395,8 +1458,52 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
     }
   }, [initialData, open])
 
+  const handleFileSelected = async (file: File | undefined) => {
+    if (!file) return
+    setPhotoError(null)
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setPhotoError('Format tidak didukung. Harap unggah foto dengan format JPG, JPEG, PNG, atau WebP.')
+      return
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setPhotoError('Ukuran berkas asli maksimal 15 MB.')
+      return
+    }
+
+    setIsProcessingPhoto(true)
+    try {
+      const optimized = await optimizeImageFile(file, 1200, 0.85)
+      setStagedPhotoFile(optimized)
+      setPhotoPreview(URL.createObjectURL(optimized))
+    } catch (err: any) {
+      setPhotoError(`Gagal memproses gambar: ${err.message}`)
+    } finally {
+      setIsProcessingPhoto(false)
+    }
+  }
+
+  const handleRemovePhoto = () => {
+    setStagedPhotoFile(null)
+    setPhotoPreview(null)
+    setPhotoError(null)
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (galleryInputRef.current) galleryInputRef.current.value = ''
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Enforce photo for tracked item to prevent mix-ups
+    const hasPhoto = stagedPhotoFile || Boolean(initialData?.photo_file_id)
+    if (trackingModel === 'tracked' && !hasPhoto) {
+      setPhotoError(
+        'Foto fisik barang wajib diunggah untuk barang individual (Tracked) guna mencegah tertukar dan memastikan identitas visual yang akurat.'
+      )
+      return
+    }
 
     let determinedOwner = ownerName.trim()
     if (ownershipType === 'PERSONAL_OWNED' && ownerMemberId) {
@@ -1431,6 +1538,10 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       current_location: currentLocation,
       current_holder_name: currentHolderName.trim() || determinedOwner || 'Posko KKN',
       notes: notes.trim() || undefined,
+    }
+
+    if (stagedPhotoFile) {
+      payload.photo_file = stagedPhotoFile
     }
 
     await onSubmit(payload)
@@ -1709,6 +1820,158 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
           </div>
         </div>
 
+        {/* Foto Fisik Barang (Identifikasi Visual) */}
+        <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="font-semibold text-charcoal flex items-center gap-1.5">
+                <Camera className="h-4 w-4 text-sage-700" />
+                <span>Foto Fisik Barang {trackingModel === 'tracked' ? '*' : '(Opsional)'}</span>
+              </label>
+              <p className="text-[11px] text-charcoal-muted mt-0.5">
+                {trackingModel === 'tracked'
+                  ? 'Wajib untuk barang individual (Tracked) seperti Rice Cooker, Kompor, Speaker, Dispenser agar kepemilikan dan ciri fisik jelas.'
+                  : 'Foto representatif untuk barang berjumlah (piring, sendok, alat tulis).'}
+              </p>
+            </div>
+            {photoPreview && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
+                Siap Disimpan
+              </Badge>
+            )}
+          </div>
+
+          {/* Hidden inputs */}
+          <input
+            type="file"
+            ref={cameraInputRef}
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => handleFileSelected(e.target.files?.[0])}
+          />
+          <input
+            type="file"
+            ref={galleryInputRef}
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => handleFileSelected(e.target.files?.[0])}
+          />
+
+          {photoPreview ? (
+            <div className="relative rounded-lg border border-warm-300 bg-white p-2.5 flex items-center gap-3">
+              <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden border border-warm-200 bg-warm-100">
+                <img src={photoPreview} alt="Preview Foto" className="h-full w-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-xs font-semibold text-charcoal truncate">{stagedPhotoFile?.name || 'Foto Fisik'}</p>
+                <p className="text-[11px] text-charcoal-muted">
+                  Ukuran: {stagedPhotoFile ? `${(stagedPhotoFile.size / 1024).toFixed(1)} KB (Teroptimasi)` : '-'}
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
+                  >
+                    <Camera className="h-3 w-3" />
+                    <span>Ambil Ulang</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
+                  >
+                    <Upload className="h-3 w-3" />
+                    <span>Ganti File</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRemovePhoto}
+                    className="h-6 text-[11px] px-2 text-rose-700 hover:text-rose-800 hover:bg-rose-50"
+                  >
+                    <X className="h-3 w-3 mr-0.5" />
+                    <span>Hapus</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : initialData?.photo_file_id ? (
+            <div className="rounded-lg border border-warm-300 bg-white p-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded bg-sage-50 border border-sage-200 flex items-center justify-center text-sage-700">
+                  <ImageIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-charcoal">Foto Registrasi Tersimpan</p>
+                  <p className="text-[11px] text-charcoal-muted">Barang ini sudah memiliki foto utama di sistem.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Camera className="h-3 w-3" />
+                  <span>Kamera</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Upload className="h-3 w-3" />
+                  <span>Galeri</span>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isProcessingPhoto}
+                className="flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
+              >
+                <Camera className="h-4 w-4 text-sage-700" />
+                <span className="font-semibold text-xs">Ambil Foto dengan Kamera</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={isProcessingPhoto}
+                className="flex items-center justify-center gap-2 p-3 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
+              >
+                <Upload className="h-4 w-4 text-sage-700" />
+                <span className="font-semibold text-xs">Pilih Foto dari Galeri</span>
+              </button>
+            </div>
+          )}
+
+          {isProcessingPhoto && (
+            <p className="text-[11px] text-sage-700 animate-pulse">Mengompresi dan mengoptimasi resolusi gambar...</p>
+          )}
+
+          {photoError && (
+            <div className="rounded p-2 bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{photoError}</span>
+            </div>
+          )}
+        </div>
+
         <div>
           <label className="font-semibold text-charcoal block mb-1">Deskripsi &amp; Ciri Khusus</label>
           <Input
@@ -1947,6 +2210,7 @@ interface ReconciliationResolveModalProps {
   onClose: () => void
   item: InventoryItem
   onSuccess: () => void
+  photoUrls: Record<string, string>
 }
 
 const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
@@ -1954,6 +2218,7 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
   onClose,
   item,
   onSuccess,
+  photoUrls,
 }) => {
   const { toast } = useToast()
   const isPersonal = item.ownership_type === 'PERSONAL_OWNED'
@@ -1973,29 +2238,39 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
   )
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [galleryOpen, setGalleryOpen] = useState(false)
 
-  const { data: photos = [], refetch: refetchItemPhotos } = useQuery({
-    queryKey: ['inventory-photos', item.id],
-    queryFn: () => fetchInventoryItemPhotos(item.id),
-    enabled: open,
-  })
+  // Proof Photo State
+  const [proofPhoto, setProofPhoto] = useState<File | null>(null)
+  const [proofPreview, setProofPreview] = useState<string | null>(null)
+  const [isProcessingProof, setIsProcessingProof] = useState(false)
+  const proofCameraRef = React.useRef<HTMLInputElement | null>(null)
+  const proofGalleryRef = React.useRef<HTMLInputElement | null>(null)
 
-  // Identify initial condition photo vs final condition photo
-  const initialPhoto = useMemo(() => {
-    return (
-      photos.find((p) => p.documentation_category === 'kondisi_awal') ||
-      photos.find((p) => p.is_primary) ||
-      (photos.length > 0 ? photos[photos.length - 1] : null)
-    )
-  }, [photos])
+  React.useEffect(() => {
+    setProofPhoto(null)
+    setProofPreview(null)
+  }, [open, item.id])
 
-  const finalPhoto = useMemo(() => {
-    return (
-      photos.find((p) => p.documentation_category === 'kondisi_akhir' || p.documentation_category === 'pengembalian') ||
-      (photos.length > 1 ? photos[0] : null)
-    )
-  }, [photos])
+  const handleProofSelected = async (file: File | undefined) => {
+    if (!file) return
+    setIsProcessingProof(true)
+    try {
+      const optimized = await optimizeImageFile(file, 1200, 0.85)
+      setProofPhoto(optimized)
+      setProofPreview(URL.createObjectURL(optimized))
+    } catch (err: any) {
+      toast({ title: 'Gagal Memproses Foto Bukti', description: err.message, variant: 'error' })
+    } finally {
+      setIsProcessingProof(false)
+    }
+  }
+
+  const handleRemoveProof = () => {
+    setProofPhoto(null)
+    setProofPreview(null)
+    if (proofCameraRef.current) proofCameraRef.current.value = ''
+    if (proofGalleryRef.current) proofGalleryRef.current.value = ''
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -2012,6 +2287,7 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
         final_condition: finalCondition,
         receiver_name: receiverName.trim(),
         notes: notes.trim(),
+        proof_file: proofPhoto,
       })
       toast({ title: 'Rekonsiliasi Disimpan', description: 'Status penyelesaian akhir telah diperbarui.', variant: 'success' })
       onSuccess()
@@ -2023,7 +2299,7 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Penyelesaian Rekonsiliasi Akhir KKN" maxWidthClass="max-w-2xl">
+    <Modal open={open} onClose={onClose} title="Penyelesaian Rekonsiliasi Akhir KKN" maxWidthClass="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div className="rounded-lg border border-sage-300 bg-sage-50/70 p-3 space-y-1">
           <p className="font-semibold text-sage-950 text-sm">{item.name}</p>
@@ -2032,87 +2308,22 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
           </p>
         </div>
 
-        {/* Matriks Perbandingan Kondisi: Awal vs Akhir */}
-        <div className="rounded-lg border border-warm-200 bg-white p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-charcoal flex items-center gap-1.5">
-              <Camera className="h-4 w-4 text-sage-800" />
-              <span>Verifikasi Kondisi: Awal vs Akhir</span>
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setGalleryOpen(true)}
-              className="text-[11px] h-7 px-2 gap-1 text-sage-800 border-sage-300"
-            >
-              <Camera className="h-3 w-3" />
-              <span>Dokumentasi Foto ({photos.length})</span>
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {/* Kolom 1: Kondisi Awal */}
-            <div className="rounded border border-warm-200 bg-warm-50/70 p-2.5 text-center space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal-muted block">
-                Kondisi Awal (Saat Masuk)
+        {/* Foto Kondisi Awal Saat Pendaftaran */}
+        {item.photo_file_id && photoUrls[item.photo_file_id] && (
+          <div className="flex items-center gap-3 p-2.5 rounded-lg border border-warm-200 bg-white">
+            <img
+              src={photoUrls[item.photo_file_id]}
+              alt={item.name}
+              className="h-16 w-16 object-cover rounded-md border border-warm-200 flex-shrink-0"
+            />
+            <div className="text-xs space-y-0.5">
+              <span className="font-semibold text-charcoal block">Foto Kondisi Awal Saat Pendaftaran</span>
+              <span className="text-[11px] text-charcoal-muted">
+                Kondisi awal: {CONDITION_BADGES[item.condition || 'good'].label} • Arsip foto awal terlindungi
               </span>
-              <div className="flex justify-center">
-                <InventoryItemThumbnail
-                  photoFileId={initialPhoto?.file_id || item.photo_file_id}
-                  category={item.category}
-                  name={item.name}
-                  sizeClass="h-24 w-24"
-                  className="rounded-lg border border-warm-300 shadow-sm"
-                />
-              </div>
-              <div className="space-y-0.5 text-[11px]">
-                <p className="font-semibold text-charcoal">
-                  Kondisi: {CONDITION_BADGES[initialPhoto?.condition_snapshot || item.condition || 'good'].label}
-                </p>
-                <p className="text-[10px] text-charcoal-muted">
-                  {initialPhoto?.documentation_date ? new Date(initialPhoto.documentation_date).toLocaleDateString('id-ID') : 'Saat pendaftaran'}
-                </p>
-              </div>
-            </div>
-
-            {/* Kolom 2: Kondisi Akhir */}
-            <div className="rounded border border-sage-200 bg-sage-50/50 p-2.5 text-center space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-sage-900 block">
-                Kondisi Akhir (Saat Selesai/Kembali)
-              </span>
-              <div className="flex justify-center">
-                {finalPhoto ? (
-                  <InventoryItemThumbnail
-                    photoFileId={finalPhoto.file_id}
-                    category={item.category}
-                    name={item.name}
-                    sizeClass="h-24 w-24"
-                    className="rounded-lg border border-sage-300 shadow-sm"
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setGalleryOpen(true)}
-                    className="h-24 w-24 rounded-lg border-2 border-dashed border-sage-300 bg-white hover:bg-sage-50 flex flex-col items-center justify-center text-sage-800 transition-colors p-2 text-center"
-                    title="Unggah Foto Kondisi Akhir"
-                  >
-                    <Camera className="h-5 w-5 mb-1" />
-                    <span className="text-[10px] font-medium leading-tight">Unggah Foto Akhir</span>
-                  </button>
-                )}
-              </div>
-              <div className="space-y-0.5 text-[11px]">
-                <p className="font-semibold text-sage-900">
-                  Kondisi: {CONDITION_BADGES[finalCondition].label}
-                </p>
-                <p className="text-[10px] text-charcoal-muted">
-                  {finalPhoto?.documentation_date ? new Date(finalPhoto.documentation_date).toLocaleDateString('id-ID') : 'Sesuai form di bawah'}
-                </p>
-              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div>
           <label className="font-semibold text-charcoal block mb-1">Status Penyelesaian Akhir *</label>
@@ -2180,6 +2391,108 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
           </div>
         </div>
 
+        {/* Foto Bukti Pengembalian / Kondisi Akhir */}
+        <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="font-semibold text-charcoal block">
+              Foto Bukti Pengembalian / Kondisi Akhir <span className="text-charcoal-muted font-normal">(Opsional)</span>
+            </label>
+            {proofPreview && (
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
+                Bukti Terlampir
+              </Badge>
+            )}
+          </div>
+
+          <input
+            type="file"
+            ref={proofCameraRef}
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => handleProofSelected(e.target.files?.[0])}
+          />
+          <input
+            type="file"
+            ref={proofGalleryRef}
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => handleProofSelected(e.target.files?.[0])}
+          />
+
+          {proofPreview ? (
+            <div className="relative rounded-lg border border-warm-300 bg-white p-2.5 flex items-center gap-3">
+              <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border border-warm-200 bg-warm-100">
+                <img src={proofPreview} alt="Bukti Rekonsiliasi" className="h-full w-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-xs font-semibold text-charcoal truncate">{proofPhoto?.name || 'Bukti Serah Terima'}</p>
+                <p className="text-[11px] text-charcoal-muted">
+                  Ukuran: {proofPhoto ? `${(proofPhoto.size / 1024).toFixed(1)} KB` : '-'}
+                </p>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => proofCameraRef.current?.click()}
+                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
+                  >
+                    <Camera className="h-3 w-3" />
+                    <span>Kamera</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => proofGalleryRef.current?.click()}
+                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
+                  >
+                    <Upload className="h-3 w-3" />
+                    <span>Galeri</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRemoveProof}
+                    className="h-6 text-[11px] px-2 text-rose-700 hover:text-rose-800"
+                  >
+                    <X className="h-3 w-3 mr-0.5" />
+                    <span>Hapus</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => proofCameraRef.current?.click()}
+                disabled={isProcessingProof}
+                className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
+              >
+                <Camera className="h-3.5 w-3.5 text-sage-700" />
+                <span className="font-semibold text-xs">Ambil Foto Bukti</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => proofGalleryRef.current?.click()}
+                disabled={isProcessingProof}
+                className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
+              >
+                <Upload className="h-3.5 w-3.5 text-sage-700" />
+                <span className="font-semibold text-xs">Pilih dari Galeri</span>
+              </button>
+            </div>
+          )}
+
+          {isProcessingProof && (
+            <p className="text-[11px] text-sage-700 animate-pulse">Mengompresi dan menyiapkan foto bukti...</p>
+          )}
+        </div>
+
         <div>
           <label className="font-semibold text-charcoal block mb-1">Catatan Berita Acara Rekonsiliasi *</label>
           <textarea
@@ -2201,20 +2514,6 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
           </Button>
         </div>
       </form>
-
-      {galleryOpen && (
-        <InventoryItemPhotoGalleryModal
-          open={galleryOpen}
-          onClose={() => {
-            setGalleryOpen(false)
-            refetchItemPhotos()
-          }}
-          item={item}
-          onItemUpdated={() => {
-            refetchItemPhotos()
-          }}
-        />
-      )}
     </Modal>
   )
 }
@@ -2363,7 +2662,6 @@ const ClosingReportModal: React.FC<ClosingReportModalProps> = ({
             <table className="w-full text-left text-[11px]">
               <thead className="bg-warm-100 text-charcoal font-semibold border-b border-warm-200">
                 <tr>
-                  <th className="p-2 w-10">Foto</th>
                   <th className="p-2">Kode</th>
                   <th className="p-2">Nama Barang</th>
                   <th className="p-2">Kepemilikan</th>
@@ -2376,14 +2674,6 @@ const ClosingReportModal: React.FC<ClosingReportModalProps> = ({
               <tbody className="divide-y divide-warm-200">
                 {items.map((i) => (
                   <tr key={i.id} className="hover:bg-warm-50/50">
-                    <td className="p-2">
-                      <InventoryItemThumbnail
-                        photoFileId={i.photo_file_id}
-                        category={i.category}
-                        name={i.name}
-                        sizeClass="h-8 w-8"
-                      />
-                    </td>
                     <td className="p-2 font-mono">{i.item_code}</td>
                     <td className="p-2 font-medium">{i.name}</td>
                     <td className="p-2">{OWNERSHIP_META[i.ownership_type].label.split('(')[0]}</td>
@@ -2453,12 +2743,16 @@ interface QuickSearchQrModalProps {
   open: boolean
   onClose: () => void
   items: InventoryItem[]
+  photoUrls: Record<string, string>
+  onOpenGallery: (item: InventoryItem) => void
 }
 
 const QuickSearchQrModal: React.FC<QuickSearchQrModalProps> = ({
   open,
   onClose,
   items,
+  photoUrls,
+  onOpenGallery,
 }) => {
   const [queryCode, setQueryCode] = useState('')
   const [foundItem, setFoundItem] = useState<InventoryItem | null>(null)
@@ -2502,6 +2796,25 @@ const QuickSearchQrModal: React.FC<QuickSearchQrModalProps> = ({
               </span>
             </div>
 
+            {/* Visual Photo Card */}
+            {foundItem.photo_file_id && photoUrls[foundItem.photo_file_id] ? (
+              <div className="relative overflow-hidden rounded-lg border border-warm-200 bg-warm-100 h-44 w-full">
+                <img
+                  src={photoUrls[foundItem.photo_file_id]}
+                  alt={foundItem.name}
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
+                  <Camera className="h-3 w-3" />
+                  <span>Foto Fisik Resmi</span>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-warm-200 bg-warm-50 p-3 text-center text-xs text-charcoal-muted">
+                Belum ada foto fisik terdaftar untuk barang ini.
+              </div>
+            )}
+
             <div className="space-y-1 text-xs border-t border-warm-200 pt-2 text-charcoal">
               <p><strong className="text-charcoal-muted">Pemilik:</strong> {foundItem.owner_name || 'Kelompok KKN'}</p>
               <p><strong className="text-charcoal-muted">Pemegang Terkini:</strong> {foundItem.current_holder_name || foundItem.responsible_person || 'Posko'}</p>
@@ -2509,6 +2822,20 @@ const QuickSearchQrModal: React.FC<QuickSearchQrModalProps> = ({
               <p><strong className="text-charcoal-muted">Kondisi:</strong> {foundItem.condition}</p>
               <p><strong className="text-charcoal-muted">Status:</strong> {STATUS_META[foundItem.item_status].label}</p>
             </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onOpenGallery(foundItem)
+                onClose()
+              }}
+              className="w-full text-xs gap-1.5 text-sage-900 border-sage-300 hover:bg-sage-50"
+            >
+              <Camera className="h-3.5 w-3.5 text-sage-700" />
+              <span>Buka Galeri Foto Lengkap ({foundItem.name})</span>
+            </Button>
           </div>
         ) : queryCode && (
           <div className="p-4 rounded-lg bg-warm-100 text-center text-charcoal-muted">
