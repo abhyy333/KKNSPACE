@@ -47,6 +47,8 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [localPhotoError, setLocalPhotoError] = useState<string | null>(null)
+  const [stagedPhotoFile, setStagedPhotoFile] = useState<File | null>(null)
+  const [stagedPhotoPreview, setStagedPhotoPreview] = useState<string | null>(null)
 
   const {
     register,
@@ -128,14 +130,47 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
     }
   }
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !member) return
 
     setLocalPhotoError(null)
+
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp'])
+    if (!allowed.has(file.type)) {
+      setLocalPhotoError('Format foto harus JPG, JPEG, PNG, atau WebP.')
+      return
+    }
+
+    if (file.size <= 0 || file.size > 5 * 1024 * 1024) {
+      setLocalPhotoError('Ukuran berkas foto maksimal 5 MB.')
+      return
+    }
+
+    if (stagedPhotoPreview) {
+      URL.revokeObjectURL(stagedPhotoPreview)
+    }
+
+    setStagedPhotoFile(file)
+    setStagedPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const handleCancelStagedPhoto = () => {
+    if (stagedPhotoPreview) {
+      URL.revokeObjectURL(stagedPhotoPreview)
+    }
+    setStagedPhotoFile(null)
+    setStagedPhotoPreview(null)
+    setLocalPhotoError(null)
+  }
+
+  const handleConfirmUploadPhoto = async () => {
+    if (!stagedPhotoFile || !member) return
+    setLocalPhotoError(null)
     try {
-      await onUploadPhoto(member.id, file)
+      await onUploadPhoto(member.id, stagedPhotoFile)
+      handleCancelStagedPhoto()
     } catch (err) {
       setLocalPhotoError(err instanceof Error ? err.message : 'Gagal mengunggah foto.')
     }
@@ -146,12 +181,14 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
     setLocalPhotoError(null)
     try {
       await onRemovePhoto(member.id)
+      handleCancelStagedPhoto()
     } catch (err) {
       setLocalPhotoError(err instanceof Error ? err.message : 'Gagal menghapus foto.')
     }
   }
 
   const handleClose = () => {
+    handleCancelStagedPhoto()
     setLocalPhotoError(null)
     onClose()
   }
@@ -172,7 +209,13 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
         {member && (
           <div className="rounded-lg border border-warm-300 bg-warm-50 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              {signedPhotoUrl ? (
+              {stagedPhotoPreview ? (
+                <img
+                  src={stagedPhotoPreview}
+                  alt={`Pratinjau foto baru ${member.full_name}`}
+                  className="h-12 w-12 rounded-full object-cover border-2 border-emerald-400 shrink-0"
+                />
+              ) : signedPhotoUrl ? (
                 <img
                   src={signedPhotoUrl}
                   alt={member.full_name}
@@ -185,10 +228,14 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
               )}
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-charcoal truncate">
-                  Foto Profil Anggota (Bucket Privat `kkn-private`)
+                  {stagedPhotoFile ? 'Pratinjau Foto Baru (Belum Disimpan)' : 'Foto Profil Anggota (kkn-private)'}
                 </p>
                 <p className="text-[11px] text-charcoal-muted truncate">
-                  {member.photo_path ? member.photo_path : 'Belum ada foto resmi — menggunakan avatar placeholder.'}
+                  {stagedPhotoFile
+                    ? `${stagedPhotoFile.name} (${Math.round(stagedPhotoFile.size / 1024)} KB) — Klik Simpan untuk menerapkan.`
+                    : member.photo_path
+                      ? member.photo_path
+                      : 'Belum ada foto resmi — menggunakan avatar inisial.'}
                 </p>
               </div>
             </div>
@@ -201,33 +248,65 @@ export const DirectoryMemberModal: React.FC<DirectoryMemberModalProps> = ({
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={photoUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="text-xs gap-1.5"
-              >
-                {photoUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Camera className="h-3.5 w-3.5" />
-                )}
-                <span>{member.photo_file_id ? 'Ganti Foto' : 'Unggah Foto'}</span>
-              </Button>
-              {member.photo_file_id && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={photoUploading}
-                  onClick={handleDeletePhoto}
-                  className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Hapus</span>
-                </Button>
+
+              {stagedPhotoFile ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={photoUploading}
+                    onClick={handleConfirmUploadPhoto}
+                    className="text-xs gap-1.5"
+                  >
+                    {photoUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                    <span>Simpan Foto Baru</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={photoUploading}
+                    onClick={handleCancelStagedPhoto}
+                    className="text-xs"
+                  >
+                    Batal
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={photoUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs gap-1.5"
+                  >
+                    {photoUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="h-3.5 w-3.5" />
+                    )}
+                    <span>{member.photo_file_id ? 'Ganti Foto' : 'Unggah Foto'}</span>
+                  </Button>
+                  {member.photo_file_id && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={photoUploading}
+                      onClick={handleDeletePhoto}
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Hapus</span>
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </div>
