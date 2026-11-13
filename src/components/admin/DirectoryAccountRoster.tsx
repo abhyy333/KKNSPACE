@@ -75,12 +75,6 @@ function formatShortDate(iso: string | null): string {
   })
 }
 
-function getDivisionDisplay(item: DirectoryRosterItemDto): string {
-  if (item.role === 'dpl') return 'Tidak berlaku'
-  if (item.division) return `Div. ${item.division}`
-  return 'Belum ditentukan'
-}
-
 export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
   roster,
   summary,
@@ -630,7 +624,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                 <thead>
                   <tr className="border-b border-warm-300 bg-warm-50 text-[11px] font-semibold uppercase tracking-wider text-charcoal-muted">
                     <th className="px-3 py-2.5">Anggota &amp; Identitas</th>
-                    <th className="px-3 py-2.5">Jabatan &amp; Divisi</th>
+                    <th className="px-3 py-2.5">Jabatan</th>
                     <th className="px-3 py-2.5">Email Akun Undangan</th>
                     <th className="px-3 py-2.5">Status Akun</th>
                     <th className="px-3 py-2.5">Auth &amp; Membership</th>
@@ -668,9 +662,6 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                         <td className="px-3 py-2.5 overflow-hidden">
                           <div className="font-medium text-charcoal leading-tight break-words">
                             {item.position_label}
-                          </div>
-                          <div className="text-[10px] text-charcoal-muted mt-0.5 leading-tight break-words">
-                            {getDivisionDisplay(item)}
                           </div>
                         </td>
 
@@ -743,7 +734,6 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                           <span className="font-mono">{item.identity_number}</span>
                           <span>·</span>
                           <span className="font-medium text-charcoal">{item.position_label}</span>
-                          {item.division && <span>· Div. {item.division}</span>}
                         </div>
                         <div className="text-[10px] text-charcoal-muted truncate">
                           {item.study_program} · <span className="font-medium text-sage-800">{item.university || 'Universitas Mataram'}</span>
@@ -858,7 +848,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
           open={Boolean(historyTarget)}
           onClose={() => setHistoryTarget(null)}
           title={`Riwayat Undangan — ${historyTarget.full_name}`}
-          description={`${historyTarget.position_label} · ${getDivisionDisplay(historyTarget)}`}
+          description={historyTarget.position_label}
         >
           {historyTarget.invitation_history.length === 0 ? (
             <p className="text-xs text-charcoal-muted py-4 text-center">

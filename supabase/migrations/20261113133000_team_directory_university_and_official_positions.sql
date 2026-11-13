@@ -6,5 +6,5 @@ SET university = 'Universitas Mataram'
 WHERE university IS NULL OR university <> 'Universitas Mataram';
 
 UPDATE public.kkn_team_directory
-SET position_label = 'Pembimbing (DPL)'
-WHERE full_name = 'Lalu Muhammad Aby Dujana, M.Si.';
+SET position_label = 'Pembimbing'
+WHERE identity_number = '198910222024061001';
