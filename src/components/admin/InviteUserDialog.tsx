@@ -51,7 +51,9 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClos
   const { toast } = useToast()
   const [serverError, setServerError] = useState<string | null>(null)
   const [manualFallback, setManualFallback] = useState<{
+    fullName?: string
     email: string
+    positionLabel?: string | null
     inviteLink: string
     message: string
   } | null>(null)
@@ -106,7 +108,9 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClos
           description: 'SMTP menolak pengiriman email; salin tautan aktivasi pada dialog.',
         })
         setManualFallback({
+          fullName: data.full_name,
           email: normalizedEmail,
+          positionLabel: data.role,
           inviteLink: result.invite_link,
           message: result.message,
         })
@@ -144,7 +148,9 @@ export const InviteUserDialog: React.FC<InviteUserDialogProps> = ({ open, onClos
     >
       {manualFallback ? (
         <ManualInviteLinkPanel
+          fullName={manualFallback.fullName}
           email={manualFallback.email}
+          positionLabel={manualFallback.positionLabel}
           inviteLink={manualFallback.inviteLink}
           message={manualFallback.message}
           onDone={handleClose}

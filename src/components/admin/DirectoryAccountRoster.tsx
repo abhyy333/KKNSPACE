@@ -117,7 +117,9 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
   const [historyTarget, setHistoryTarget] = useState<DirectoryRosterItemDto | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<AdminUserDto | null>(null)
   const [manualFallback, setManualFallback] = useState<{
+    fullName?: string
     email: string
+    positionLabel?: string | null
     inviteLink: string
     message: string
   } | null>(null)
@@ -250,7 +252,9 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
 
       if (res.delivery_method === 'manual_link' && res.invite_link) {
         setManualFallback({
+          fullName: item.full_name,
           email,
+          positionLabel: item.position_label,
           inviteLink: res.invite_link,
           message: res.message,
         })
@@ -304,7 +308,9 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
 
       if (res.delivery_method === 'manual_link' && res.invite_link) {
         setManualFallback({
+          fullName: item.full_name,
           email: item.latest_invitation?.email ?? item.resolved_email ?? '',
+          positionLabel: item.position_label,
           inviteLink: res.invite_link,
           message: res.message,
         })
@@ -834,7 +840,9 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
           description="Email undangan otomatis tidak terkirim atau dialihkan ke mode manual. Bagikan tautan resmi berikut kepada anggota terkait."
         >
           <ManualInviteLinkPanel
+            fullName={manualFallback.fullName}
             email={manualFallback.email}
+            positionLabel={manualFallback.positionLabel}
             inviteLink={manualFallback.inviteLink}
             message={manualFallback.message}
             onDone={() => setManualFallback(null)}

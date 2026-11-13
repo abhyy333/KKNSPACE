@@ -25,43 +25,48 @@ function resolveCanonicalAppUrl(req: Request): string {
   if (!isLocalRuntime) {
     const prodUrl = configured || CANONICAL_PROD_URL
     if (prodUrl.includes('localhost') || prodUrl.includes('127.0.0.1')) {
-      throw new Error('CONFIG_ERROR: Production invitation cannot use localhost or 127.0.0.1.')
+      return CANONICAL_PROD_URL
     }
     return prodUrl
   }
 
   // In local development runtime (local Supabase CLI instance):
-  const origin = req.headers.get('origin') || configured || 'http://127.0.0.1:5173'
+  const origin = req.headers.get('origin') || configured || CANONICAL_PROD_URL
   return origin.replace(/\/+$/, '')
 }
 
-function sanitizeActionLink(actionLink: string, canonicalBaseUrl: string): string {
-  try {
-    const parsed = new URL(actionLink)
-    const currentRedirect = parsed.searchParams.get('redirect_to')
-    const targetRedirect = `${canonicalBaseUrl}/auth/accept-invite`
-
-    // If redirect_to is missing or contains local addresses, enforce canonical target
-    if (
-      !currentRedirect ||
-      currentRedirect.includes('127.0.0.1') ||
-      currentRedirect.includes('localhost')
-    ) {
-      parsed.searchParams.set('redirect_to', targetRedirect)
-      return parsed.toString()
-    }
-    return actionLink
-  } catch {
-    return actionLink
+function buildSafeActivationUrl(
+  baseUrl: string,
+  hashedToken: string,
+  verificationType = 'invite',
+  metadata?: {
+    fullName?: string
+    positionLabel?: string | null
+    studyProgram?: string | null
   }
+): string {
+  const safeUrl = new URL(`${baseUrl}/auth/accept-invite`)
+  safeUrl.searchParams.set('token_hash', hashedToken)
+  safeUrl.searchParams.set('type', verificationType)
+  if (metadata?.fullName) {
+    safeUrl.searchParams.set('name', metadata.fullName)
+  }
+  if (metadata?.positionLabel) {
+    safeUrl.searchParams.set('pos', metadata.positionLabel)
+  }
+  if (metadata?.studyProgram) {
+    safeUrl.searchParams.set('prog', metadata.studyProgram)
+  }
+  return safeUrl.toString()
 }
 
-async function generateInviteFallbackLink(
+async function generateOfficialInviteToken(
   supabaseAdmin: Awaited<ReturnType<typeof requireSuperAdmin>>['supabaseAdmin'],
   email: string,
   redirectTo: string,
   fullName?: string
 ) {
+  // 1. Generate invitation link & token hash via Supabase Auth Admin API
   const { data: inviteLinkData, error: inviteLinkErr } =
     await supabaseAdmin.auth.admin.generateLink({
       type: 'invite',
@@ -72,15 +77,16 @@ async function generateInviteFallbackLink(
       },
     })
 
-  if (!inviteLinkErr && inviteLinkData?.user && inviteLinkData?.properties?.action_link) {
+  if (!inviteLinkErr && inviteLinkData?.user && inviteLinkData?.properties?.hashed_token) {
     return {
       user: inviteLinkData.user,
-      actionLink: inviteLinkData.properties.action_link,
+      hashedToken: inviteLinkData.properties.hashed_token,
+      verificationType: inviteLinkData.properties.verification_type || 'invite',
       error: null,
     }
   }
 
-  // If user is already registered/confirmed in Auth, fall back to magiclink
+  // 2. If user is already registered / confirmed in Auth, fall back to magiclink
   const { data: magicLinkData, error: magicLinkErr } =
     await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
@@ -88,17 +94,19 @@ async function generateInviteFallbackLink(
       options: { redirectTo },
     })
 
-  if (!magicLinkErr && magicLinkData?.user && magicLinkData?.properties?.action_link) {
+  if (!magicLinkErr && magicLinkData?.user && magicLinkData?.properties?.hashed_token) {
     return {
       user: magicLinkData.user,
-      actionLink: magicLinkData.properties.action_link,
+      hashedToken: magicLinkData.properties.hashed_token,
+      verificationType: magicLinkData.properties.verification_type || 'magiclink',
       error: null,
     }
   }
 
   return {
     user: null,
-    actionLink: null,
+    hashedToken: null,
+    verificationType: 'invite',
     error: inviteLinkErr || magicLinkErr,
   }
 }
@@ -290,53 +298,91 @@ Deno.serve(async (req) => {
         )
       }
 
-      let deliveryMethod: 'email' | 'manual_link' = 'email'
-      let inviteLink: string | null = null
+      // Invalidate the old pending invitation so old link cannot be used
+      await supabaseAdmin
+        .from('invitations')
+        .update({ status: 'revoked' })
+        .eq('id', inv.id)
 
-      const { error: resendErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(inv.email, {
+      let dirRow: { id: string; full_name: string; position_label: string; study_program: string } | null = null
+      if (inv.directory_member_id) {
+        const { data: fetchedDir } = await supabaseAdmin
+          .from('kkn_team_directory')
+          .select('id, full_name, position_label, study_program')
+          .eq('id', inv.directory_member_id)
+          .maybeSingle()
+        dirRow = fetchedDir
+      }
+
+      // Generate single official token via generateLink (never double-generate)
+      const tokenResult = await generateOfficialInviteToken(
+        supabaseAdmin,
+        inv.email,
         redirectTo,
-      })
+        dirRow?.full_name
+      )
 
-      if (resendErr) {
-        const fallback = await generateInviteFallbackLink(supabaseAdmin, inv.email, redirectTo)
-        if (fallback.error || !fallback.actionLink) {
-          return errorResponse(
-            `Gagal mengirim ulang email undangan (${resendErr.message}) maupun membuat tautan cadangan (${fallback.error?.message || 'Unknown error'}).`,
-            502
-          )
-        }
-        deliveryMethod = 'manual_link'
-        inviteLink = sanitizeActionLink(fallback.actionLink, baseUrl)
+      if (tokenResult.error || !tokenResult.user || !tokenResult.hashedToken) {
+        return errorResponse(
+          `Gagal membuat token undangan baru: ${tokenResult.error?.message || 'Unknown error'}.`,
+          502
+        )
       }
 
       const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-      await supabaseAdmin
+      const { data: newInv, error: insertNewErr } = await supabaseAdmin
         .from('invitations')
-        .update({ expires_at: newExpiry })
-        .eq('id', inv.id)
+        .insert({
+          email: inv.email,
+          role: inv.role,
+          division: inv.division,
+          status: 'pending',
+          invited_by: caller.id,
+          auth_user_id: tokenResult.user.id,
+          directory_member_id: inv.directory_member_id ?? null,
+          expires_at: newExpiry,
+        })
+        .select()
+        .single()
+
+      if (insertNewErr || !newInv) {
+        return errorResponse(
+          `Gagal mencatat undangan baru ke database: ${insertNewErr?.message || 'Unknown DB error'}`,
+          500
+        )
+      }
+
+      const safeInviteLink = buildSafeActivationUrl(
+        baseUrl,
+        tokenResult.hashedToken,
+        tokenResult.verificationType,
+        {
+          fullName: dirRow?.full_name,
+          positionLabel: dirRow?.position_label,
+          studyProgram: dirRow?.study_program,
+        }
+      )
 
       await recordAuditEvent(supabaseAdmin, {
         actorId: caller.id,
         action: 'invite_resent',
         tableName: 'invitations',
-        recordId: inv.id,
+        recordId: newInv.id,
         metadata: {
           email: inv.email,
           role: inv.role,
           directory_member_id: inv.directory_member_id ?? null,
-          delivery_method: deliveryMethod,
+          delivery_method: 'manual_link',
+          previous_invitation_id: inv.id,
         },
       })
 
       return jsonResponse({
         success: true,
-        delivery_method: deliveryMethod,
-        ...(inviteLink ? { invite_link: inviteLink } : {}),
-        message:
-          deliveryMethod === 'manual_link'
-            ? `Email SMTP tidak dapat dikirim (${resendErr?.message}). Tautan undangan baru untuk ${inv.email} siap disalin.`
-            : `Undangan berhasil dikirim ulang ke ${inv.email}.`,
-        invitation_id: inv.id,
+        delivery_method: 'manual_link',
+        invite_link: safeInviteLink,
+        message: `Tautan aktivasi baru untuk ${inv.email} berhasil dibuat dan siap disalin untuk dikirimkan melalui WhatsApp.`,
+        invitation_id: newInv.id,
       })
     }
 
@@ -354,6 +400,8 @@ Deno.serve(async (req) => {
       id: string
       linked_user_id: string | null
       full_name: string
+      position_label: string
+      study_program: string
       role: KknRole
       division: string | null
       account_email: string | null
@@ -363,7 +411,7 @@ Deno.serve(async (req) => {
     if (directoryMemberId) {
       const { data: fetchedDir, error: dirFetchErr } = await supabaseAdmin
         .from('kkn_team_directory')
-        .select('id, linked_user_id, full_name, role, division, account_email, is_active')
+        .select('id, linked_user_id, full_name, position_label, study_program, role, division, account_email, is_active')
         .eq('id', directoryMemberId)
         .maybeSingle()
 
@@ -420,7 +468,7 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Expire any stale pending invitations on this directory slot first
+      // Expire or revoke any stale pending invitations on this directory slot first
       const { data: slotPending } = await supabaseAdmin
         .from('invitations')
         .select('id, email, expires_at')
@@ -519,44 +567,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Send invitation via Supabase Auth Admin API (or fall back to generateLink if SMTP rejects)
-    let authUserId = ''
-    let deliveryMethod: 'email' | 'manual_link' = 'email'
-    let inviteLink: string | null = null
-
-    const { data: inviteAuthData, error: inviteErr } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    // 3. Generate single official token via generateLink (never double-generate)
+    const tokenResult = await generateOfficialInviteToken(
+      supabaseAdmin,
       rawEmail,
-      {
-        redirectTo,
-        data: { full_name: fullName },
-      }
+      redirectTo,
+      fullName
     )
 
-    if (!inviteErr && inviteAuthData?.user) {
-      authUserId = inviteAuthData.user.id
-    } else {
-      const fallback = await generateInviteFallbackLink(
-        supabaseAdmin,
-        rawEmail,
-        redirectTo,
-        fullName
+    if (tokenResult.error || !tokenResult.user || !tokenResult.hashedToken) {
+      return errorResponse(
+        `Gagal membuat token aktivasi undangan: ${tokenResult.error?.message || 'Unknown error'}.`,
+        502
       )
-
-      if (fallback.error || !fallback.user || !fallback.actionLink) {
-        return errorResponse(
-          `Gagal mengirimkan undangan via Auth Admin API (${inviteErr?.message || 'Unknown error'}) maupun membuat tautan cadangan (${fallback.error?.message || 'Unknown error'}).`,
-          502
-        )
-      }
-
-      authUserId = fallback.user.id
-      deliveryMethod = 'manual_link'
-      inviteLink = sanitizeActionLink(fallback.actionLink, baseUrl)
     }
 
+    const authUserId = tokenResult.user.id
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    // 4. Write profiles, invitations, and memberships cleanly with partial failure handling
+    // 4. Write profiles, invitations, and memberships cleanly
     if (!preserveExistingMembership) {
       const { error: profErr } = await supabaseAdmin
         .from('profiles')
@@ -572,7 +601,7 @@ Deno.serve(async (req) => {
 
       if (profErr) {
         console.error('Failed to upsert profile during invite:', profErr)
-        return errorResponse(`Undangan email terkirim, tetapi gagal menyiapkan profil: ${profErr.message}`, 500)
+        return errorResponse(`Gagal menyiapkan profil akun: ${profErr.message}`, 500)
       }
     }
 
@@ -601,7 +630,6 @@ Deno.serve(async (req) => {
 
     if (invInsertErr || !createdInv) {
       console.error('Failed to insert invitation row:', invInsertErr)
-      // Attempt cleanup of newly created auth user if it didn't exist before
       if (!existingAuthUser) {
         await supabaseAdmin.auth.admin.deleteUser(authUserId).catch((e) => console.error('Cleanup error:', e))
       }
@@ -627,7 +655,6 @@ Deno.serve(async (req) => {
 
       if (memErr) {
         console.error('Failed to upsert invited membership:', memErr)
-        // Mark invitation revoked on partial failure so it doesn't sit in invalid state
         await supabaseAdmin
           .from('invitations')
           .update({ status: 'revoked' })
@@ -636,7 +663,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Audit event (never log raw invite_link/token)
+    // Build safe manual activation link pointing directly to KKN SPACE frontend
+    const safeInviteLink = buildSafeActivationUrl(
+      baseUrl,
+      tokenResult.hashedToken,
+      tokenResult.verificationType,
+      {
+        fullName,
+        positionLabel: dirMember?.position_label,
+        studyProgram: dirMember?.study_program,
+      }
+    )
+
+    // 5. Audit event (never log raw tokens or links)
     await recordAuditEvent(supabaseAdmin, {
       actorId: caller.id,
       action: 'invite_created',
@@ -647,19 +686,16 @@ Deno.serve(async (req) => {
         role,
         division: division || undefined,
         directory_member_id: dirMember?.id || undefined,
-        delivery_method: deliveryMethod,
+        delivery_method: 'manual_link',
         note: note || undefined,
       },
     })
 
     return jsonResponse({
       success: true,
-      delivery_method: deliveryMethod,
-      ...(inviteLink ? { invite_link: inviteLink } : {}),
-      message:
-        deliveryMethod === 'manual_link'
-          ? `Undangan untuk ${rawEmail} (${role}) dibuat via tautan manual karena SMTP menolak pengiriman email.`
-          : `Undangan berhasil dikirim ke ${rawEmail} dengan peran ${role}.`,
+      delivery_method: 'manual_link',
+      invite_link: safeInviteLink,
+      message: `Tautan aktivasi manual untuk ${rawEmail} (${role}) berhasil dibuat dan siap disalin untuk dikirimkan melalui WhatsApp.`,
       invitation: createdInv,
     }, 201)
   } catch (err: any) {

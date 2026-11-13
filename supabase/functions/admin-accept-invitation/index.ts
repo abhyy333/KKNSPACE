@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       return errorResponse('Tidak ditemukan undangan KKN yang terdaftar untuk email Anda.', 404)
     }
 
-    const latestInv = invitations[0]
+    const latestInv = invitations.find((i) => i.status === 'pending') || invitations[0]
 
     // Check if already accepted & idempotency
     if (latestInv.status === 'accepted') {
