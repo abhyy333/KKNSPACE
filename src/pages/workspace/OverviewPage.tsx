@@ -475,12 +475,6 @@ export const OverviewPage: React.FC = () => {
             />
             <span>Segarkan</span>
           </Button>
-          <Link to="/workspace/logbook">
-            <Button size="sm" variant="default" className="text-xs gap-1.5">
-              <span>Isi Logbook</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -586,8 +580,7 @@ export const OverviewPage: React.FC = () => {
                   {data.members.length} Anggota
                 </h3>
                 <p className="text-xs text-charcoal-muted mt-1">
-                  {todayEventsCount} agenda hari ini · {data.todayShifts.length} piket ·{' '}
-                  {data.reportsCount} laporan
+                  {todayEventsCount} agenda hari ini · {data.todayShifts.length} piket posko
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-200 text-charcoal shrink-0">

@@ -12,7 +12,6 @@ import { ConfirmDialog, Modal } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchWorkspaceMembers } from '@/services/dashboardApi'
-import { fetchWorkProgramLogSummaries } from '@/services/logbookApi'
 import {
   createWorkProgram,
   deleteWorkProgram,
@@ -30,7 +29,6 @@ import type {
 import {
   AlertCircle,
   Award,
-  BookOpen,
   Calendar,
   CheckCircle2,
   Edit3,
@@ -108,12 +106,6 @@ export const ProgramsWorkspacePage: React.FC = () => {
     queryKey: ['workspace', 'members'],
     queryFn: fetchWorkspaceMembers,
     staleTime: 60_000,
-  })
-
-  const { data: logSummaries = {} } = useQuery({
-    queryKey: ['workspace', 'work-program-log-summaries'],
-    queryFn: fetchWorkProgramLogSummaries,
-    staleTime: 30_000,
   })
 
   const memberMap = useMemo(() => {
@@ -542,30 +534,6 @@ export const ProgramsWorkspacePage: React.FC = () => {
                         </div>
                       </div>
                     )}
-
-                    {(() => {
-                      const logStat = logSummaries[prog.id]
-                      return (
-                        <div className="flex items-center justify-between gap-2 pt-1">
-                          <span className="inline-flex items-center gap-1.5">
-                            <BookOpen className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-                            <span>
-                              Logbook:{' '}
-                              <strong className="font-medium text-charcoal">
-                                {logStat ? `${logStat.total} catatan` : 'Belum ada catatan'}
-                              </strong>
-                              {logStat?.latestDate ? ` (${formatDate(logStat.latestDate)})` : ''}
-                            </span>
-                          </span>
-                          <Link
-                            to={`/workspace/logbook?programId=${prog.id}`}
-                            className="text-sage-700 hover:underline font-medium shrink-0"
-                          >
-                            Buka Logbook
-                          </Link>
-                        </div>
-                      )
-                    })()}
                   </div>
 
                   {(editable || isLeadOrAdmin) && (

@@ -20,7 +20,7 @@ import {
   updateDocumentItem,
   type DocumentFormInput,
   type DocumentWithFile,
-} from '@/services/reportsApi'
+} from '@/services/documentsApi'
 import type { PublicationStatus, WorkspaceMemberSummary } from '@/types/database'
 import {
   AlertCircle,

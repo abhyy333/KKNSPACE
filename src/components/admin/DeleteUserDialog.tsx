@@ -172,7 +172,7 @@ const DeleteUserForm: React.FC<{
             {user.is_linked_to_directory ? (
               <p>
                 Akun ini terhubung ke slot direktori <span className="font-semibold">{user.directory_member_name}</span>.
-                Penghapusan ini akan menghapus akun login dari Supabase Auth, tetapi data anggota di direktori resmi tim KKN, foto profil, jabatan, logbook, laporan, transaksi keuangan, dokumentasi, dan seluruh riwayat aktivitas KKN tetap aman dipertahankan.
+                Penghapusan ini akan menghapus akun login dari Supabase Auth, tetapi data anggota di direktori resmi tim KKN, foto profil, jabatan, transaksi keuangan, dokumentasi, dan seluruh riwayat aktivitas KKN tetap aman dipertahankan.
               </p>
             ) : (
               <p>

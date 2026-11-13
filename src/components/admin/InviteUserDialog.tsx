@@ -16,8 +16,8 @@ const ROLE_OPTIONS: { value: KknRole; label: string; desc: string }[] = [
   { value: 'ketua', label: 'Ketua KKN', desc: 'Mengelola program kerja & publikasi konten' },
   { value: 'sekretaris', label: 'Sekretaris', desc: 'Mengelola administrasi, rapat & draf laporan' },
   { value: 'bendahara', label: 'Bendahara', desc: 'Mengelola keuangan & inventaris posko' },
-  { value: 'anggota', label: 'Anggota', desc: 'Mengelola tugas pribadi, dokumentasi & logbook' },
-  { value: 'dpl', label: 'DPL (Dosen Pembimbing)', desc: 'Memantau kegiatan & menyetujui laporan akhir' },
+  { value: 'anggota', label: 'Anggota', desc: 'Mengelola tugas pribadi, agenda & dokumentasi' },
+  { value: 'dpl', label: 'DPL (Dosen Pembimbing)', desc: 'Memantau kegiatan & evaluasi tim' },
 ]
 
 const inviteSchema = z.object({

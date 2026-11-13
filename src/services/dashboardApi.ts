@@ -47,7 +47,6 @@ export interface DashboardSummaryData {
   todayShifts: DutyShift[]
   finance: DashboardFinanceSummary
   announcements: Announcement[]
-  reportsCount: number
   todayDateKey: string
 }
 
@@ -115,7 +114,6 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
     shiftsRes,
     financeRes,
     announcementsRes,
-    reportsCountRes,
   ] = await Promise.all([
     supabase
       .from('group_settings')
@@ -156,9 +154,6 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(12),
-    supabase
-      .from('reports')
-      .select('id', { count: 'exact', head: true }),
   ])
 
   const firstError =
@@ -169,8 +164,7 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
     eventsRes.error ||
     shiftsRes.error ||
     financeRes.error ||
-    announcementsRes.error ||
-    reportsCountRes.error
+    announcementsRes.error
 
   if (firstError) {
     throw new Error(`Gagal memuat ringkasan dashboard: ${firstError.message}`)
@@ -211,7 +205,6 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
       transactionCount: financeRecap.allTimeEffectiveCount,
     },
     announcements: (announcementsRes.data as Announcement[]) ?? [],
-    reportsCount: reportsCountRes.count ?? 0,
     todayDateKey,
   }
 }

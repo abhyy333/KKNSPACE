@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { WorkspaceGuard } from '@/components/auth/WorkspaceGuard'
@@ -67,9 +67,6 @@ const DocumentationWorkspacePage = lazy(() =>
 const DocumentsPage = lazy(() =>
   import('@/pages/workspace/DocumentsPage').then((m) => ({ default: m.DocumentsPage }))
 )
-const FinalReportPage = lazy(() =>
-  import('@/pages/workspace/FinalReportPage').then((m) => ({ default: m.FinalReportPage }))
-)
 const MembersPage = lazy(() =>
   import('@/pages/workspace/MembersPage').then((m) => ({ default: m.MembersPage }))
 )
@@ -90,9 +87,6 @@ const InventoryPage = lazy(() =>
 )
 const SurveysPage = lazy(() =>
   import('@/pages/workspace/WorkspacePages').then((m) => ({ default: m.SurveysPage }))
-)
-const LogbookPage = lazy(() =>
-  import('@/pages/workspace/LogbookPage').then((m) => ({ default: m.LogbookPage }))
 )
 
 // Admin Pages (strictly isolated from public bundle)
@@ -163,11 +157,11 @@ export const router = createBrowserRouter([
       { path: 'finance', element: withSuspense(<FinancePage />) },
       { path: 'inventory', element: withSuspense(<InventoryPage />) },
       { path: 'surveys', element: withSuspense(<SurveysPage />) },
-      { path: 'logbook', element: withSuspense(<LogbookPage />) },
+      { path: 'logbook', element: <Navigate to="/workspace" replace /> },
       { path: 'duty', element: withSuspense(<DutyPage />) },
       { path: 'documentation', element: withSuspense(<DocumentationWorkspacePage />) },
       { path: 'documents', element: withSuspense(<DocumentsPage />) },
-      { path: 'final-report', element: withSuspense(<FinalReportPage />) },
+      { path: 'final-report', element: <Navigate to="/workspace" replace /> },
       { path: 'members', element: withSuspense(<MembersPage />) },
       { path: 'profile', element: withSuspense(<ProfilePage />) },
       { path: 'settings', element: withSuspense(<SettingsPage />) },

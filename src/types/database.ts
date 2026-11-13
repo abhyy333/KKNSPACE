@@ -150,8 +150,6 @@ export interface Announcement {
   updated_at: string
 }
 
-export type ReportStatus = 'draft' | 'submitted' | 'revision_requested' | 'approved'
-export type ReportReviewDecision = 'approved' | 'revision_requested'
 export type ProgramAssignmentType = 'pj' | 'member'
 
 export interface ProgramAssignment {
@@ -200,37 +198,6 @@ export interface DocumentItem {
   assigned_to: string | null
 }
 
-export interface Report {
-  id: string
-  title: string
-  status: ReportStatus
-  created_by: string
-  submitted_by: string | null
-  current_version_id: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface ReportVersion {
-  id: string
-  report_id: string
-  version_number: number
-  file_id: string | null
-  submitted_by: string | null
-  submitted_at: string | null
-  created_at: string
-}
-
-export interface ReportReview {
-  id: string
-  report_version_id: string
-  reviewer_id: string
-  reviewer_authority?: 'dpl' | 'super_admin'
-  decision: ReportReviewDecision
-  comments: string | null
-  reviewed_at: string
-}
-
 export interface WorkspaceMemberSummary {
   user_id: string
   full_name: string
@@ -266,66 +233,3 @@ export interface KknTeamDirectoryMember {
   updated_at: string
 }
 
-export type DailyLogCategory =
-  | 'program_kerja'
-  | 'sosialisasi'
-  | 'administrasi'
-  | 'koordinasi'
-  | 'observasi'
-  | 'piket_posko'
-  | 'lainnya'
-
-export type DailyLogVerificationStatus =
-  | 'draft'
-  | 'submitted'
-  | 'verified'
-  | 'revision_requested'
-
-export interface DailyLog {
-  id: string
-  author_id: string
-  log_date: string
-  title: string
-  content: string
-  activity_category: DailyLogCategory
-  work_program_id: string | null
-  location: string | null
-  duration_minutes: number | null
-  verification_status: DailyLogVerificationStatus
-  submitted_at: string | null
-  verified_by: string | null
-  verified_at: string | null
-  verification_note: string | null
-  correction_of_log_id: string | null
-  correction_reason: string | null
-  created_at: string
-  updated_at: string
-}
-
-export type DailyLogReviewDecision = 'verified' | 'revision_requested'
-
-export interface DailyLogReview {
-  id: string
-  log_id: string
-  reviewer_id: string
-  reviewer_authority?: 'dpl' | 'super_admin'
-  decision: DailyLogReviewDecision
-  note: string | null
-  reviewed_at: string
-}
-
-export interface DailyLogAttachment {
-  id: string
-  log_id: string
-  file_id: string
-  uploaded_by: string
-  created_at: string
-  file?: FileObject | null
-}
-
-export interface DailyLogParticipant {
-  id: string
-  log_id: string
-  user_id: string
-  created_at: string
-}
