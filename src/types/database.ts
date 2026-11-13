@@ -51,6 +51,28 @@ export interface GroupSettings {
   logo_file_id: string | null
   updated_by: string | null
   updated_at: string
+  platform_name?: string | null
+  university?: string | null
+  academic_year?: string | null
+  kkn_batch?: string | null
+  province?: string | null
+  regency?: string | null
+  district?: string | null
+  village?: string | null
+  posko_dusun?: string | null
+  posko_address?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  maps_url?: string | null
+  prep_date?: string | null
+  withdrawal_date?: string | null
+  dpl_name?: string | null
+  dpl_nip?: string | null
+  dpl_contact?: string | null
+  posko_description?: string | null
+  emergency_contact?: string | null
+  important_notes?: string | null
+  posko_photo_file_id?: string | null
 }
 
 export type WorkProgramStatus = 'planned' | 'ongoing' | 'completed' | 'cancelled'
@@ -232,4 +254,204 @@ export interface KknTeamDirectoryMember {
   created_at: string
   updated_at: string
 }
+
+// ==========================================
+// Phase 5.2 Operational Modules
+// ==========================================
+
+// Module 1: Meetings & Minutes
+export type MeetingStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled'
+export type MeetingAttendanceStatus = 'pending' | 'present' | 'absent' | 'excused'
+export type MeetingDecisionStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type MeetingMinuteStatus = 'draft' | 'published'
+
+export interface Meeting {
+  id: string
+  title: string
+  description: string | null
+  meeting_date: string
+  end_time: string | null
+  location: string | null
+  meeting_link: string | null
+  status: MeetingStatus
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MeetingAgendaItem {
+  id: string
+  meeting_id: string
+  title: string
+  sort_order: number
+  notes: string | null
+  duration_minutes: number | null
+}
+
+export interface MeetingMinute {
+  id: string
+  meeting_id: string
+  content: string
+  status: MeetingMinuteStatus
+  key_points: string | null
+  discussion_summary: string | null
+  conclusions: string | null
+  author_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MeetingAttendee {
+  meeting_id: string
+  user_id: string
+  attendance_status: MeetingAttendanceStatus
+  notes: string | null
+  confirmed_at: string | null
+}
+
+export interface MeetingDecision {
+  id: string
+  meeting_id: string
+  title: string | null
+  decision: string
+  responsible_user_id: string | null
+  due_date: string | null
+  status: MeetingDecisionStatus
+  progress_notes: string | null
+  created_at: string
+}
+
+export interface MeetingAttachment {
+  id: string
+  meeting_id: string
+  file_id: string
+  created_at: string
+}
+
+// Module 2: Inventory & Logistics
+export type InventoryItemType = 'asset' | 'consumable'
+export type InventoryCondition = 'good' | 'fair' | 'damaged' | 'lost'
+export type InventoryMovementType = 'in' | 'out' | 'borrow' | 'return' | 'adjustment'
+export type InventoryLoanStatus = 'pending' | 'approved' | 'rejected' | 'borrowed' | 'returned' | 'overdue' | 'cancelled'
+
+export interface InventoryItem {
+  id: string
+  item_code: string | null
+  name: string
+  description: string | null
+  category: string
+  item_type: InventoryItemType
+  quantity: number
+  available_quantity: number
+  unit: string
+  condition: InventoryCondition
+  location: string | null
+  acquisition_date: string | null
+  source: string | null
+  price: number | null
+  photo_file_id: string | null
+  notes: string | null
+  responsible_person: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryLoan {
+  id: string
+  item_id: string
+  borrower_id: string
+  quantity: number
+  purpose: string
+  status: InventoryLoanStatus
+  borrow_date: string | null
+  expected_return_date: string
+  actual_return_date: string | null
+  approved_by: string | null
+  approved_at: string | null
+  rejection_reason: string | null
+  condition_before: InventoryCondition
+  condition_after: InventoryCondition | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryMovement {
+  id: string
+  item_id: string
+  movement_type: InventoryMovementType
+  quantity: number
+  user_id: string
+  notes: string | null
+  movement_date: string
+}
+
+// Module 3: Village Surveys
+export type SurveyCategory =
+  | 'wilayah_dusun'
+  | 'ekonomi_umkm'
+  | 'potensi_desa'
+  | 'kebutuhan_warga'
+  | 'posyandu_agregat'
+  | 'lainnya'
+
+export type SurveyFormStatus = 'draft' | 'active' | 'closed'
+export type SurveyFieldType =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'single_choice'
+  | 'multiple_choice'
+  | 'boolean'
+  | 'long_text'
+export type SurveyResponseStatus = 'draft' | 'submitted' | 'verified' | 'archived'
+
+export interface SurveyForm {
+  id: string
+  title: string
+  description: string | null
+  category: SurveyCategory
+  target_dusun: string | null
+  template_key: string | null
+  status: SurveyFormStatus
+  created_by: string
+  created_at: string
+}
+
+export interface SurveyField {
+  id: string
+  form_id: string
+  label: string
+  field_type: SurveyFieldType
+  required: boolean
+  options: string[]
+  sort_order: number
+}
+
+export interface SurveyResponse {
+  id: string
+  form_id: string
+  status: SurveyResponseStatus
+  respondent_name: string | null
+  dusun: string | null
+  location_details: string | null
+  submitted_by: string
+  submitted_at: string
+  verified_by: string | null
+  verified_at: string | null
+  verification_notes: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SurveyAnswer {
+  id: string
+  response_id: string
+  field_id: string
+  answer_text: string | null
+  answer_json: unknown | null
+}
+
 

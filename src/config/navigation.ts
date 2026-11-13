@@ -68,6 +68,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Ringkasan Admin", href: "/admin", icon: LayoutDashboard },
       { title: "Manajemen Akun", href: "/admin/users", icon: UserCheck },
       { title: "Undangan Anggota", href: "/admin/invitations", icon: Users },
+      { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
       { title: "Log Audit Sistem", href: "/admin/audit", icon: History },
       { title: "Pengaturan Platform", href: "/admin/settings", icon: ShieldAlert },
     ],

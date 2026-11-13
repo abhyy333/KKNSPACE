@@ -65,7 +65,7 @@ function getLocalStartOfDayIso(date: Date = new Date()): string {
 export async function fetchGroupSettings(): Promise<GroupSettings | null> {
   const { data, error } = await supabase
     .from('group_settings')
-    .select('id, group_name, village_name, period_start, period_end, logo_file_id, updated_by, updated_at')
+    .select('*')
     .eq('id', 1)
     .maybeSingle()
 
@@ -74,6 +74,32 @@ export async function fetchGroupSettings(): Promise<GroupSettings | null> {
   }
 
   return (data as GroupSettings | null) ?? null
+}
+
+export async function updateGroupSettings(
+  settings: Partial<GroupSettings>
+): Promise<GroupSettings> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sesi login tidak ditemukan.')
+
+  const { data, error } = await supabase
+    .from('group_settings')
+    .update({
+      ...settings,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', 1)
+    .select('*')
+    .single()
+
+  if (error || !data) {
+    throw new Error(`Gagal memperbarui konfigurasi posko: ${error?.message}`)
+  }
+
+  return data as GroupSettings
 }
 
 export async function fetchWorkspaceMembers(): Promise<WorkspaceMemberSummary[]> {

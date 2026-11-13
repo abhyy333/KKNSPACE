@@ -77,16 +77,16 @@ const SettingsPage = lazy(() =>
   import('@/pages/workspace/SettingsPage').then((m) => ({ default: m.SettingsPage }))
 )
 const MeetingsPage = lazy(() =>
-  import('@/pages/workspace/WorkspacePages').then((m) => ({ default: m.MeetingsPage }))
+  import('@/pages/workspace/MeetingsPage').then((m) => ({ default: m.MeetingsPage }))
 )
 const FinancePage = lazy(() =>
   import('@/pages/workspace/FinancePage').then((m) => ({ default: m.FinancePage }))
 )
 const InventoryPage = lazy(() =>
-  import('@/pages/workspace/WorkspacePages').then((m) => ({ default: m.InventoryPage }))
+  import('@/pages/workspace/InventoryPage').then((m) => ({ default: m.InventoryPage }))
 )
 const SurveysPage = lazy(() =>
-  import('@/pages/workspace/WorkspacePages').then((m) => ({ default: m.SurveysPage }))
+  import('@/pages/workspace/SurveysPage').then((m) => ({ default: m.SurveysPage }))
 )
 
 // Admin Pages (strictly isolated from public bundle)
@@ -98,6 +98,9 @@ const AdminUsersPage = lazy(() =>
 )
 const AdminInvitationsPage = lazy(() =>
   import('@/pages/admin/AdminInvitationsPage').then((m) => ({ default: m.AdminInvitationsPage }))
+)
+const AdminKknConfigPage = lazy(() =>
+  import('@/pages/admin/AdminKknConfigPage').then((m) => ({ default: m.AdminKknConfigPage }))
 )
 const AdminAuditPage = lazy(() =>
   import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage }))
@@ -180,6 +183,7 @@ export const router = createBrowserRouter([
       { index: true, element: withSuspense(<AdminOverviewPage />) },
       { path: 'users', element: withSuspense(<AdminUsersPage />) },
       { path: 'invitations', element: withSuspense(<AdminInvitationsPage />) },
+      { path: 'kkn-config', element: withSuspense(<AdminKknConfigPage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
       { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
     ],
