@@ -584,4 +584,51 @@ export interface SurveyAnswer {
   answer_json: unknown | null
 }
 
+export type ActivityDocCategory =
+  | 'program_kerja'
+  | 'observasi_survei'
+  | 'kegiatan_desa'
+  | 'sosialisasi'
+  | 'lainnya'
+
+export interface ActivityDocumentationPhoto {
+  id: string
+  activity_id: string
+  file_id: string | null
+  storage_path: string
+  caption: string | null
+  photographer: string | null
+  sort_order: number
+  is_cover: boolean
+  created_at: string
+}
+
+export interface ActivityDocumentation {
+  id: string
+  title: string
+  slug: string
+  category: ActivityDocCategory
+  short_description: string
+  description: string
+  activity_date: string
+  start_time: string | null
+  end_time: string | null
+  location_name: string
+  dusun_name: string | null
+  objectives: string | null
+  execution_steps: string | null
+  results: string | null
+  photographer_name: string | null
+  cover_photo_id: string | null
+  cover_photo_path: string | null
+  publication_status: PublicationStatus
+  published_at: string | null
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  photos?: ActivityDocumentationPhoto[]
+  photo_count?: number
+}
+
 

@@ -338,24 +338,54 @@ export const HomePage: React.FC = () => {
         ) : overview && overview.media.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {overview.media.map((media) => (
-              <Card key={media.id} className="border-warm-300 bg-white overflow-hidden hover:shadow-card transition-shadow">
-                <div className="h-36 bg-sage-800 p-5 flex flex-col justify-between text-white">
-                  <div className="flex items-center justify-between text-[11px] text-warm-200">
-                    <span className="inline-flex items-center gap-1 bg-black/25 px-2.5 py-0.5 rounded-full">
-                      <ImageIcon className="h-3 w-3" />
-                      Arsip Publik
-                    </span>
-                    <span>{formatPublicDate(media.published_at || media.created_at, 'Terbaru')}</span>
+              <Card
+                key={media.id}
+                className="group border border-warm-300 bg-white overflow-hidden hover:border-sage-400 hover:shadow-card transition-all flex flex-col"
+              >
+                <Link
+                  to={`/dokumentasi/${media.slug || media.id}`}
+                  className="flex flex-col flex-1"
+                >
+                  <div className="relative h-40 bg-warm-200 overflow-hidden">
+                    <img
+                      src={media.cover_url || '/brand/kkn-pringgasela-selatan-2026-2027.png'}
+                      alt={media.title || 'Dokumentasi KKN'}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        if (!target.src.includes('brand/kkn-pringgasela-selatan-2026-2027.png')) {
+                          target.src = '/brand/kkn-pringgasela-selatan-2026-2027.png'
+                          target.className = 'h-full w-full object-contain p-4 bg-warm-100'
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] text-white">
+                        <ImageIcon className="h-2.5 w-2.5 text-sage-300" />
+                        Album Posko
+                      </span>
+                    </div>
+                    <div className="absolute bottom-2 left-3 right-3 text-[11px] text-warm-100 truncate">
+                      <span>{formatPublicDate(media.published_at || media.created_at, 'Terbaru')}</span>
+                    </div>
                   </div>
-                  <h3 className="text-base font-serif font-semibold leading-snug line-clamp-2">
-                    {media.title || 'Dokumentasi Kegiatan KKN'}
-                  </h3>
-                </div>
-                <CardContent className="p-5">
-                  <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-3">
-                    {media.caption || 'Catatan kegiatan lapangan mahasiswa KKN Desa Pringgasela Selatan.'}
-                  </p>
-                </CardContent>
+                  <CardContent className="p-4 flex-1 flex flex-col justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <h3 className="text-sm font-serif font-semibold text-charcoal leading-snug line-clamp-2 group-hover:text-sage-800 transition-colors">
+                        {media.title || 'Dokumentasi Kegiatan KKN'}
+                      </h3>
+                      <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-2">
+                        {media.caption || 'Catatan kegiatan lapangan mahasiswa KKN Desa Pringgasela Selatan.'}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-warm-200 flex items-center justify-between text-[11px] font-medium text-sage-700 group-hover:text-sage-900">
+                      <span>Buka Album</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </CardContent>
+                </Link>
               </Card>
             ))}
           </div>

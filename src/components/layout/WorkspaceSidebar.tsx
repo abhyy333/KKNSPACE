@@ -35,12 +35,12 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       {/* Sidebar container */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-50 flex w-64 flex-col border-r border-warm-300 bg-warm-50 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0",
+          "fixed top-0 bottom-0 left-0 z-50 flex h-full max-h-[100dvh] w-64 flex-col border-r border-warm-300 bg-warm-50 shrink-0 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Workspace Brand / Group Info */}
-        <div className="flex h-16 items-center justify-between border-b border-warm-300 px-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-warm-300 px-4">
           <div className="flex items-center gap-3 min-w-0">
             <BrandLogo size="md" className="h-9 w-9 shrink-0 drop-shadow-xs" />
             <div className="flex flex-col overflow-hidden min-w-0">
@@ -55,7 +55,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </div>
 
         {/* User Role Tag */}
-        <div className="px-4 py-3 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
+        <div className="px-4 py-3 shrink-0 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-charcoal-muted min-w-0">
             <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0" />
             <span className="shrink-0">Peran:</span>
@@ -68,8 +68,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation list */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        {/* Navigation list with independent scroll */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-6 overscroll-contain">
           {WORKSPACE_NAV.map((section) => (
             <div key={section.title} className="space-y-1">
               <div className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-charcoal-muted uppercase">
@@ -109,7 +109,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </div>
 
         {/* Footer info & Public site link */}
-        <div className="border-t border-warm-300 p-3 bg-warm-50 space-y-2">
+        <div className="shrink-0 border-t border-warm-300 p-3 bg-warm-50 space-y-2">
           {isSuperAdmin && (
             <NavLink
               to="/admin"

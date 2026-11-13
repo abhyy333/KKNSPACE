@@ -47,7 +47,7 @@ export const WorkspaceLayout: React.FC = () => {
   const villageName = groupSettings?.village_name?.trim() || 'Desa belum diatur'
 
   return (
-    <div className="flex min-h-screen bg-warm-100 text-charcoal">
+    <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-warm-100 text-charcoal">
       {/* Sidebar Navigation */}
       <WorkspaceSidebar
         isOpen={sidebarOpen}
@@ -59,7 +59,7 @@ export const WorkspaceLayout: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
         <WorkspaceTopbar
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           userName={displayName}
@@ -71,7 +71,7 @@ export const WorkspaceLayout: React.FC = () => {
           isLoadingNotifications={isLoadingNotifications}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 min-w-0 overscroll-y-contain">
           <div className="mx-auto max-w-7xl">
             <Outlet />
           </div>

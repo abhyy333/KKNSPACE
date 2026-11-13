@@ -37,6 +37,11 @@ const ProgramsPage = lazy(() =>
 const DocumentationPage = lazy(() =>
   import('@/pages/public/DocumentationPage').then((m) => ({ default: m.DocumentationPage }))
 )
+const DocumentationDetailPage = lazy(() =>
+  import('@/pages/public/DocumentationDetailPage').then((m) => ({
+    default: m.DocumentationDetailPage,
+  }))
+)
 const VillageProfilePage = lazy(() =>
   import('@/pages/public/VillageProfilePage').then((m) => ({ default: m.VillageProfilePage }))
 )
@@ -139,6 +144,7 @@ export const router = createBrowserRouter([
       { path: 'tim', element: withSuspense(<TeamPage />) },
       { path: 'program-kerja', element: withSuspense(<ProgramsPage />) },
       { path: 'dokumentasi', element: withSuspense(<DocumentationPage />) },
+      { path: 'dokumentasi/:slug', element: withSuspense(<DocumentationDetailPage />) },
       { path: 'profil-desa', element: withSuspense(<VillageProfilePage />) },
     ],
   },
