@@ -364,21 +364,21 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
 
     if (item.auth_linked) {
       return (
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-charcoal bg-warm-100 border border-warm-200 rounded-md px-2.5 py-1.5">
-            <Lock className="h-3 w-3 text-sage-700 shrink-0" />
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-1 font-mono text-[11px] text-charcoal bg-warm-100/80 border border-warm-200 rounded px-2 py-1 truncate" title={item.resolved_email || ''}>
+            <Lock className="h-3 w-3 text-emerald-700 shrink-0" />
             <span className="truncate">{item.resolved_email}</span>
           </div>
-          <p className="text-[10px] text-charcoal-muted">
-            Email terkunci (akun aktif tertaut)
+          <p className="text-[10px] text-emerald-700">
+            Email terkunci (aktif tertaut)
           </p>
         </div>
       )
     }
 
     return (
-      <div className="space-y-1">
-        <div className="flex items-center gap-1.5">
+      <div className="space-y-1 w-full min-w-0">
+        <div className="flex items-center gap-1.5 w-full">
           <Input
             type="email"
             value={value}
@@ -396,26 +396,28 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
             placeholder="email.anggota@contoh.ac.id"
             aria-label={`Email akun ${item.full_name}`}
             disabled={isSaving || processingId === item.id}
-            className="h-8 text-xs font-mono min-w-[200px]"
+            className="h-7 text-[11px] font-mono w-full min-w-0 px-2"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={!isDirty || isSaving || processingId === item.id}
-            onClick={() => void handleSaveEmail(item)}
-            className="h-8 px-2.5 text-[11px] gap-1 shrink-0"
-            title="Simpan alamat email untuk slot ini"
-          >
-            {isSaving ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-            <span>Simpan Email</span>
-          </Button>
+          {isDirty && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isSaving || processingId === item.id}
+              onClick={() => void handleSaveEmail(item)}
+              className="h-7 px-2 text-[10px] gap-1 shrink-0 bg-sage-50 text-sage-800 border-sage-300 hover:bg-sage-100"
+              title="Simpan alamat email untuk slot ini"
+            >
+              {isSaving ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <Save className="h-2.5 w-2.5" />}
+              <span>Simpan</span>
+            </Button>
+          )}
         </div>
-        {rowError && <p className="text-[11px] text-red-600">{rowError}</p>}
+        {rowError && <p className="text-[10px] text-red-600 leading-tight break-words">{rowError}</p>}
         {item.action_reason && !rowError && (
-          <p className="text-[11px] text-amber-800 flex items-start gap-1">
-            <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5 text-amber-600" />
-            <span>{item.action_reason}</span>
+          <p className="text-[10px] text-amber-800 flex items-start gap-1 leading-tight break-words">
+            <AlertTriangle className="h-2.5 w-2.5 shrink-0 mt-0.5 text-amber-600" />
+            <span className="line-clamp-2" title={item.action_reason}>{item.action_reason}</span>
           </p>
         )}
       </div>
@@ -428,7 +430,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
       item.latest_invitation && item.latest_invitation.effective_status === 'pending'
 
     return (
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
+      <div className="flex flex-wrap items-center justify-end gap-1">
         {!item.auth_linked && hasActivePendingInvite && item.latest_invitation && (
           <>
             <Button
@@ -437,9 +439,10 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
               size="sm"
               disabled={isBusy}
               onClick={() => void handleResendInvitation(item)}
-              className="h-7 px-2.5 text-[11px] gap-1"
+              className="h-7 px-2 text-[10px] gap-1"
+              title="Kirim ulang undangan aktivasi"
             >
-              <RefreshCw className={`h-3 w-3 ${isBusy ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-2.5 w-2.5 ${isBusy ? 'animate-spin' : ''}`} />
               <span>Kirim Ulang</span>
             </Button>
             <Button
@@ -454,9 +457,10 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                   email: item.latest_invitation!.email,
                 })
               }
-              className="h-7 px-2.5 text-[11px] gap-1 text-red-700 border-red-200 hover:bg-red-50"
+              className="h-7 px-2 text-[10px] gap-1 text-red-700 border-red-200 hover:bg-red-50"
+              title="Batalkan undangan ini"
             >
-              <XCircle className="h-3 w-3" />
+              <XCircle className="h-2.5 w-2.5" />
               <span>Batalkan</span>
             </Button>
           </>
@@ -471,9 +475,10 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
               (!item.resolved_email && !(draftEmails[item.id] ?? '').trim())
             }
             onClick={() => void handleRequestInvite(item)}
-            className="h-7 px-2.5 text-[11px] gap-1 bg-charcoal hover:bg-black text-white"
+            className="h-7 px-2.5 text-[10px] gap-1 bg-charcoal hover:bg-black text-white shrink-0"
+            title="Kirim undangan aktivasi ke email anggota"
           >
-            <Send className="h-3 w-3" />
+            <Send className="h-2.5 w-2.5" />
             <span>Kirim Undangan</span>
           </Button>
         )}
@@ -499,11 +504,11 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                 last_sign_in_at: item.last_sign_in_at,
               })
             }}
-            className="h-7 px-2 text-[11px] gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+            className="h-7 px-2 text-[10px] gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 shrink-0"
             title={item.is_super_admin ? 'Akun Super Admin dilindungi' : 'Hapus Akun Permanen'}
           >
-            <Trash2 className="h-3 w-3" />
-            <span>Hapus Akun</span>
+            <Trash2 className="h-2.5 w-2.5" />
+            <span>Hapus</span>
           </Button>
         )}
 
@@ -512,11 +517,11 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
           variant="ghost"
           size="sm"
           onClick={() => setHistoryTarget(item)}
-          className="h-7 px-2 text-[11px] gap-1 text-charcoal-muted"
+          className="h-7 px-1.5 text-[10px] gap-1 text-charcoal-muted hover:text-charcoal shrink-0"
           title="Lihat riwayat undangan slot ini"
         >
-          <History className="h-3 w-3" />
-          <span>Riwayat ({item.invitation_history.length})</span>
+          <History className="h-2.5 w-2.5" />
+          <span>({item.invitation_history.length})</span>
         </Button>
       </div>
     )
@@ -611,17 +616,25 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
           </CardContent>
         ) : (
           <>
-            {/* Desktop Table */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+            {/* Desktop Table with Strict Proportional Layout */}
+            <div className="hidden lg:block w-full min-w-0">
+              <table className="w-full text-left border-collapse text-xs table-fixed">
+                <colgroup>
+                  <col className="w-[18%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[18%]" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-warm-300 bg-warm-50 text-[11px] font-semibold uppercase tracking-wider text-charcoal-muted">
-                    <th className="px-4 py-3">Anggota &amp; Identitas</th>
-                    <th className="px-4 py-3">Jabatan &amp; Divisi</th>
-                    <th className="px-4 py-3">Email Akun Undangan</th>
-                    <th className="px-4 py-3">Status Siklus Akun</th>
-                    <th className="px-4 py-3">Auth &amp; Keanggotaan</th>
-                    <th className="px-4 py-3 text-right">Aksi</th>
+                    <th className="px-3 py-2.5">Anggota &amp; Identitas</th>
+                    <th className="px-3 py-2.5">Jabatan &amp; Divisi</th>
+                    <th className="px-3 py-2.5">Email Akun Undangan</th>
+                    <th className="px-3 py-2.5">Status Akun</th>
+                    <th className="px-3 py-2.5">Auth &amp; Membership</th>
+                    <th className="px-3 py-2.5 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-warm-200 bg-white">
@@ -629,52 +642,61 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                     const badge = LIFECYCLE_BADGES[item.account_lifecycle_status]
                     return (
                       <tr key={item.id} className="hover:bg-warm-50/70 transition-colors align-top">
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-charcoal flex items-center gap-1.5 flex-wrap">
-                            <span>{item.full_name}</span>
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <div className="font-semibold text-charcoal flex items-center gap-1.5 flex-wrap leading-snug">
+                            <span className="line-clamp-2 break-words" title={item.full_name}>
+                              {item.full_name}
+                            </span>
                             {item.is_super_admin && (
-                              <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[10px] gap-1">
+                              <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[9px] px-1 py-0 gap-0.5 shrink-0">
                                 <Shield className="h-2.5 w-2.5" />
                                 Super Admin
                               </Badge>
                             )}
                           </div>
-                          <div className="text-[11px] font-mono text-charcoal-muted mt-0.5">
+                          <div className="text-[10px] font-mono text-charcoal-muted mt-0.5 truncate">
                             {item.identity_number}
                           </div>
-                          <div className="text-[11px] text-charcoal-muted">
+                          <div className="text-[10px] text-charcoal-muted truncate" title={item.study_program}>
                             {item.study_program}
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="font-medium text-charcoal">{item.position_label}</div>
-                          <div className="text-[11px] text-charcoal-muted mt-0.5">
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <div className="font-medium text-charcoal leading-tight break-words">
+                            {item.position_label}
+                          </div>
+                          <div className="text-[10px] text-charcoal-muted mt-0.5 leading-tight break-words">
                             {getDivisionDisplay(item)}
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 min-w-[290px]">{renderEmailEditor(item)}</td>
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          {renderEmailEditor(item)}
+                        </td>
 
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge variant={badge.variant} className="text-[10px]">
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <Badge variant={badge.variant} className="text-[10px] px-1.5 py-0.5 whitespace-nowrap">
                             {badge.label}
                           </Badge>
                           {item.latest_invitation && (
-                            <div className="text-[10px] text-charcoal-muted mt-1">
-                              Diundang: {formatShortDate(item.latest_invitation.created_at)}
+                            <div className="text-[10px] text-charcoal-muted mt-1 leading-tight break-words">
+                              {formatShortDate(item.latest_invitation.created_at)}
                             </div>
                           )}
                         </td>
 
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="space-y-1">
-                            <div className="text-[11px] font-mono text-charcoal-muted">
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <div className="space-y-0.5 leading-tight">
+                            <div
+                              className="text-[10px] font-mono text-charcoal-muted truncate"
+                              title={item.linked_user_id ? `UID: ${item.linked_user_id}` : undefined}
+                            >
                               {item.linked_user_id
                                 ? `UID: ${item.linked_user_id.slice(0, 8)}…`
-                                : 'Auth belum tertaut'}
+                                : 'Belum tertaut'}
                             </div>
-                            <div className="text-[11px] text-charcoal-muted">
+                            <div className="text-[10px] text-charcoal-muted truncate">
                               Member:{' '}
                               <span className="font-medium text-charcoal">
                                 {item.membership_status
@@ -685,7 +707,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                           </div>
                         </td>
 
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-right overflow-hidden">
                           {renderSlotActions(item)}
                         </td>
                       </tr>
@@ -700,38 +722,51 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
               {filteredRoster.map((item) => {
                 const badge = LIFECYCLE_BADGES[item.account_lifecycle_status]
                 return (
-                  <div key={item.id} className="p-4 space-y-3">
+                  <div key={item.id} className="p-3.5 space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <h3 className="text-sm font-semibold text-charcoal break-words">
                             {item.full_name}
                           </h3>
                           {item.is_super_admin && (
-                            <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[10px] gap-1">
+                            <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[9px] px-1 py-0 gap-0.5 shrink-0">
                               <Shield className="h-2.5 w-2.5" />
                               Super Admin
                             </Badge>
                           )}
                         </div>
-                        <p className="text-[11px] font-mono text-charcoal-muted mt-0.5">
-                          {item.identity_number} · {item.position_label} · {getDivisionDisplay(item)}
-                        </p>
+                        <div className="text-[11px] text-charcoal-muted mt-0.5 space-x-1.5">
+                          <span className="font-mono">{item.identity_number}</span>
+                          <span>·</span>
+                          <span className="font-medium text-charcoal">{item.position_label}</span>
+                          {item.division && <span>· Div. {item.division}</span>}
+                        </div>
+                        <div className="text-[10px] text-charcoal-muted truncate">
+                          {item.study_program}
+                        </div>
                       </div>
-                      <Badge variant={badge.variant} className="text-[10px] shrink-0">
+                      <Badge variant={badge.variant} className="text-[10px] shrink-0 mt-0.5">
                         {badge.label}
                       </Badge>
                     </div>
 
-                    {renderEmailEditor(item)}
+                    <div className="bg-warm-50/70 p-2.5 rounded-md border border-warm-200/80 space-y-1">
+                      <span className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block">
+                        Email Akun Undangan
+                      </span>
+                      {renderEmailEditor(item)}
+                    </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                      <span className="text-[11px] text-charcoal-muted font-mono">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-warm-100">
+                      <div className="text-[10px] font-mono text-charcoal-muted truncate">
                         {item.linked_user_id
                           ? `UID: ${item.linked_user_id.slice(0, 8)}… (${item.membership_status ?? 'active'})`
                           : 'Belum tertaut ke Auth'}
-                      </span>
-                      {renderSlotActions(item)}
+                      </div>
+                      <div className="flex items-center justify-end gap-1 flex-wrap">
+                        {renderSlotActions(item)}
+                      </div>
                     </div>
                   </div>
                 )
