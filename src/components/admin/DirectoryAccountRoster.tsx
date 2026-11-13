@@ -660,6 +660,9 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                           <div className="text-[10px] text-charcoal-muted truncate" title={item.study_program}>
                             {item.study_program}
                           </div>
+                          <div className="text-[10px] text-sage-800/90 font-medium truncate" title={item.university || 'Universitas Mataram'}>
+                            {item.university || 'Universitas Mataram'}
+                          </div>
                         </td>
 
                         <td className="px-3 py-2.5 overflow-hidden">
@@ -743,7 +746,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
                           {item.division && <span>· Div. {item.division}</span>}
                         </div>
                         <div className="text-[10px] text-charcoal-muted truncate">
-                          {item.study_program}
+                          {item.study_program} · <span className="font-medium text-sage-800">{item.university || 'Universitas Mataram'}</span>
                         </div>
                       </div>
                       <Badge variant={badge.variant} className="text-[10px] shrink-0 mt-0.5">

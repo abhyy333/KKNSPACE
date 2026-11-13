@@ -128,19 +128,14 @@ export const TeamPage: React.FC = () => {
                     <Badge variant={getRoleBadgeVariant(member.role)}>
                       {member.position_label}
                     </Badge>
-                    {member.division && (
-                      <Badge variant="outline" className="text-[11px] text-charcoal-muted">
-                        Div. {member.division}
-                      </Badge>
-                    )}
                   </div>
                   <h3 className="text-sm font-semibold text-charcoal pt-1 break-words">
                     {member.full_name}
                   </h3>
                   <div className="flex items-start gap-1.5 text-xs text-charcoal-muted pt-0.5">
                     <Building2 className="h-3.5 w-3.5 text-sage-600 shrink-0 mt-0.5" />
-                    <span className={member.university ? 'break-words' : 'break-words italic text-charcoal-muted/80'}>
-                      {member.university ?? 'Universitas belum diisi'}
+                    <span className="break-words">
+                      {member.university || 'Universitas Mataram'}
                     </span>
                   </div>
                   <div className="flex items-start gap-1.5 text-xs text-charcoal-muted">
