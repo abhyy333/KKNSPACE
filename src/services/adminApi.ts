@@ -97,6 +97,7 @@ export interface DirectoryRosterSummaryDto {
   readyToInvite: number
   unfilledEmails: number
   deletedAccounts?: number
+  cleanedTestingAccounts?: number
   needsAttention: number
 }
 

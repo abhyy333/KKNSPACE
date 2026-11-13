@@ -532,7 +532,7 @@ export const DirectoryAccountRoster: React.FC<DirectoryAccountRosterProps> = ({
           { label: 'Undangan Pending', value: summary?.pendingInvitations ?? 0, icon: Clock, color: 'bg-amber-50 text-amber-700' },
           { label: 'Siap Diundang', value: summary?.readyToInvite ?? 0, icon: Mail, color: 'bg-sage-100 text-sage-800' },
           { label: 'Belum Diisi Email', value: summary?.unfilledEmails ?? 0, icon: AlertCircle, color: 'bg-warm-100 text-charcoal-muted' },
-          { label: 'Akun Dihapus', value: summary?.deletedAccounts ?? 0, icon: Trash2, color: 'bg-rose-50 text-rose-700' },
+          { label: 'Testing Dibersihkan', value: summary?.cleanedTestingAccounts ?? summary?.deletedAccounts ?? 0, icon: Trash2, color: 'bg-rose-50 text-rose-700' },
           { label: 'Perlu Tindakan', value: summary?.needsAttention ?? 0, icon: AlertTriangle, color: 'bg-red-50 text-red-700' },
         ].map((metric) => {
           const Icon = metric.icon

@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
         const resolvedEmail = (
           linkedAuthDto?.email ||
           dir.account_email ||
-          latestInv?.email ||
+          (latestInvEffectiveStatus === 'pending' ? latestInv?.email : '') ||
           ''
         ).trim().toLowerCase() || null
 
@@ -259,8 +259,9 @@ Deno.serve(async (req) => {
         )
 
         const memberSnapshot =
+          (resolvedEmail ? snapshotByEmail.get(resolvedEmail) : null) ||
           snapshotByDirId.get(dir.id) ||
-          (resolvedEmail ? snapshotByEmail.get(resolvedEmail) : null)
+          null
 
         let lifecycleStatus:
           | 'belum_diisi'
@@ -284,6 +285,8 @@ Deno.serve(async (req) => {
           } else {
             lifecycleStatus = 'aktif'
           }
+        } else if (!resolvedEmail) {
+          lifecycleStatus = 'belum_diisi'
         } else if (latestInvEffectiveStatus === 'pending') {
           const invAuth = latestInv?.auth_user_id
             ? authUsers.find((u) => u.id === latestInv.auth_user_id) ?? null
@@ -293,9 +296,9 @@ Deno.serve(async (req) => {
           } else {
             lifecycleStatus = 'undangan_terkirim'
           }
-        } else if (memberSnapshot) {
+        } else if (memberSnapshot && resolvedEmail && resolvedEmail === (memberSnapshot.email || '').toLowerCase().trim()) {
           lifecycleStatus = 'akun_dihapus'
-          actionReason = `Akun Auth dihapus permanen pada ${new Date(memberSnapshot.deleted_at).toLocaleString('id-ID')}. Riwayat aktivitas dan profil anggota tetap utuh.`
+          actionReason = `Akun Auth (${memberSnapshot.email}) dihapus permanen pada ${new Date(memberSnapshot.deleted_at).toLocaleString('id-ID')}. Riwayat aktivitas dan profil anggota tetap utuh.`
         } else if (latestInvEffectiveStatus === 'expired') {
           lifecycleStatus = 'undangan_kedaluwarsa'
         } else if (latestInvEffectiveStatus === 'revoked') {
@@ -303,8 +306,6 @@ Deno.serve(async (req) => {
         } else if (latestInvEffectiveStatus === 'accepted') {
           lifecycleStatus = 'perlu_tindakan'
           actionReason = 'Undangan berstatus accepted namun Auth UID belum tertaut di direktori.'
-        } else if (!resolvedEmail) {
-          lifecycleStatus = 'belum_diisi'
         } else if (existingAuthByEmail) {
           lifecycleStatus = 'perlu_tindakan'
           actionReason = existingAccountMatchesOtherDir
@@ -380,6 +381,7 @@ Deno.serve(async (req) => {
       readyToInvite: activeSlots.filter((d) => d.account_lifecycle_status === 'siap_diundang').length,
       unfilledEmails: activeSlots.filter((d) => d.account_lifecycle_status === 'belum_diisi').length,
       deletedAccounts: activeSlots.filter((d) => d.account_lifecycle_status === 'akun_dihapus').length,
+      cleanedTestingAccounts: snapshotsList.length,
       needsAttention: activeSlots.filter(
         (d) =>
           d.account_lifecycle_status === 'perlu_tindakan' ||
