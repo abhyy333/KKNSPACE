@@ -50,7 +50,7 @@ export const WORKSPACE_NAV: NavSection[] = [
     ],
   },
   {
-    title: "Arsip & Informasi",
+    title: "Arsip & Administrasi",
     items: [
       { title: "Galeri Dokumentasi", href: "/workspace/documentation", icon: Image },
       { title: "Arsip Dokumen", href: "/workspace/documents", icon: FolderOpen },
