@@ -330,9 +330,49 @@ export interface MeetingAttachment {
 
 // Module 2: Inventory & Logistics
 export type InventoryItemType = 'asset' | 'consumable'
+export type InventoryTrackingModel = 'tracked' | 'quantity'
+export type InventoryOwnershipType = 'GROUP_OWNED' | 'PERSONAL_OWNED' | 'BORROWED_EXTERNAL' | 'DONATED'
 export type InventoryCondition = 'good' | 'fair' | 'damaged' | 'lost'
-export type InventoryMovementType = 'in' | 'out' | 'borrow' | 'return' | 'adjustment'
+export type InventoryMovementType = 'in' | 'out' | 'borrow' | 'return' | 'adjustment' | 'transfer' | 'reconciliation'
 export type InventoryLoanStatus = 'pending' | 'approved' | 'rejected' | 'borrowed' | 'returned' | 'overdue' | 'cancelled'
+export type InventoryHandoverStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
+export type InventoryReconciliationStatus = 'pending' | 'resolved' | 'problematic' | 'waiting_confirmation'
+
+export type InventoryItemStatus =
+  | 'stored'
+  | 'in_use'
+  | 'borrowed_member'
+  | 'borrowed_external'
+  | 'maintenance'
+  | 'returned'
+  | 'in_return_process'
+  | 'lost'
+  | 'damaged'
+  | 'disposed'
+
+export type PersonalFinalAction =
+  | 'returned_to_owner'
+  | 'taken_home'
+  | 'entrusted_group'
+  | 'not_found'
+  | 'damaged_reported'
+
+export type ExternalFinalAction =
+  | 'returned_to_lender'
+  | 'pending_return'
+  | 'awaiting_lender_confirmation'
+  | 'lost_damaged_resolution'
+
+export type GroupFinalAction =
+  | 'stored_next_period'
+  | 'handed_over'
+  | 'moved_storage'
+  | 'sold_group_decision'
+  | 'donated_approved'
+  | 'disposed_approved'
+  | 'lost_damaged_action'
+
+export type InventoryFinalAction = PersonalFinalAction | ExternalFinalAction | GroupFinalAction
 
 export interface InventoryItem {
   id: string
@@ -341,6 +381,25 @@ export interface InventoryItem {
   description: string | null
   category: string
   item_type: InventoryItemType
+  tracking_model: InventoryTrackingModel
+  ownership_type: InventoryOwnershipType
+  owner_name: string | null
+  owner_member_id: string | null
+  is_owner_confirmed: boolean
+  post_kkn_plan: string | null
+  lender_name: string | null
+  lender_contact: string | null
+  borrow_start_date: string | null
+  borrow_due_date: string | null
+  lender_notes: string | null
+  funding_source: string | null
+  purchase_cost: number | null
+  receipt_proof_url: string | null
+  item_status: InventoryItemStatus
+  current_location: string
+  current_holder_name: string | null
+  current_holder_id: string | null
+  is_qr_printed: boolean
   quantity: number
   available_quantity: number
   unit: string
@@ -352,9 +411,38 @@ export interface InventoryItem {
   photo_file_id: string | null
   notes: string | null
   responsible_person: string | null
+  reconciliation_status: InventoryReconciliationStatus
+  reconciliation_final_action: InventoryFinalAction | null
+  reconciliation_notes: string | null
+  reconciliation_at: string | null
+  reconciliation_by: string | null
+  reconciliation_receiver_name: string | null
+  reconciliation_proof_url: string | null
+  reconciliation_confirmed: boolean
   created_by: string
   created_at: string
   updated_at: string
+}
+
+export interface InventoryHandover {
+  id: string
+  item_id: string
+  from_holder_id: string | null
+  from_holder_name: string
+  to_holder_id: string | null
+  to_holder_name: string
+  origin_location: string
+  destination_location: string
+  status: InventoryHandoverStatus
+  purpose: string | null
+  notes: string | null
+  proof_url: string | null
+  requested_at: string
+  confirmed_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+  item?: InventoryItem
 }
 
 export interface InventoryLoan {
@@ -384,6 +472,11 @@ export interface InventoryMovement {
   quantity: number
   user_id: string
   notes: string | null
+  from_location?: string | null
+  to_location?: string | null
+  from_holder?: string | null
+  to_holder?: string | null
+  handover_id?: string | null
   movement_date: string
 }
 
