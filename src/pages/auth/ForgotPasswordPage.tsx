@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { env } from '@/lib/env'
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -18,7 +19,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true)
 
     try {
-      const redirectTo = `${window.location.origin}/auth/reset-password`
+      const redirectTo = `${env.APP_BASE_URL}/auth/reset-password`
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo,

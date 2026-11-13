@@ -4,6 +4,57 @@ import { recordAuditEvent } from '../_shared/audit.ts'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const CANONICAL_PROD_URL = 'https://kknspace.vercel.app'
+
+function resolveCanonicalAppUrl(req: Request): string {
+  const configured = (
+    Deno.env.get('APP_BASE_URL') ||
+    Deno.env.get('PUBLIC_SITE_URL') ||
+    Deno.env.get('SITE_URL') ||
+    ''
+  ).trim().replace(/\/+$/, '')
+
+  const supabaseUrl = (Deno.env.get('SUPABASE_URL') || '').toLowerCase()
+  const isLocalRuntime =
+    supabaseUrl.includes('localhost') ||
+    supabaseUrl.includes('127.0.0.1') ||
+    supabaseUrl.includes('kong:')
+
+  // In hosted / production Supabase runtime:
+  // MUST NEVER resolve to localhost or 127.0.0.1
+  if (!isLocalRuntime) {
+    const prodUrl = configured || CANONICAL_PROD_URL
+    if (prodUrl.includes('localhost') || prodUrl.includes('127.0.0.1')) {
+      throw new Error('CONFIG_ERROR: Production invitation cannot use localhost or 127.0.0.1.')
+    }
+    return prodUrl
+  }
+
+  // In local development runtime (local Supabase CLI instance):
+  const origin = req.headers.get('origin') || configured || 'http://127.0.0.1:5173'
+  return origin.replace(/\/+$/, '')
+}
+
+function sanitizeActionLink(actionLink: string, canonicalBaseUrl: string): string {
+  try {
+    const parsed = new URL(actionLink)
+    const currentRedirect = parsed.searchParams.get('redirect_to')
+    const targetRedirect = `${canonicalBaseUrl}/auth/accept-invite`
+
+    // If redirect_to is missing or contains local addresses, enforce canonical target
+    if (
+      !currentRedirect ||
+      currentRedirect.includes('127.0.0.1') ||
+      currentRedirect.includes('localhost')
+    ) {
+      parsed.searchParams.set('redirect_to', targetRedirect)
+      return parsed.toString()
+    }
+    return actionLink
+  } catch {
+    return actionLink
+  }
+}
 
 async function generateInviteFallbackLink(
   supabaseAdmin: Awaited<ReturnType<typeof requireSuperAdmin>>['supabaseAdmin'],
@@ -69,8 +120,8 @@ Deno.serve(async (req) => {
       return errorResponse('Invalid JSON payload', 400)
     }
 
-    const origin = req.headers.get('origin') || Deno.env.get('PUBLIC_SITE_URL') || 'http://127.0.0.1:5173'
-    const redirectTo = `${origin}/auth/accept-invite`
+    const baseUrl = resolveCanonicalAppUrl(req)
+    const redirectTo = `${baseUrl}/auth/accept-invite`
 
     // CASE 0: Set / Update Account Email for a Directory Slot (before acceptance)
     if (body.action === 'set_directory_email') {
@@ -255,7 +306,7 @@ Deno.serve(async (req) => {
           )
         }
         deliveryMethod = 'manual_link'
-        inviteLink = fallback.actionLink
+        inviteLink = sanitizeActionLink(fallback.actionLink, baseUrl)
       }
 
       const newExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -500,7 +551,7 @@ Deno.serve(async (req) => {
 
       authUserId = fallback.user.id
       deliveryMethod = 'manual_link'
-      inviteLink = fallback.actionLink
+      inviteLink = sanitizeActionLink(fallback.actionLink, baseUrl)
     }
 
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
