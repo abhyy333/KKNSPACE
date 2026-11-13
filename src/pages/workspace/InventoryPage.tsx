@@ -17,6 +17,7 @@ import {
   returnInventoryLoan,
   adjustInventoryStock,
   fetchInventoryMovements,
+  fetchInventoryItemPhotos,
   type CreateInventoryItemInput,
 } from '@/services/inventoryApi'
 import { fetchTeamDirectory } from '@/services/membersApi'
@@ -28,6 +29,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal, ConfirmDialog } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import { InventoryItemThumbnail } from '@/components/workspace/InventoryItemThumbnail'
+import { InventoryItemPhotoGalleryModal } from '@/components/workspace/InventoryItemPhotoGalleryModal'
 import type {
   InventoryItem,
   InventoryLoan,
@@ -57,6 +60,7 @@ import {
   ArrowRight,
   Handshake,
   Download,
+  Camera,
 } from 'lucide-react'
 
 // -------------------------------------------------------------
@@ -175,6 +179,7 @@ export const InventoryPage: React.FC = () => {
   const [stockAdjustmentItem, setStockAdjustmentItem] = useState<InventoryItem | null>(null)
   const [isClosingReportOpen, setIsClosingReportOpen] = useState(false)
   const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState(false)
+  const [galleryItem, setGalleryItem] = useState<InventoryItem | null>(null)
 
   // Queries
   const {
@@ -585,13 +590,24 @@ export const InventoryPage: React.FC = () => {
                             </div>
                           </div>
 
-                          <CardTitle className="text-base font-serif font-semibold text-charcoal mt-2 line-clamp-1">
-                            {item.name}
-                          </CardTitle>
-
-                          <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
-                            {item.description || 'Tidak ada deskripsi tambahan.'}
-                          </CardDescription>
+                          <div className="flex items-start gap-3 mt-2.5">
+                            <InventoryItemThumbnail
+                              photoFileId={item.photo_file_id}
+                              category={item.category}
+                              name={item.name}
+                              sizeClass="h-14 w-14"
+                              className="flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setGalleryItem(item)}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <CardTitle className="text-base font-serif font-semibold text-charcoal line-clamp-1">
+                                {item.name}
+                              </CardTitle>
+                              <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
+                                {item.description || 'Tidak ada deskripsi tambahan.'}
+                              </CardDescription>
+                            </div>
+                          </div>
                         </CardHeader>
 
                         <CardContent className="p-4 pt-0 space-y-3">
@@ -640,6 +656,17 @@ export const InventoryPage: React.FC = () => {
                           {/* Quick Action Footer */}
                           <div className="flex items-center justify-between pt-2 border-t border-warm-200">
                             <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setGalleryItem(item)}
+                                className="h-7 px-2 text-xs text-sage-800 hover:text-sage-900 hover:bg-sage-50"
+                                title="Dokumentasi & Galeri Foto Barang"
+                              >
+                                <Camera className="h-3.5 w-3.5" />
+                                <span className="ml-1 hidden sm:inline">Foto</span>
+                              </Button>
+
                               {isTracked && (
                                 <Button
                                   size="sm"
@@ -931,40 +958,60 @@ export const InventoryPage: React.FC = () => {
                           isResolved ? 'bg-white' : 'bg-warm-50/40'
                         }`}
                       >
-                        <div className="space-y-1 max-w-xl">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-xs text-charcoal">{item.name}</span>
-                            <span className="font-mono text-[10px] bg-warm-100 text-charcoal px-1.5 py-0.2 rounded border border-warm-200">
-                              {item.item_code}
-                            </span>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${ownMeta.badgeClass}`}>
-                              {ownMeta.label}
-                            </span>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${reconMeta.badgeClass}`}>
-                              {reconMeta.label}
-                            </span>
+                        <div className="flex items-start gap-3 max-w-xl">
+                          <InventoryItemThumbnail
+                            photoFileId={item.photo_file_id}
+                            category={item.category}
+                            name={item.name}
+                            sizeClass="h-12 w-12"
+                            className="flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setGalleryItem(item)}
+                          />
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-xs text-charcoal">{item.name}</span>
+                              <span className="font-mono text-[10px] bg-warm-100 text-charcoal px-1.5 py-0.2 rounded border border-warm-200">
+                                {item.item_code}
+                              </span>
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${ownMeta.badgeClass}`}>
+                                {ownMeta.label}
+                              </span>
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${reconMeta.badgeClass}`}>
+                                {reconMeta.label}
+                              </span>
+                            </div>
+
+                            <div className="text-xs text-charcoal-muted flex items-center gap-3 flex-wrap">
+                              <span>Pemilik: <strong className="text-charcoal">{item.owner_name || 'Kelompok KKN'}</strong></span>
+                              <span>Pemegang Terkini: <strong className="text-charcoal">{item.current_holder_name || 'Posko'}</strong></span>
+                              <span>Lokasi: {item.current_location}</span>
+                            </div>
+
+                            {item.reconciliation_final_action && (
+                              <p className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block border border-emerald-200">
+                                Status Akhir: <strong>{item.reconciliation_final_action}</strong> | Diterima oleh: {item.reconciliation_receiver_name || '-'}
+                              </p>
+                            )}
+
+                            {item.reconciliation_notes && (
+                              <p className="text-[11px] text-charcoal-muted italic">
+                                Catatan Rekonsiliasi: {item.reconciliation_notes}
+                              </p>
+                            )}
                           </div>
-
-                          <div className="text-xs text-charcoal-muted flex items-center gap-3 flex-wrap">
-                            <span>Pemilik: <strong className="text-charcoal">{item.owner_name || 'Kelompok KKN'}</strong></span>
-                            <span>Pemegang Terkini: <strong className="text-charcoal">{item.current_holder_name || 'Posko'}</strong></span>
-                            <span>Lokasi: {item.current_location}</span>
-                          </div>
-
-                          {item.reconciliation_final_action && (
-                            <p className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block border border-emerald-200">
-                              Status Akhir: <strong>{item.reconciliation_final_action}</strong> | Diterima oleh: {item.reconciliation_receiver_name || '-'}
-                            </p>
-                          )}
-
-                          {item.reconciliation_notes && (
-                            <p className="text-[11px] text-charcoal-muted italic">
-                              Catatan Rekonsiliasi: {item.reconciliation_notes}
-                            </p>
-                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setGalleryItem(item)}
+                            className="text-xs h-8 text-sage-800 hover:text-sage-900 hover:bg-sage-50 gap-1"
+                            title="Buka Galeri Foto"
+                          >
+                            <Camera className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Foto</span>
+                          </Button>
                           <Button
                             size="sm"
                             variant={isResolved ? 'outline' : 'default'}
@@ -1239,6 +1286,18 @@ export const InventoryPage: React.FC = () => {
         variant="destructive"
         isLoading={deleteMutation.isPending}
       />
+
+      {/* 10. Modal Galeri & Dokumentasi Foto Barang */}
+      {galleryItem && (
+        <InventoryItemPhotoGalleryModal
+          open={Boolean(galleryItem)}
+          onClose={() => setGalleryItem(null)}
+          item={galleryItem}
+          onItemUpdated={() => {
+            refetchItems()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -1914,6 +1973,29 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
   )
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [galleryOpen, setGalleryOpen] = useState(false)
+
+  const { data: photos = [], refetch: refetchItemPhotos } = useQuery({
+    queryKey: ['inventory-photos', item.id],
+    queryFn: () => fetchInventoryItemPhotos(item.id),
+    enabled: open,
+  })
+
+  // Identify initial condition photo vs final condition photo
+  const initialPhoto = useMemo(() => {
+    return (
+      photos.find((p) => p.documentation_category === 'kondisi_awal') ||
+      photos.find((p) => p.is_primary) ||
+      (photos.length > 0 ? photos[photos.length - 1] : null)
+    )
+  }, [photos])
+
+  const finalPhoto = useMemo(() => {
+    return (
+      photos.find((p) => p.documentation_category === 'kondisi_akhir' || p.documentation_category === 'pengembalian') ||
+      (photos.length > 1 ? photos[0] : null)
+    )
+  }, [photos])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1941,13 +2023,95 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Penyelesaian Rekonsiliasi Akhir KKN" maxWidthClass="max-w-lg">
+    <Modal open={open} onClose={onClose} title="Penyelesaian Rekonsiliasi Akhir KKN" maxWidthClass="max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div className="rounded-lg border border-sage-300 bg-sage-50/70 p-3 space-y-1">
           <p className="font-semibold text-sage-950 text-sm">{item.name}</p>
           <p className="text-charcoal-muted">
             Kepemilikan: <strong className="text-charcoal">{OWNERSHIP_META[item.ownership_type].label}</strong> | Pemilik: {item.owner_name || 'Kelompok'}
           </p>
+        </div>
+
+        {/* Matriks Perbandingan Kondisi: Awal vs Akhir */}
+        <div className="rounded-lg border border-warm-200 bg-white p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-charcoal flex items-center gap-1.5">
+              <Camera className="h-4 w-4 text-sage-800" />
+              <span>Verifikasi Kondisi: Awal vs Akhir</span>
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setGalleryOpen(true)}
+              className="text-[11px] h-7 px-2 gap-1 text-sage-800 border-sage-300"
+            >
+              <Camera className="h-3 w-3" />
+              <span>Dokumentasi Foto ({photos.length})</span>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            {/* Kolom 1: Kondisi Awal */}
+            <div className="rounded border border-warm-200 bg-warm-50/70 p-2.5 text-center space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal-muted block">
+                Kondisi Awal (Saat Masuk)
+              </span>
+              <div className="flex justify-center">
+                <InventoryItemThumbnail
+                  photoFileId={initialPhoto?.file_id || item.photo_file_id}
+                  category={item.category}
+                  name={item.name}
+                  sizeClass="h-24 w-24"
+                  className="rounded-lg border border-warm-300 shadow-sm"
+                />
+              </div>
+              <div className="space-y-0.5 text-[11px]">
+                <p className="font-semibold text-charcoal">
+                  Kondisi: {CONDITION_BADGES[initialPhoto?.condition_snapshot || item.condition || 'good'].label}
+                </p>
+                <p className="text-[10px] text-charcoal-muted">
+                  {initialPhoto?.documentation_date ? new Date(initialPhoto.documentation_date).toLocaleDateString('id-ID') : 'Saat pendaftaran'}
+                </p>
+              </div>
+            </div>
+
+            {/* Kolom 2: Kondisi Akhir */}
+            <div className="rounded border border-sage-200 bg-sage-50/50 p-2.5 text-center space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-sage-900 block">
+                Kondisi Akhir (Saat Selesai/Kembali)
+              </span>
+              <div className="flex justify-center">
+                {finalPhoto ? (
+                  <InventoryItemThumbnail
+                    photoFileId={finalPhoto.file_id}
+                    category={item.category}
+                    name={item.name}
+                    sizeClass="h-24 w-24"
+                    className="rounded-lg border border-sage-300 shadow-sm"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setGalleryOpen(true)}
+                    className="h-24 w-24 rounded-lg border-2 border-dashed border-sage-300 bg-white hover:bg-sage-50 flex flex-col items-center justify-center text-sage-800 transition-colors p-2 text-center"
+                    title="Unggah Foto Kondisi Akhir"
+                  >
+                    <Camera className="h-5 w-5 mb-1" />
+                    <span className="text-[10px] font-medium leading-tight">Unggah Foto Akhir</span>
+                  </button>
+                )}
+              </div>
+              <div className="space-y-0.5 text-[11px]">
+                <p className="font-semibold text-sage-900">
+                  Kondisi: {CONDITION_BADGES[finalCondition].label}
+                </p>
+                <p className="text-[10px] text-charcoal-muted">
+                  {finalPhoto?.documentation_date ? new Date(finalPhoto.documentation_date).toLocaleDateString('id-ID') : 'Sesuai form di bawah'}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -2037,6 +2201,20 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
           </Button>
         </div>
       </form>
+
+      {galleryOpen && (
+        <InventoryItemPhotoGalleryModal
+          open={galleryOpen}
+          onClose={() => {
+            setGalleryOpen(false)
+            refetchItemPhotos()
+          }}
+          item={item}
+          onItemUpdated={() => {
+            refetchItemPhotos()
+          }}
+        />
+      )}
     </Modal>
   )
 }
@@ -2185,6 +2363,7 @@ const ClosingReportModal: React.FC<ClosingReportModalProps> = ({
             <table className="w-full text-left text-[11px]">
               <thead className="bg-warm-100 text-charcoal font-semibold border-b border-warm-200">
                 <tr>
+                  <th className="p-2 w-10">Foto</th>
                   <th className="p-2">Kode</th>
                   <th className="p-2">Nama Barang</th>
                   <th className="p-2">Kepemilikan</th>
@@ -2197,6 +2376,14 @@ const ClosingReportModal: React.FC<ClosingReportModalProps> = ({
               <tbody className="divide-y divide-warm-200">
                 {items.map((i) => (
                   <tr key={i.id} className="hover:bg-warm-50/50">
+                    <td className="p-2">
+                      <InventoryItemThumbnail
+                        photoFileId={i.photo_file_id}
+                        category={i.category}
+                        name={i.name}
+                        sizeClass="h-8 w-8"
+                      />
+                    </td>
                     <td className="p-2 font-mono">{i.item_code}</td>
                     <td className="p-2 font-medium">{i.name}</td>
                     <td className="p-2">{OWNERSHIP_META[i.ownership_type].label.split('(')[0]}</td>

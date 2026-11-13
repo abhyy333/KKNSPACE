@@ -372,6 +372,41 @@ export type GroupFinalAction =
   | 'disposed_approved'
   | 'lost_damaged_action'
 
+export type InventoryPhotoType =
+  | 'primary'
+  | 'front'
+  | 'back_side'
+  | 'spec_serial'
+  | 'condition'
+  | 'accessories'
+  | 'general'
+
+export type InventoryDocumentationCategory =
+  | 'kondisi_awal'
+  | 'pembelian'
+  | 'perpindahan'
+  | 'kerusakan'
+  | 'pengembalian'
+  | 'kondisi_akhir'
+  | 'kelengkapan'
+
+export interface InventoryPhoto {
+  id: string
+  item_id: string
+  file_id: string
+  storage_path: string
+  photo_type: InventoryPhotoType
+  documentation_category: InventoryDocumentationCategory
+  condition_snapshot: InventoryCondition | null
+  caption: string | null
+  documentation_date: string
+  is_primary: boolean
+  uploaded_by: string | null
+  uploader_name: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type InventoryFinalAction = PersonalFinalAction | ExternalFinalAction | GroupFinalAction
 
 export interface InventoryItem {
@@ -419,6 +454,7 @@ export interface InventoryItem {
   reconciliation_receiver_name: string | null
   reconciliation_proof_url: string | null
   reconciliation_confirmed: boolean
+  photos?: InventoryPhoto[]
   created_by: string
   created_at: string
   updated_at: string

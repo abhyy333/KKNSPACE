@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase'
+import { uploadPrivateFile, getPrivateFileSignedUrl } from '@/services/storageApi'
+import { optimizeImageFile } from '@/lib/imageOptimization'
 import type {
   InventoryItem,
   InventoryLoan,
@@ -11,6 +13,9 @@ import type {
   InventoryHandover,
   InventoryReconciliationStatus,
   InventoryFinalAction,
+  InventoryPhoto,
+  InventoryPhotoType,
+  InventoryDocumentationCategory,
 } from '@/types/database'
 
 export interface InventoryItemDetail extends InventoryItem {
@@ -24,6 +29,7 @@ export interface InventoryItemDetail extends InventoryItem {
   movements?: (InventoryMovement & {
     user?: { full_name: string }
   })[]
+  photos?: InventoryPhoto[]
 }
 
 export interface CreateInventoryItemInput {
@@ -670,4 +676,132 @@ export async function fetchInventoryMovements(itemId?: string): Promise<
   }
 
   return (data as any) || []
+}
+
+// -------------------------------------------------------------
+// 8. Item Photo Documentation
+// -------------------------------------------------------------
+const ALLOWED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_ITEM_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
+
+export async function fetchInventoryItemPhotos(itemId: string): Promise<InventoryPhoto[]> {
+  const { data, error } = await supabase
+    .from('inventory_photos')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Gagal memuat galeri foto barang: ${error.message}`)
+  }
+
+  return (data as InventoryPhoto[]) || []
+}
+
+export async function uploadInventoryItemPhoto(params: {
+  itemId: string
+  file: File
+  photoType?: InventoryPhotoType
+  documentationCategory?: InventoryDocumentationCategory
+  conditionSnapshot?: InventoryCondition
+  caption?: string
+  documentationDate?: string
+  isPrimary?: boolean
+}): Promise<InventoryPhoto> {
+  const { file, itemId } = params
+
+  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+    throw new Error('Format foto harus JPG, PNG, atau WebP.')
+  }
+
+  if (file.size <= 0 || file.size > MAX_ITEM_PHOTO_BYTES) {
+    throw new Error('Ukuran foto maksimal 5 MB.')
+  }
+
+  // 1. Client-side Canvas optimization
+  const optimized = await optimizeImageFile(file, 1400, 0.85)
+
+  // 2. Upload to private storage
+  const uploaded = await uploadPrivateFile(optimized, 'inventory')
+
+  // 3. Get current user profile for uploader_name
+  const { data: userData } = await supabase.auth.getUser()
+  const userId = userData.user?.id || null
+  let uploaderName = 'Anggota Posko'
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .maybeSingle()
+    if (profile?.full_name) {
+      uploaderName = profile.full_name
+    }
+  }
+
+  // 4. Check if item has any photos yet. If none, this should be primary.
+  const isPrimary = Boolean(params.isPrimary)
+
+  // 5. Insert photo record
+  const { data: photoData, error: insertErr } = await supabase
+    .from('inventory_photos')
+    .insert({
+      item_id: itemId,
+      file_id: uploaded.id,
+      storage_path: uploaded.object_path,
+      photo_type: params.photoType || (isPrimary ? 'primary' : 'general'),
+      documentation_category: params.documentationCategory || 'kondisi_awal',
+      condition_snapshot: params.conditionSnapshot || null,
+      caption: params.caption?.trim() || null,
+      documentation_date: params.documentationDate || new Date().toISOString().split('T')[0],
+      is_primary: isPrimary,
+      uploaded_by: userId,
+      uploader_name: uploaderName,
+    })
+    .select('*')
+    .single()
+
+  if (insertErr || !photoData) {
+    throw new Error(`Gagal mencatat data foto: ${insertErr?.message || 'Unknown error'}`)
+  }
+
+  // 6. If primary, sync item's primary photo via RPC
+  if (isPrimary) {
+    await supabase.rpc('set_inventory_primary_photo', { p_photo_id: photoData.id })
+  }
+
+  return photoData as InventoryPhoto
+}
+
+export async function setInventoryPrimaryPhoto(photoId: string): Promise<InventoryPhoto> {
+  const { data, error } = await supabase.rpc('set_inventory_primary_photo', {
+    p_photo_id: photoId,
+  })
+
+  if (error || !data) {
+    throw new Error(`Gagal menetapkan foto utama: ${error?.message || 'Unknown error'}`)
+  }
+
+  return data as InventoryPhoto
+}
+
+export async function deleteInventoryItemPhoto(photoId: string): Promise<void> {
+  const { error } = await supabase
+    .from('inventory_photos')
+    .delete()
+    .eq('id', photoId)
+
+  if (error) {
+    throw new Error(`Gagal menghapus foto barang: ${error.message}`)
+  }
+}
+
+export async function getInventoryPhotoSignedUrl(fileId: string): Promise<string | null> {
+  try {
+    const res = await getPrivateFileSignedUrl(fileId)
+    return res.signedUrl
+  } catch {
+    return null
+  }
 }
