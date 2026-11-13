@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import { fetchHomePublicOverview } from '@/services/publicApi'
 import {
   formatPublicDate,
@@ -59,52 +60,63 @@ export const HomePage: React.FC = () => {
             }}
           />
 
-          <div className="relative z-10 max-w-3xl space-y-6">
-            <div className="inline-block text-[11px] font-semibold tracking-wider text-sage-300 uppercase">
-              PENGABDIAN MASYARAKAT DESA PRINGGASELA SELATAN 2026
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div className="max-w-2xl space-y-6">
+              <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wider text-sage-300 uppercase">
+                <BrandLogo size="xs" variant="dark" className="h-5 w-5 lg:hidden" />
+                <span>KKN PRINGGASELA SELATAN 2026–2027 · UNIVERSITAS MATARAM</span>
+              </div>
+
+              <h1 className="text-3xl font-serif font-medium tracking-tight sm:text-4xl lg:text-5xl leading-tight">
+                Sinergi Membangun Kemandirian Desa Pringgasela Selatan
+              </h1>
+
+              <p className="text-sm sm:text-base text-warm-200/90 leading-relaxed font-sans max-w-2xl">
+                Portal publik transparansi program kerja mahasiswa pengabdian, publikasi inovasi sentra
+                tenun Sasak, pengumuman resmi kegiatan, serta dokumentasi pemberdayaan warga desa.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link to="/workspace">
+                  <Button
+                    size="default"
+                    className="bg-white text-charcoal hover:bg-warm-100 font-medium text-xs sm:text-sm gap-2 h-10 px-5 rounded-lg shadow-sm"
+                  >
+                    <ArrowRight className="h-4 w-4 text-sage-700" />
+                    <span>Masuk Workspace Pengurus</span>
+                  </Button>
+                </Link>
+
+                <Link to="/tim">
+                  <Button
+                    variant="subtle"
+                    size="default"
+                    className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Profil Tim KKN</span>
+                  </Button>
+                </Link>
+
+                <Link to="/dokumentasi">
+                  <Button
+                    variant="subtle"
+                    size="default"
+                    className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    <span>Galeri Dokumentasi</span>
+                  </Button>
+                </Link>
+              </div>
             </div>
 
-            <h1 className="text-3xl font-serif font-medium tracking-tight sm:text-4xl lg:text-5xl leading-tight">
-              Sinergi Membangun Kemandirian Desa Pringgasela Selatan
-            </h1>
-
-            <p className="text-sm sm:text-base text-warm-200/90 leading-relaxed font-sans max-w-2xl">
-              Portal publik transparansi program kerja mahasiswa pengabdian, publikasi inovasi sentra
-              tenun Sasak, pengumuman resmi kegiatan, serta dokumentasi pemberdayaan warga desa.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Link to="/workspace">
-                <Button
-                  size="default"
-                  className="bg-white text-charcoal hover:bg-warm-100 font-medium text-xs sm:text-sm gap-2 h-10 px-5 rounded-lg shadow-sm"
-                >
-                  <ArrowRight className="h-4 w-4 text-sage-700" />
-                  <span>Masuk Workspace Pengurus</span>
-                </Button>
-              </Link>
-
-              <Link to="/tim">
-                <Button
-                  variant="subtle"
-                  size="default"
-                  className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Profil Tim KKN</span>
-                </Button>
-              </Link>
-
-              <Link to="/dokumentasi">
-                <Button
-                  variant="subtle"
-                  size="default"
-                  className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                  <span>Galeri Dokumentasi</span>
-                </Button>
-              </Link>
+            <div className="hidden lg:flex shrink-0 items-center justify-center p-2">
+              <BrandLogo
+                size="custom"
+                variant="dark"
+                className="h-48 w-48 xl:h-56 xl:w-56 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+              />
             </div>
           </div>
         </div>

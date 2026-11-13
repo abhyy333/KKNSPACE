@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
 import { fetchGroupSettings } from '@/services/dashboardApi'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   AlertCircle,
   Calendar,
@@ -139,9 +140,13 @@ export const SettingsPage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 pt-0 space-y-3 text-xs">
-                <div className="rounded-lg border border-warm-200 bg-warm-50/50 p-3 space-y-1">
-                  <span className="text-[11px] text-charcoal-muted uppercase font-semibold">Nama Platform &amp; Kelompok</span>
-                  <p className="text-sm font-bold text-charcoal">{settings?.group_name || 'KKN SPACE'}</p>
+                <div className="flex items-center gap-3.5 rounded-lg border border-warm-200 bg-warm-50/50 p-3">
+                  <BrandLogo size="lg" className="h-12 w-12 drop-shadow-xs shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[11px] text-charcoal-muted uppercase font-semibold block">Identitas Resmi Kelompok</span>
+                    <p className="text-sm font-bold text-charcoal">{settings?.group_name || 'KKN SPACE'}</p>
+                    <p className="text-[11px] text-charcoal-muted">KKN Pringgasela Selatan 2026–2027 · Universitas Mataram</p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft, Loader2, ShieldCheck, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   MIN_PASSWORD_LENGTH,
   PASSWORD_REQUIREMENTS_HINT,
@@ -248,16 +249,19 @@ export const ResetPasswordPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-sage-700 text-white font-serif font-bold text-xl shadow-card">
-            K
+        <div className="text-center space-y-2.5">
+          <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
+          <div>
+            <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
+              Atur Ulang Kata Sandi
+            </h1>
+            <p className="text-xs font-medium text-sage-800 mt-1">
+              KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
+            </p>
+            <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5">
+              Masukkan kata sandi baru untuk akun KKN SPACE Anda.
+            </p>
           </div>
-          <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
-            Atur Ulang Kata Sandi
-          </h1>
-          <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-            Masukkan kata sandi baru untuk akun KKN SPACE Anda.
-          </p>
         </div>
 
         <Card className="border-warm-300 shadow-card">

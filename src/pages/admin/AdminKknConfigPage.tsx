@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { fetchGroupSettings, updateGroupSettings } from '@/services/dashboardApi'
 import type { GroupSettings } from '@/types/database'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   Save,
   RefreshCw,
@@ -198,6 +199,16 @@ export const AdminKknConfigPage: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-5 space-y-4 text-xs">
+              <div className="flex items-center gap-3.5 p-3 rounded-lg bg-warm-50 border border-warm-200">
+                <BrandLogo size="lg" className="h-12 w-12 drop-shadow-xs shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-charcoal">Identitas Visual Resmi Kelompok KKN</p>
+                  <p className="text-[11px] text-charcoal-muted truncate">
+                    KKN Pringgasela Selatan 2026–2027 · Universitas Mataram (Logo aktif di seluruh portal &amp; workspace)
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="font-semibold text-charcoal block mb-1">Nama Kelompok KKN *</label>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { env } from '@/lib/env'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -54,16 +55,19 @@ export const ForgotPasswordPage: React.FC = () => {
           <span>Kembali ke Halaman Masuk</span>
         </Link>
 
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-sage-700 text-white font-serif font-bold text-xl shadow-card">
-            K
+        <div className="text-center space-y-2.5">
+          <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
+          <div>
+            <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
+              Pemulihan Kata Sandi
+            </h1>
+            <p className="text-xs font-medium text-sage-800 mt-1">
+              KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
+            </p>
+            <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5">
+              Masukkan alamat email akun posko Anda untuk menerima tautan atur ulang kata sandi.
+            </p>
           </div>
-          <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
-            Pemulihan Kata Sandi
-          </h1>
-          <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-            Masukkan alamat email akun posko Anda untuk menerima tautan atur ulang kata sandi.
-          </p>
         </div>
 
         <Card className="border-warm-300 shadow-card">

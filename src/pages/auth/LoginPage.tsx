@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Lock, Mail, ArrowLeft, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const loginSchema = z.object({
   email: z.string().min(1, "Alamat email wajib diisi").email("Format alamat email tidak valid"),
@@ -78,16 +79,19 @@ export const LoginPage: React.FC = () => {
           <span>Kembali ke Beranda Publik</span>
         </Link>
 
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-sage-700 text-white font-serif font-bold text-xl shadow-card">
-            K
+        <div className="text-center space-y-2.5">
+          <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
+          <div>
+            <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
+              Masuk ke KKN SPACE
+            </h1>
+            <p className="text-xs font-medium text-sage-800 mt-1">
+              KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
+            </p>
+            <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5">
+              Ruang kerja kolaboratif digital kelompok pengabdian masyarakat.
+            </p>
           </div>
-          <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
-            Masuk ke KKN SPACE
-          </h1>
-          <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-            Ruang kerja kolaboratif digital kelompok KKN Desa Pringgasela Selatan.
-          </p>
         </div>
 
         <Card className="border-warm-300 shadow-card">
@@ -175,7 +179,7 @@ export const LoginPage: React.FC = () => {
         </Card>
 
         <div className="text-center text-[11px] text-charcoal-muted">
-          <p>KKN SPACE · Single-group Digital Workspace</p>
+          <p>KKN SPACE · KKN Pringgasela Selatan 2026–2027 · Universitas Mataram</p>
         </div>
       </div>
     </div>

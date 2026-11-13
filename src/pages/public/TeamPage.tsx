@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ACADEMIC_STATUS_LABELS } from '@/lib/directory'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   fetchPublicTeamDirectory,
   fetchPublicTeamPhotoUrl,
@@ -75,18 +76,21 @@ export const TeamPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <div className="border-b border-warm-300 pb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-            <Users className="h-3.5 w-3.5" />
-            <span>Struktur Kelompok</span>
+      <div className="border-b border-warm-300 pb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <BrandLogo size="lg" className="h-14 w-14 shrink-0 drop-shadow-xs hidden sm:block mt-0.5" />
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
+              <Users className="h-3.5 w-3.5" />
+              <span>KKN Pringgasela Selatan 2026–2027 · Universitas Mataram</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-charcoal mt-1">
+              Tim Pengabdian Mahasiswa KKN
+            </h1>
+            <p className="text-xs text-charcoal-muted mt-1.5 max-w-2xl">
+              Kolaborasi multidisiplin 10 mahasiswa Universitas Mataram dan Dosen Pembimbing Lapangan untuk memajukan Desa Pringgasela Selatan.
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-charcoal mt-1">
-            Tim Pengabdian Mahasiswa KKN 2026
-          </h1>
-          <p className="text-xs text-charcoal-muted mt-2 max-w-2xl">
-            Kolaborasi multidisiplin mahasiswa universitas dan dosen pembimbing lapangan untuk memajukan Desa Pringgasela Selatan.
-          </p>
         </div>
         {!isLoading && !isError && members.length > 0 && (
           <div className="text-xs font-medium text-sage-800 bg-sage-100 border border-sage-200 rounded-full px-3 py-1 self-start sm:self-auto shrink-0">

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { Shield, Menu, X, LogOut, Home, Briefcase, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 const SIDEBAR_STORAGE_KEY = 'kkn_admin_sidebar_collapsed'
 
@@ -93,11 +94,14 @@ export const AdminLayout: React.FC = () => {
           )}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-charcoal text-white font-semibold text-xs shadow-subtle"
-              title="KKN SPACE — Admin Console"
-            >
-              <Shield className="h-4 w-4 text-warm-400" />
+            <div className="relative shrink-0" title="KKN SPACE — Admin Console">
+              <BrandLogo size="md" className="h-9 w-9 drop-shadow-xs" />
+              <div
+                className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-charcoal text-warm-300 ring-1 ring-white"
+                title="Super Admin Mode"
+              >
+                <Shield className="h-2.5 w-2.5" />
+              </div>
             </div>
             {!collapsed && (
               <div className="flex flex-col min-w-0">

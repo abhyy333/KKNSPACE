@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { WORKSPACE_NAV } from '@/config/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Shield, Sparkles } from 'lucide-react'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 interface WorkspaceSidebarProps {
   isOpen: boolean
@@ -41,15 +42,13 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         {/* Workspace Brand / Group Info */}
         <div className="flex h-16 items-center justify-between border-b border-warm-300 px-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-700 text-white font-semibold text-sm shadow-subtle">
-              {groupName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-xs font-semibold text-charcoal">
-                {groupName}
+            <BrandLogo size="md" className="h-9 w-9 shrink-0 drop-shadow-xs" />
+            <div className="flex flex-col overflow-hidden min-w-0">
+              <span className="truncate text-xs font-semibold text-charcoal tracking-tight" title={groupName}>
+                KKN SPACE
               </span>
-              <span className="truncate text-[11px] text-charcoal-muted">
-                {villageName}
+              <span className="truncate text-[10px] text-charcoal-muted leading-tight" title={villageName}>
+                {villageName && villageName !== 'Desa belum diatur' ? `Desa ${villageName}` : 'Pringgasela Selatan'} · UNRAM
               </span>
             </div>
           </div>

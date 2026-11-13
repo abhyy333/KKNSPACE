@@ -9,6 +9,7 @@ import { Shield, UserPlus, Users, History, AlertTriangle, ArrowRight } from 'luc
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { adminApi } from '@/services/adminApi'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 export const AdminOverviewPage: React.FC = () => {
   const { user } = useAuth()
@@ -43,19 +44,22 @@ export const AdminOverviewPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-charcoal text-charcoal">
-              Super Admin Console
-            </Badge>
-            <span className="text-xs text-charcoal-muted font-mono">{user?.email}</span>
+        <div className="flex items-center gap-3.5 min-w-0">
+          <BrandLogo size="lg" className="h-12 w-12 shrink-0 drop-shadow-xs hidden sm:block" />
+          <div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-charcoal text-charcoal">
+                Super Admin Console
+              </Badge>
+              <span className="text-xs text-charcoal-muted font-mono">{user?.email}</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
+              Pusat Kendali Platform KKN SPACE
+            </h1>
+            <p className="text-xs text-charcoal-muted mt-1">
+              KKN Pringgasela Selatan 2026–2027 Universitas Mataram · Kelola akun, otorisasi peran, dan audit sistem.
+            </p>
           </div>
-          <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
-            Pusat Kendali Platform KKN SPACE
-          </h1>
-          <p className="text-xs text-charcoal-muted mt-1">
-            Manajemen akun pengguna, otorisasi peran tunggal, undangan email, dan audit sistem.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

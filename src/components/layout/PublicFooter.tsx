@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Mail, Calendar, ShieldCheck } from 'lucide-react'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 export const PublicFooter: React.FC = () => {
   return (
@@ -10,12 +11,15 @@ export const PublicFooter: React.FC = () => {
           {/* Group Identity */}
           <div className="space-y-3 md:col-span-2">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sage-700 text-white font-serif font-bold text-sm">
-                K
+              <BrandLogo size="md" className="h-10 w-10 shrink-0 drop-shadow-xs" />
+              <div>
+                <span className="font-semibold text-sm text-charcoal tracking-tight block">
+                  KKN Pringgasela Selatan 2026–2027
+                </span>
+                <span className="text-xs text-charcoal-muted">
+                  Universitas Mataram · KKN SPACE
+                </span>
               </div>
-              <span className="font-semibold text-sm text-charcoal tracking-tight">
-                KKN SPACE — Pringgasela Selatan
-              </span>
             </div>
             <p className="text-xs text-charcoal-muted leading-relaxed max-w-md">
               Portal transparansi program pengabdian masyarakat mahasiswa KKN.
@@ -89,7 +93,7 @@ export const PublicFooter: React.FC = () => {
         </div>
 
         <div className="mt-8 border-t border-warm-300 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-charcoal-muted gap-2">
-          <p>© 2026 Tim KKN Desa Pringgasela Selatan. Seluruh hak cipta dilindungi.</p>
+          <p>© 2026–2027 KKN Pringgasela Selatan Universitas Mataram · Platform KKN SPACE.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" /> posko@pringgaselaselatan.desa.id

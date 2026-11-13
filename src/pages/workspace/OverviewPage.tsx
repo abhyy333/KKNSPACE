@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
 import { AnnouncementModal } from '@/components/workspace/AnnouncementModal'
 import { PoskoOperationsSummaryCard } from '@/components/workspace/PoskoOperationsSummaryCard'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import { fetchTeamDirectory } from '@/services/membersApi'
 import {
   createAnnouncement,
@@ -466,16 +467,19 @@ export const OverviewPage: React.FC = () => {
     <div className="space-y-6">
       {/* Top Banner Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
-              Selamat Datang di Workspace KKN
-            </h1>
-            <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
+        <div className="flex items-center gap-3.5 min-w-0">
+          <BrandLogo size="lg" className="h-12 w-12 shrink-0 drop-shadow-xs hidden sm:block" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
+                Selamat Datang di Workspace KKN
+              </h1>
+              <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
+            </div>
+            <p className="text-xs text-charcoal-muted mt-1">
+              {subtitleParts.join(' · ')}
+            </p>
           </div>
-          <p className="text-xs text-charcoal-muted mt-1">
-            {subtitleParts.join(' · ')}
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

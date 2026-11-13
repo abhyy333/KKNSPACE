@@ -4,6 +4,7 @@ import { PUBLIC_NAV } from '@/config/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 export const PublicNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -13,9 +14,7 @@ export const PublicNavbar: React.FC = () => {
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
         {/* Brand with Location */}
         <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sage-700 text-white font-serif font-bold text-lg shadow-subtle group-hover:bg-sage-800 transition-colors">
-            K
-          </div>
+          <BrandLogo size="md" className="h-11 w-11 shrink-0 drop-shadow-xs group-hover:scale-105 transition-transform" />
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5 font-medium text-xs sm:text-sm text-charcoal truncate">
               <span className="font-semibold tracking-tight shrink-0">KKN SPACE</span>

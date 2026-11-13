@@ -12,7 +12,6 @@ import {
   AlertCircle,
   ArrowLeft,
   Loader2,
-  ShieldCheck,
   UserCheck,
   User,
   Sparkles,
@@ -20,6 +19,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { adminApi, EdgeFunctionError } from '@/services/adminApi'
 import { useAuth } from '@/hooks/useAuth'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   PASSWORD_REQUIREMENTS_HINT,
   validatePasswordConfirmation,
@@ -501,16 +501,19 @@ export const AcceptInvitePage: React.FC = () => {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white border border-warm-300 shadow-sm text-sage-700 mx-auto">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="text-center space-y-2.5">
+            <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
+            <div>
+              <h1 className="text-2xl font-serif font-bold text-charcoal">
+                Aktivasi Akun Anggota KKN
+              </h1>
+              <p className="text-xs font-medium text-sage-800 mt-1">
+                KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
+              </p>
+              <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5 leading-relaxed">
+                Selamat datang di KKN SPACE. Silakan aktivasi akun untuk mulai menggunakan Workspace kelompok KKN Desa Pringgasela Selatan.
+              </p>
             </div>
-            <h1 className="text-2xl font-serif font-bold text-charcoal">
-              Aktivasi Akun Anggota KKN
-            </h1>
-            <p className="text-xs text-charcoal-muted max-w-sm mx-auto leading-relaxed">
-              Selamat datang di KKN SPACE. Silakan aktivasi akun untuk mulai menggunakan Workspace kelompok KKN Desa Pringgasela Selatan.
-            </p>
           </div>
 
           <Card className="border-warm-300 shadow-card">
@@ -602,16 +605,19 @@ export const AcceptInvitePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white border border-warm-300 shadow-sm text-sage-700 mx-auto">
-            <Lock className="w-6 h-6" />
+        <div className="text-center space-y-2.5">
+          <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
+          <div>
+            <h1 className="text-2xl font-serif font-bold text-charcoal">
+              Buat Kata Sandi Pribadi
+            </h1>
+            <p className="text-xs font-medium text-sage-800 mt-1">
+              KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
+            </p>
+            <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5 leading-relaxed">
+              Undangan resmi telah terverifikasi. Tentukan kata sandi akun untuk mulai masuk ke Workspace KKN SPACE.
+            </p>
           </div>
-          <h1 className="text-2xl font-serif font-bold text-charcoal">
-            Buat Kata Sandi Pribadi
-          </h1>
-          <p className="text-xs text-charcoal-muted max-w-sm mx-auto leading-relaxed">
-            Undangan resmi telah terverifikasi. Tentukan kata sandi akun untuk mulai masuk ke Workspace KKN SPACE.
-          </p>
         </div>
 
         <Card className="border-warm-300 shadow-card">

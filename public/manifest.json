@@ -1,0 +1,23 @@
+{
+  "name": "KKN SPACE — KKN Pringgasela Selatan 2026–2027",
+  "short_name": "KKN SPACE",
+  "description": "Platform Manajemen dan Portal Informasi KKN Desa Pringgasela Selatan 2026–2027 Universitas Mataram",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#2C402E",
+  "icons": [
+    {
+      "src": "/brand/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
