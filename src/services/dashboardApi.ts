@@ -8,6 +8,7 @@ import type {
   DutyShift,
   FinanceTransaction,
   GroupSettings,
+  KknTeamDirectoryMember,
   TaskAssignee,
   TaskItem,
   WorkProgram,
@@ -37,15 +38,30 @@ export interface DashboardFinanceSummary {
   transactionCount: number
 }
 
+export interface DashboardInventoryAlertItem {
+  id: string
+  name: string
+  item_code: string
+  current_holder_name: string | null
+  current_location: string
+  item_status: string
+  reconciliation_status: string
+  borrow_due_date: string | null
+  ownership_type: string
+}
+
 export interface DashboardSummaryData {
   groupSettings: GroupSettings | null
   members: WorkspaceMemberSummary[]
+  teamDirectory: KknTeamDirectoryMember[]
   workPrograms: WorkProgram[]
   tasks: TaskItem[]
   taskAssignees: TaskAssignee[]
   upcomingEvents: CalendarEvent[]
   todayShifts: DutyShift[]
   finance: DashboardFinanceSummary
+  financeTransactions: FinanceTransaction[]
+  inventoryAlerts: DashboardInventoryAlertItem[]
   announcements: Announcement[]
   todayDateKey: string
 }
@@ -134,11 +150,13 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
   const [
     groupSettingsRes,
     membersRes,
+    teamDirectoryRes,
     programsRes,
     tasksRes,
     eventsRes,
     shiftsRes,
     financeRes,
+    inventoryRes,
     announcementsRes,
   ] = await Promise.all([
     supabase
@@ -147,6 +165,11 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
       .eq('id', 1)
       .maybeSingle(),
     supabase.rpc('get_workspace_members'),
+    supabase
+      .from('kkn_team_directory')
+      .select('id, full_name, role, position_label, division, phone, identity_number, study_program, academic_status, university, account_email, photo_file_id, photo_path, is_active, linked_user_id')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true }),
     supabase
       .from('work_programs')
       .select('id, title, description, status, start_date, end_date, publication_status, created_by, created_at, updated_at')
@@ -175,6 +198,11 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
         'id, category_id, type, amount, description, transaction_date, recorded_by, reversal_of_transaction_id, correction_reason, created_at',
       ),
     supabase
+      .from('inventory_items')
+      .select(
+        'id, name, item_code, current_holder_name, current_location, item_status, reconciliation_status, borrow_due_date, ownership_type',
+      ),
+    supabase
       .from('announcements')
       .select('id, title, content, status, created_by, published_by, published_at, created_at, updated_at')
       .order('published_at', { ascending: false, nullsFirst: false })
@@ -185,11 +213,13 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
   const firstError =
     groupSettingsRes.error ||
     membersRes.error ||
+    teamDirectoryRes.error ||
     programsRes.error ||
     tasksRes.error ||
     eventsRes.error ||
     shiftsRes.error ||
     financeRes.error ||
+    inventoryRes.error ||
     announcementsRes.error
 
   if (firstError) {
@@ -219,6 +249,7 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
   return {
     groupSettings: (groupSettingsRes.data as GroupSettings | null) ?? null,
     members: (membersRes.data as WorkspaceMemberSummary[]) ?? [],
+    teamDirectory: (teamDirectoryRes.data as KknTeamDirectoryMember[]) ?? [],
     workPrograms: (programsRes.data as WorkProgram[]) ?? [],
     tasks,
     taskAssignees,
@@ -230,6 +261,8 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
       balance: financeRecap.cashBalance,
       transactionCount: financeRecap.allTimeEffectiveCount,
     },
+    financeTransactions: financeRows,
+    inventoryAlerts: (inventoryRes.data as DashboardInventoryAlertItem[]) ?? [],
     announcements: (announcementsRes.data as Announcement[]) ?? [],
     todayDateKey,
   }

@@ -15,21 +15,18 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
 import { AnnouncementModal } from '@/components/workspace/AnnouncementModal'
-import { PoskoMemberAvatar } from '@/components/workspace/PoskoMemberAvatar'
-import { PoskoMemberPhotoModal } from '@/components/workspace/PoskoMemberPhotoModal'
+import { PoskoOperationsSummaryCard } from '@/components/workspace/PoskoOperationsSummaryCard'
 import { fetchTeamDirectory } from '@/services/membersApi'
 import {
   createAnnouncement,
   deleteAnnouncement,
   fetchDashboardSummary,
-  getLocalDateKey,
   updateAnnouncement,
   type AnnouncementFormInput,
 } from '@/services/dashboardApi'
 import type {
   Announcement,
   KknRole,
-  KknTeamDirectoryMember,
   TaskItem,
   WorkProgram,
   WorkspaceMemberSummary,
@@ -39,7 +36,6 @@ import {
   ArrowRight,
   Award,
   Calendar,
-  Camera,
   CheckSquare,
   Clock,
   DollarSign,
@@ -47,7 +43,6 @@ import {
   Megaphone,
   Plus,
   RefreshCw,
-  ShieldCheck,
   Trash2,
   Users,
 } from 'lucide-react'
@@ -228,7 +223,6 @@ export const OverviewPage: React.FC = () => {
   const [editingAnnouncement, setEditingAnnouncement] =
     useState<Announcement | null>(null)
   const [deletingTarget, setDeletingTarget] = useState<Announcement | null>(null)
-  const [managingPhotoMember, setManagingPhotoMember] = useState<KknTeamDirectoryMember | null>(null)
 
   const { data: teamDirectory = [] } = useQuery({
     queryKey: ['workspace', 'team-directory'],
@@ -239,6 +233,16 @@ export const OverviewPage: React.FC = () => {
   const activeTeamDirectory = useMemo(() => {
     return teamDirectory.filter((m) => m.is_active)
   }, [teamDirectory])
+
+  const dplCount = useMemo(
+    () => activeTeamDirectory.filter((m) => m.role === 'dpl').length,
+    [activeTeamDirectory]
+  )
+  const studentCount = useMemo(
+    () => activeTeamDirectory.filter((m) => m.role !== 'dpl').length,
+    [activeTeamDirectory]
+  )
+  const totalTeamCount = activeTeamDirectory.length
 
   const {
     data,
@@ -458,10 +462,6 @@ export const OverviewPage: React.FC = () => {
     else if (dueMs <= threeDaysMs) dueSoonCount += 1
   }
 
-  const todayEventsCount = data.upcomingEvents.filter(
-    (ev) => getLocalDateKey(new Date(ev.start_at)) === data.todayDateKey
-  ).length
-
   return (
     <div className="space-y-6">
       {/* Top Banner Greeting */}
@@ -590,13 +590,13 @@ export const OverviewPage: React.FC = () => {
             <CardContent className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                  Anggota Aktif
+                  Anggota Tim Posko
                 </p>
                 <h3 className="text-2xl font-serif font-semibold text-charcoal mt-1">
-                  {data.members.length} Anggota
+                  {totalTeamCount > 0 ? totalTeamCount : (data.teamDirectory?.length ?? 11)} Orang
                 </h3>
                 <p className="text-xs text-charcoal-muted mt-1">
-                  {todayEventsCount} agenda hari ini · {data.todayShifts.length} piket posko
+                  {studentCount > 0 ? studentCount : (data.teamDirectory?.filter((m) => m.role !== 'dpl').length ?? 10)} Anggota KKN · {dplCount > 0 ? dplCount : (data.teamDirectory?.filter((m) => m.role === 'dpl').length ?? 1)} DPL
                 </p>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warm-200 text-charcoal shrink-0">
@@ -979,91 +979,16 @@ export const OverviewPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
-              <div>
-                <CardTitle className="text-sm font-semibold">
-                  Struktur Tim Posko
-                </CardTitle>
-                <CardDescription className="text-[11px]">
-                  Anggota aktif terdaftar ({activeTeamDirectory.length > 0 ? activeTeamDirectory.length : (data?.members?.length ?? 11)})
-                </CardDescription>
-              </div>
-              <Link
-                to="/workspace/members"
-                className="text-xs font-medium text-sage-700 hover:text-sage-800 flex items-center gap-1"
-              >
-                <span>Direktori</span>
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {activeTeamDirectory.length === 0 && (!data?.members || data.members.length === 0) ? (
-                <p className="text-xs text-charcoal-muted text-center py-4">
-                  Belum ada anggota aktif.
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-[480px] overflow-y-auto pr-0.5">
-                  {(activeTeamDirectory.length > 0
-                    ? activeTeamDirectory
-                    : (data?.members ?? []).map((m) => ({
-                        id: m.user_id,
-                        full_name: m.full_name,
-                        role: m.role,
-                        position_label: ROLE_BADGE_LABELS[m.role] || m.role,
-                        account_email: m.email,
-                        photo_file_id: m.avatar_file_id,
-                        is_active: true,
-                        linked_user_id: m.user_id,
-                      } as unknown as KknTeamDirectoryMember))
-                  ).map((member) => {
-                    const isSelf = Boolean(user?.id && member.linked_user_id === user.id)
-                    const canManagePhoto = isSuperAdmin || isSelf
-
-                    return (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between gap-2 rounded-md border border-warm-200 bg-warm-50/50 px-3 py-2 transition-colors hover:bg-warm-100/60"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <PoskoMemberAvatar member={member} sizeClass="h-7 w-7" textClass="text-[11px]" />
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-charcoal truncate">
-                              {member.full_name}
-                            </p>
-                            <p className="text-[10px] text-charcoal-muted truncate">
-                              {member.account_email || 'posko@pringgaselaselatan.desa.id'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {canManagePhoto && (
-                            <button
-                              type="button"
-                              onClick={() => setManagingPhotoMember(member)}
-                              className="rounded p-1 text-charcoal-muted hover:text-sage-800 hover:bg-warm-200/60 transition-colors"
-                              title="Kelola Foto Profil"
-                            >
-                              <Camera className="h-3 w-3" />
-                            </button>
-                          )}
-                          <Badge variant="outline" className="text-[10px] shrink-0">
-                            {member.position_label || ROLE_BADGE_LABELS[member.role] || member.role}
-                          </Badge>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              <div className="pt-1 flex items-center gap-2 text-[11px] text-charcoal-muted">
-                <ShieldCheck className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-                <span>Pengaturan profil posko dikelola Super Admin.</span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Ringkasan Operasional Posko */}
+          <PoskoOperationsSummaryCard
+            financeTransactions={data.financeTransactions ?? []}
+            workPrograms={data.workPrograms ?? []}
+            tasks={data.tasks ?? []}
+            taskAssignees={data.taskAssignees ?? []}
+            members={data.members ?? []}
+            inventoryAlerts={data.inventoryAlerts ?? []}
+            todayDateKey={data.todayDateKey}
+          />
         </div>
       </div>
 
@@ -1078,11 +1003,6 @@ export const OverviewPage: React.FC = () => {
         isSubmitting={createMutation.isPending || updateMutation.isPending}
       />
 
-      <PoskoMemberPhotoModal
-        open={Boolean(managingPhotoMember)}
-        onClose={() => setManagingPhotoMember(null)}
-        member={managingPhotoMember}
-      />
 
       <ConfirmDialog
         open={Boolean(deletingTarget)}
