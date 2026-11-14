@@ -43,6 +43,24 @@ const DocumentationDetailPage = lazy(() =>
 const VillageProfilePage = lazy(() =>
   import('@/pages/public/VillageProfilePage').then((m) => ({ default: m.VillageProfilePage }))
 )
+const VillageHistoryPage = lazy(() =>
+  import('@/pages/public/VillageHistoryPage').then((m) => ({ default: m.VillageHistoryPage }))
+)
+const VillageTerritoryPage = lazy(() =>
+  import('@/pages/public/VillageTerritoryPage').then((m) => ({ default: m.VillageTerritoryPage }))
+)
+const VillageTourismPage = lazy(() =>
+  import('@/pages/public/VillageTourismPage').then((m) => ({ default: m.VillageTourismPage }))
+)
+const VillageCulturePage = lazy(() =>
+  import('@/pages/public/VillageCulturePage').then((m) => ({ default: m.VillageCulturePage }))
+)
+const VillageEconomyPage = lazy(() =>
+  import('@/pages/public/VillageEconomyPage').then((m) => ({ default: m.VillageEconomyPage }))
+)
+const VillageGalleryPage = lazy(() =>
+  import('@/pages/public/VillageGalleryPage').then((m) => ({ default: m.VillageGalleryPage }))
+)
 
 // Workspace Pages (strictly isolated from public bundle)
 const OverviewPage = lazy(() =>
@@ -105,6 +123,9 @@ const AdminInvitationsPage = lazy(() =>
 const AdminKknConfigPage = lazy(() =>
   import('@/pages/admin/AdminKknConfigPage').then((m) => ({ default: m.AdminKknConfigPage }))
 )
+const AdminVillagePage = lazy(() =>
+  import('@/pages/admin/AdminVillagePage').then((m) => ({ default: m.AdminVillagePage }))
+)
 const AdminAuditPage = lazy(() =>
   import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage }))
 )
@@ -144,6 +165,12 @@ export const router = createBrowserRouter([
       { path: 'dokumentasi', element: withSuspense(<DocumentationPage />) },
       { path: 'dokumentasi/:slug', element: withSuspense(<DocumentationDetailPage />) },
       { path: 'profil-desa', element: withSuspense(<VillageProfilePage />) },
+      { path: 'profil-desa/sejarah', element: withSuspense(<VillageHistoryPage />) },
+      { path: 'profil-desa/wilayah', element: withSuspense(<VillageTerritoryPage />) },
+      { path: 'profil-desa/pariwisata', element: withSuspense(<VillageTourismPage />) },
+      { path: 'profil-desa/budaya', element: withSuspense(<VillageCulturePage />) },
+      { path: 'profil-desa/potensi-desa', element: withSuspense(<VillageEconomyPage />) },
+      { path: 'profil-desa/galeri', element: withSuspense(<VillageGalleryPage />) },
     ],
   },
 
@@ -188,6 +215,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: withSuspense(<AdminUsersPage />) },
       { path: 'invitations', element: withSuspense(<AdminInvitationsPage />) },
       { path: 'kkn-config', element: withSuspense(<AdminKknConfigPage />) },
+      { path: 'village', element: withSuspense(<AdminVillagePage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
       { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
     ],

@@ -14,7 +14,8 @@ import {
   ShieldAlert,
   UserCheck,
   UserCog,
-  History
+  History,
+  Map,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -69,6 +70,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Manajemen Akun", href: "/admin/users", icon: UserCheck },
       { title: "Undangan Anggota", href: "/admin/invitations", icon: Users },
       { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
+      { title: "Profil & Geoportal Desa", href: "/admin/village", icon: Map },
       { title: "Log Audit Sistem", href: "/admin/audit", icon: History },
       { title: "Pengaturan Platform", href: "/admin/settings", icon: ShieldAlert },
     ],
