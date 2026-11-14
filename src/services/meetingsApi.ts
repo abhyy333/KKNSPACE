@@ -392,3 +392,67 @@ export async function deleteMeetingAgendaItem(agendaItemId: string): Promise<voi
     throw new Error(`Gagal menghapus agenda item: ${error.message}`)
   }
 }
+
+export interface GlobalMeetingDecision extends MeetingDecision {
+  meeting?: {
+    id: string
+    title: string
+    meeting_date: string
+    location?: string | null
+  }
+  responsible_profile?: {
+    full_name: string
+  }
+}
+
+export async function fetchAllMeetingDecisions(): Promise<GlobalMeetingDecision[]> {
+  const { data, error } = await supabase
+    .from('meeting_decisions')
+    .select('*, meeting:meetings(id, title, meeting_date, location), responsible_profile:profiles(full_name)')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Gagal memuat log butir keputusan rapat: ${error.message}`)
+  }
+
+  return (data as GlobalMeetingDecision[]) || []
+}
+
+export async function convertDecisionToTask(decision: GlobalMeetingDecision): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sesi pengguna tidak valid.')
+
+  // 1. Insert into tasks
+  const { data: newTask, error: taskError } = await supabase
+    .from('tasks')
+    .insert({
+      title: decision.title || decision.decision.slice(0, 80),
+      description: `Tindak lanjut dari keputusan rapat: "${decision.decision}" (Rapat: ${decision.meeting?.title || 'Posko'})`,
+      due_date: decision.due_date || null,
+      status: 'in_progress',
+      priority: 'high',
+      created_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (taskError || !newTask) {
+    throw new Error(`Gagal membuat tugas tim dari butir keputusan: ${taskError?.message}`)
+  }
+
+  // 2. If responsible user exists, assign them to the task
+  if (decision.responsible_user_id) {
+    await supabase.from('task_assignees').insert({
+      task_id: newTask.id,
+      user_id: decision.responsible_user_id,
+      assigned_by: user.id,
+    })
+  }
+
+  // 3. Update meeting decision status to in_progress
+  await updateMeetingDecision(decision.id, {
+    status: 'in_progress',
+    progress_notes: `Telah dikonversi menjadi Tugas Tim resmi pada ${new Date().toLocaleDateString('id-ID')}`,
+  })
+}
+

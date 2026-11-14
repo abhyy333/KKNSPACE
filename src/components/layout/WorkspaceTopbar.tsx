@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Menu, Bell, Shield, LogOut, Megaphone } from 'lucide-react'
+import { Menu, Bell, Shield, LogOut, Megaphone, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import type { Announcement } from '@/types/database'
+import { WorkspaceGlobalSearchModal } from '@/components/workspace/WorkspaceGlobalSearchModal'
 
 interface WorkspaceTopbarProps {
   onToggleSidebar: () => void
@@ -29,7 +30,20 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const [notifOpen, setNotifOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const notifContainerRef = useRef<HTMLDivElement>(null)
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   useEffect(() => {
     if (!notifOpen) return
@@ -77,8 +91,22 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
         </div>
       </div>
 
-      {/* Right side: Super admin shortcut, notifications, and profile */}
-      <div className="flex items-center gap-3">
+      {/* Right side: Global search, super admin shortcut, notifications, and profile */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Global Search Button */}
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 rounded-lg border border-warm-200 bg-warm-50/80 px-2.5 py-1.5 text-xs text-charcoal-muted hover:border-sage-400 hover:bg-white hover:text-charcoal transition-colors"
+          title="Cari di seluruh Workspace (Ctrl+K)"
+        >
+          <Search className="h-3.5 w-3.5 text-sage-700" />
+          <span className="hidden md:inline">Cari di Workspace...</span>
+          <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-warm-300 bg-warm-100 px-1 py-0.2 font-mono text-[9px] text-charcoal-muted">
+            Ctrl+K
+          </kbd>
+        </button>
+
         {isSuperAdmin && (
           <Link to="/admin">
             <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5 text-xs text-sage-800 border-sage-300 bg-sage-50 hover:bg-sage-100">
@@ -195,6 +223,9 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Global Search Dialog Modal */}
+      <WorkspaceGlobalSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   )
 }

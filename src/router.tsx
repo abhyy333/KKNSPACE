@@ -139,6 +139,10 @@ const SurveysPage = lazyWithRetry(() =>
   import('@/pages/workspace/SurveysPage').then((m) => ({ default: m.SurveysPage })),
   'SurveysPage'
 )
+const FinalReportPage = lazyWithRetry(() =>
+  import('@/pages/workspace/FinalReportPage').then((m) => ({ default: m.FinalReportPage })),
+  'FinalReportPage'
+)
 
 // Admin Pages
 const AdminOverviewPage = lazyWithRetry(() =>
@@ -245,7 +249,8 @@ export const router = createBrowserRouter([
       { path: 'duty', element: withSuspense(<DutyPage />) },
       { path: 'documentation', element: withSuspense(<DocumentationWorkspacePage />) },
       { path: 'documents', element: withSuspense(<DocumentsPage />) },
-      { path: 'final-report', element: <Navigate to="/workspace" replace /> },
+      { path: 'final-report', element: withSuspense(<FinalReportPage />) },
+      { path: 'report', element: <Navigate to="/workspace/final-report" replace /> },
       { path: 'members', element: withSuspense(<MembersPage />) },
       { path: 'profile', element: withSuspense(<ProfilePage />) },
       { path: 'settings', element: withSuspense(<SettingsPage />) },

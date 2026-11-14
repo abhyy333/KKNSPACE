@@ -16,6 +16,7 @@ import {
   RefreshCw,
   CalendarRange,
   ShieldCheck,
+  Download,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -192,6 +193,53 @@ export const FinancePage: React.FC = () => {
     return { label: 'Tercatat', variant: 'success' as const }
   }
 
+  const handleExportFinanceCSV = () => {
+    if (transactions.length === 0) {
+      toast({ title: 'Tidak Ada Transaksi untuk Diekspor', variant: 'error' })
+      return
+    }
+
+    const headers = [
+      'ID Transaksi',
+      'Tanggal',
+      'Jenis (Pemasukan/Pengeluaran)',
+      'Kategori',
+      'Nominal (Rp)',
+      'Deskripsi',
+      'Pencatat',
+      'Status Audit',
+    ]
+    const rows = transactions.map((tx) => [
+      tx.id,
+      tx.transaction_date,
+      tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+      `"${(categoryById.get(tx.category_id || '')?.name || 'Tanpa Kategori').replace(/"/g, '""')}"`,
+      tx.amount,
+      `"${(tx.description || '').replace(/"/g, '""')}"`,
+      `"${(membersById[tx.recorded_by]?.full_name || '-').replace(/"/g, '""')}"`,
+      summary.reversedTargetIds.has(tx.id)
+        ? 'Dibatalkan (Reversed)'
+        : tx.reversal_of_transaction_id
+        ? 'Pembalik (Reversal)'
+        : 'Sah',
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute(
+      'download',
+      `Buku_Kas_KKN_Pringgasela_Selatan_${new Date().toISOString().split('T')[0]}.csv`
+    )
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast({ title: 'Buku Kas Berhasil Diekspor ke CSV', variant: 'success' })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -212,6 +260,17 @@ export const FinancePage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportFinanceCSV}
+            className="text-xs gap-1.5 border-warm-300 bg-white hover:bg-warm-50 text-charcoal"
+          >
+            <Download className="h-3.5 w-3.5 text-sage-700" />
+            <span>Ekspor CSV</span>
+          </Button>
+
           {canManageFinance ? (
             <>
               <Button

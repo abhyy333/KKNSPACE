@@ -31,6 +31,7 @@ import {
   RefreshCw,
   Trash2,
   Users,
+  Download,
 } from 'lucide-react'
 
 const TASK_STATUS_META: Record<
@@ -288,6 +289,58 @@ export const TasksPage: React.FC = () => {
     })
   }, [bundle?.tasks, statusFilter, onlyMine, currentUserId, assigneesByTask])
 
+  const handleExportTasksCSV = () => {
+    const list = bundle?.tasks ?? []
+    if (list.length === 0) {
+      toast({ title: 'Tidak Ada Tugas untuk Diekspor', variant: 'error' })
+      return
+    }
+
+    const headers = [
+      'ID',
+      'Judul Tugas',
+      'Deskripsi',
+      'Status',
+      'Tenggat Waktu',
+      'Program Kerja Terkait',
+      'Anggota Tertugas (PIC)',
+      'Tanggal Dibuat',
+    ]
+    const rows = list.map((t) => {
+      const assignees = assigneesByTask.get(t.id) ?? []
+      const assigneeNames = assignees.map((a) => a.full_name).join(', ')
+      const programTitle = t.program_id
+        ? (bundle?.programs ?? []).find((p) => p.id === t.program_id)?.title || '-'
+        : '-'
+
+      return [
+        t.id,
+        `"${(t.title || '').replace(/"/g, '""')}"`,
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        t.status,
+        t.due_date || '-',
+        `"${programTitle.replace(/"/g, '""')}"`,
+        `"${assigneeNames.replace(/"/g, '""')}"`,
+        t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID') : '-',
+      ]
+    })
+
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute(
+      'download',
+      `Tugas_Tim_KKN_Pringgasela_Selatan_${new Date().toISOString().split('T')[0]}.csv`
+    )
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast({ title: 'Daftar Tugas Berhasil Diekspor ke CSV', variant: 'success' })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
@@ -301,6 +354,16 @@ export const TasksPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportTasksCSV}
+            className="text-xs gap-1.5 border-warm-300 bg-white hover:bg-warm-50 text-charcoal"
+          >
+            <Download className="h-3.5 w-3.5 text-sage-700" />
+            <span>Ekspor CSV</span>
+          </Button>
+
           <Button
             size="sm"
             variant="outline"

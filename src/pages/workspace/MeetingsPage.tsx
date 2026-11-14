@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchMeetings,
@@ -12,6 +12,9 @@ import {
   deleteMeetingDecision,
   addMeetingAgendaItem,
   deleteMeetingAgendaItem,
+  fetchAllMeetingDecisions,
+  convertDecisionToTask,
+  type GlobalMeetingDecision,
   type CreateMeetingInput,
   type MeetingDetail,
 } from '@/services/meetingsApi'
@@ -45,6 +48,9 @@ import {
   Trash2,
   ExternalLink,
   ArrowRight,
+  Download,
+  ListTodo,
+  CheckSquare,
 } from 'lucide-react'
 
 const STATUS_BADGES: Record<
@@ -93,6 +99,273 @@ function formatMeetingTime(startStr: string, endStr?: string | null): string {
   return `${start} - ${end} WITA`
 }
 
+// -------------------------------------------------------------
+// Decision Log Sub-View (Tindak Lanjut & Butir Keputusan Rapat)
+// -------------------------------------------------------------
+interface DecisionLogViewProps {
+  canManage: boolean
+  onSelectMeeting: (id: string) => void
+}
+
+const DecisionLogView: React.FC<DecisionLogViewProps> = ({ canManage, onSelectMeeting }) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [statusFilter, setStatusFilter] = useState<'all' | MeetingDecisionStatus>('all')
+  const [search, setSearch] = useState('')
+  const [convertingId, setConvertingId] = useState<string | null>(null)
+
+  const { data: decisions = [], isLoading } = useQuery({
+    queryKey: ['meeting-decisions-global'],
+    queryFn: fetchAllMeetingDecisions,
+  })
+
+  const filteredDecisions = useMemo(() => {
+    return decisions.filter((d) => {
+      if (statusFilter !== 'all' && d.status !== statusFilter) return false
+      if (search.trim()) {
+        const query = search.toLowerCase()
+        const text = `${d.title || ''} ${d.decision} ${d.responsible_profile?.full_name || ''} ${d.meeting?.title || ''}`.toLowerCase()
+        if (!text.includes(query)) return false
+      }
+      return true
+    })
+  }, [decisions, statusFilter, search])
+
+  const handleConvertToTask = async (decision: GlobalMeetingDecision) => {
+    setConvertingId(decision.id)
+    try {
+      await convertDecisionToTask(decision)
+      toast({
+        title: 'Keputusan Ditransformasikan ke Tugas Tim',
+        description: `Tugas baru berhasil dibuat dan ditautkan ke papan penugasan KKN.`,
+        variant: 'success',
+      })
+      queryClient.invalidateQueries({ queryKey: ['meeting-decisions-global'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] })
+    } catch (err: any) {
+      toast({
+        title: 'Gagal Mengonversi ke Tugas',
+        description: err.message,
+        variant: 'error',
+      })
+    } finally {
+      setConvertingId(null)
+    }
+  }
+
+  const handleUpdateStatus = async (decisionId: string, newStatus: MeetingDecisionStatus) => {
+    try {
+      await updateMeetingDecision(decisionId, { status: newStatus })
+      toast({ title: 'Status Keputusan Diperbarui', variant: 'success' })
+      queryClient.invalidateQueries({ queryKey: ['meeting-decisions-global'] })
+    } catch (err: any) {
+      toast({ title: 'Gagal Memperbarui Status', description: err.message, variant: 'error' })
+    }
+  }
+
+  const handleExportCSV = () => {
+    if (decisions.length === 0) {
+      toast({ title: 'Tidak Ada Data untuk Diekspor', variant: 'error' })
+      return
+    }
+
+    const headers = [
+      'ID',
+      'Judul Rapat',
+      'Tanggal Rapat',
+      'Poin Keputusan / Tindak Lanjut',
+      'Penanggung Jawab (PIC)',
+      'Batas Waktu',
+      'Status',
+      'Catatan Progres',
+    ]
+    const rows = decisions.map((d) => [
+      d.id,
+      `"${(d.meeting?.title || '').replace(/"/g, '""')}"`,
+      d.meeting?.meeting_date ? new Date(d.meeting.meeting_date).toLocaleDateString('id-ID') : '-',
+      `"${(d.decision || '').replace(/"/g, '""')}"`,
+      `"${(d.responsible_profile?.full_name || '-').replace(/"/g, '""')}"`,
+      d.due_date || '-',
+      d.status,
+      `"${(d.progress_notes || '').replace(/"/g, '""')}"`,
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute(
+      'download',
+      `Decision_Log_KKN_Pringgasela_Selatan_${new Date().toISOString().split('T')[0]}.csv`
+    )
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    toast({ title: 'Log Keputusan Berhasil Diekspor ke CSV', variant: 'success' })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Sub Header Decision Log */}
+      <div className="rounded-xl border border-sage-200 bg-gradient-to-r from-sage-50/80 to-white p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 className="font-serif font-semibold text-charcoal text-sm flex items-center gap-2">
+            <ListTodo className="h-4 w-4 text-sage-800" />
+            <span>Decision Log — Butir Keputusan &amp; Tindak Lanjut Musyawarah</span>
+          </h3>
+          <p className="text-xs text-charcoal-muted mt-0.5">
+            Pelacakan terpusat setiap keputusan dan mandat rapat posko yang harus dieksekusi oleh tim.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCSV}
+            className="text-xs gap-1.5 border-sage-300 bg-white hover:bg-sage-50 text-sage-800"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Ekspor CSV</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 bg-warm-200/50 p-1 rounded-lg text-xs overflow-x-auto">
+          {(['all', 'todo', 'in_progress', 'done', 'cancelled'] as const).map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                statusFilter === st
+                  ? 'bg-white font-semibold text-charcoal shadow-xs'
+                  : 'text-charcoal-muted hover:text-charcoal'
+              }`}
+            >
+              {st === 'all'
+                ? `Semua (${decisions.length})`
+                : st === 'todo'
+                ? `Belum Mulai (${decisions.filter((d) => d.status === 'todo').length})`
+                : st === 'in_progress'
+                ? `Berjalan (${decisions.filter((d) => d.status === 'in_progress').length})`
+                : st === 'done'
+                ? `Selesai (${decisions.filter((d) => d.status === 'done').length})`
+                : 'Batal'}
+            </button>
+          ))}
+        </div>
+
+        <div className="w-full sm:w-64">
+          <Input
+            placeholder="Cari keputusan / PIC / rapat..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="text-xs h-8 bg-white"
+          />
+        </div>
+      </div>
+
+      {/* Decision Items Table / Cards */}
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : filteredDecisions.length === 0 ? (
+        <Card className="border-dashed border-warm-300 bg-white">
+          <CardContent className="p-8 text-center text-xs text-charcoal-muted">
+            Belum ada butir keputusan yang sesuai filter.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2.5">
+          {filteredDecisions.map((item: GlobalMeetingDecision) => {
+            const badgeMeta =
+              DECISION_STATUS_LABELS[item.status as MeetingDecisionStatus] ||
+              DECISION_STATUS_LABELS.todo
+            return (
+              <div
+                key={item.id}
+                className="rounded-lg border border-warm-200 bg-white p-3.5 hover:border-sage-400 transition-colors text-xs space-y-2"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-charcoal">
+                        {item.title || 'Butir Keputusan'}
+                      </span>
+                      <Badge variant={badgeMeta.variant} className="text-[10px]">
+                        {badgeMeta.label}
+                      </Badge>
+                    </div>
+                    <p className="text-charcoal-muted leading-relaxed whitespace-pre-wrap">
+                      {item.decision}
+                    </p>
+                  </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {canManage && item.status !== 'done' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleConvertToTask(item)}
+                      disabled={convertingId === item.id}
+                      className="text-[11px] h-7 gap-1 text-sage-800 border-sage-300 bg-sage-50 hover:bg-sage-100"
+                    >
+                      <CheckSquare className="h-3 w-3" />
+                      <span>{convertingId === item.id ? 'Menyimpan...' : 'Jadikan Tugas Tim'}</span>
+                    </Button>
+                  )}
+                  {canManage && (
+                    <select
+                      value={item.status}
+                      onChange={(e) => handleUpdateStatus(item.id, e.target.value as MeetingDecisionStatus)}
+                      className="text-[11px] h-7 px-2 rounded border border-warm-300 bg-white text-charcoal"
+                    >
+                      <option value="todo">Belum Mulai</option>
+                      <option value="in_progress">Sedang Berjalan</option>
+                      <option value="done">Selesai</option>
+                      <option value="cancelled">Dibatalkan</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-warm-100 text-[11px] text-charcoal-muted">
+                <div className="flex items-center gap-3">
+                  <span>
+                    PIC: <strong className="text-charcoal">{item.responsible_profile?.full_name || 'Seluruh Tim'}</strong>
+                  </span>
+                  {item.due_date && (
+                    <span>
+                      Tenggat: <strong className="text-charcoal">{item.due_date}</strong>
+                    </span>
+                  )}
+                </div>
+                {item.meeting && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectMeeting(item.meeting!.id)}
+                    className="text-sage-800 hover:underline flex items-center gap-1 font-medium"
+                  >
+                    <span>Rapat: {item.meeting.title}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      )}
+    </div>
+  )
+}
+
 export const MeetingsPage: React.FC = () => {
   const { user, isSuperAdmin, membership } = useAuth()
   const { toast } = useToast()
@@ -100,7 +373,7 @@ export const MeetingsPage: React.FC = () => {
 
   const canManage = isSuperAdmin || membership?.role === 'ketua' || membership?.role === 'sekretaris'
 
-  const [activeTab, setActiveTab] = useState<'all' | 'planned' | 'completed' | 'cancelled'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'planned' | 'completed' | 'cancelled' | 'decisions'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -113,10 +386,10 @@ export const MeetingsPage: React.FC = () => {
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ['meetings', activeTab, searchTerm],
+    queryKey: ['meetings', activeTab === 'decisions' ? 'all' : activeTab, searchTerm],
     queryFn: () =>
       fetchMeetings({
-        status: activeTab,
+        status: activeTab === 'decisions' ? 'all' : activeTab,
         search: searchTerm,
       }),
   })
@@ -293,20 +566,36 @@ export const MeetingsPage: React.FC = () => {
           >
             Arsip / Batal
           </button>
+          <button
+            onClick={() => setActiveTab('decisions')}
+            className={`px-3 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1.5 ${
+              activeTab === 'decisions' ? 'bg-sage-700 text-white shadow-xs' : 'text-charcoal-muted hover:text-charcoal'
+            }`}
+          >
+            <ListTodo className="h-3.5 w-3.5" />
+            <span>Log Keputusan Rapat</span>
+          </button>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-charcoal-muted" />
-          <Input
-            placeholder="Cari judul rapat..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 text-xs h-9 bg-white"
-          />
-        </div>
+        {activeTab !== 'decisions' && (
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-charcoal-muted" />
+            <Input
+              placeholder="Cari judul rapat..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 text-xs h-9 bg-white"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Meeting Cards List */}
+      {/* Decision Log View when activeTab === 'decisions' */}
+      {activeTab === 'decisions' ? (
+        <DecisionLogView canManage={canManage} onSelectMeeting={(id) => setSelectedMeetingId(id)} />
+      ) : (
+        <>
+          {/* Meeting Cards List */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Skeleton className="h-40 w-full" />
@@ -427,6 +716,8 @@ export const MeetingsPage: React.FC = () => {
             )
           })}
         </div>
+      )}
+        </>
       )}
 
       {/* Meeting Detail Modal */}
