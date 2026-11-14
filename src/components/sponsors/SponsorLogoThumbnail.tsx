@@ -19,7 +19,7 @@ export const SponsorLogoThumbnail: React.FC<SponsorLogoThumbnailProps> = ({
   sponsorId,
   alt,
   isPublic = false,
-  className = 'w-full h-full object-contain p-2',
+  className = 'w-full h-full object-contain',
   containerClassName = 'w-24 h-16 bg-white rounded-lg border border-warm-200 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs',
 }) => {
   const { data, isLoading, isError } = useQuery({
