@@ -631,4 +631,42 @@ export interface ActivityDocumentation {
   photo_count?: number
 }
 
+// -------------------------------------------------------------
+// Risk Register Types
+// -------------------------------------------------------------
+export type RiskCategory =
+  | 'operasional'
+  | 'keuangan'
+  | 'logistik'
+  | 'program_kerja'
+  | 'koordinasi'
+  | 'keselamatan'
+  | 'administrasi'
+
+export type RiskLikelihood = 'low' | 'medium' | 'high'
+export type RiskImpact = 'low' | 'medium' | 'high'
+export type RiskPriority = 'low' | 'medium' | 'high' | 'critical'
+export type RiskStatus = 'identified' | 'mitigating' | 'monitoring' | 'resolved'
+
+export interface KknRisk {
+  id: string
+  title: string
+  description: string | null
+  category: RiskCategory
+  likelihood: RiskLikelihood
+  impact: RiskImpact
+  priority: RiskPriority
+  pic_user_id: string | null
+  mitigation_strategy: string | null
+  target_date: string | null
+  status: RiskStatus
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  pic_profile?: {
+    full_name: string
+  }
+}
+
+
 

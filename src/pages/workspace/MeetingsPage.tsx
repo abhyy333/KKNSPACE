@@ -4,6 +4,7 @@ import {
   fetchMeetings,
   fetchMeetingById,
   createMeeting,
+  updateMeeting,
   deleteMeeting,
   updateAttendeeAttendance,
   upsertMeetingMinutes,
@@ -16,6 +17,7 @@ import {
   convertDecisionToTask,
   type GlobalMeetingDecision,
   type CreateMeetingInput,
+  type UpdateMeetingInput,
   type MeetingDetail,
 } from '@/services/meetingsApi'
 import { useAuth } from '@/hooks/useAuth'
@@ -34,6 +36,10 @@ import type {
 } from '@/types/database'
 import {
   Calendar,
+  CalendarDays,
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   MapPin,
   Video,
@@ -366,6 +372,376 @@ const DecisionLogView: React.FC<DecisionLogViewProps> = ({ canManage, onSelectMe
   )
 }
 
+// -------------------------------------------------------------
+// Meeting Calendar Sub-View
+// -------------------------------------------------------------
+interface MeetingCalendarViewProps {
+  meetings: Meeting[]
+  onSelectMeeting: (id: string) => void
+  onScheduleForDate?: (dateStr: string) => void
+  canManage: boolean
+}
+
+const MeetingCalendarView: React.FC<MeetingCalendarViewProps> = ({
+  meetings,
+  onSelectMeeting,
+  onScheduleForDate,
+  canManage,
+}) => {
+  const [currentDate, setCurrentDate] = useState(() => new Date())
+
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const daysInMonth = lastDay.getDate()
+  // Adjust starting day of week for Monday start (0=Sun -> 6, 1=Mon -> 0)
+  const startDayOfWeek = (firstDay.getDay() + 6) % 7
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+  const today = () => setCurrentDate(new Date())
+
+  const monthLabel = currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+
+  // Map meetings by YYYY-MM-DD
+  const meetingsByDate = useMemo(() => {
+    const map = new Map<string, Meeting[]>()
+    for (const m of meetings) {
+      if (!m.meeting_date) continue
+      const dateKey = m.meeting_date.slice(0, 10)
+      const list = map.get(dateKey) || []
+      list.push(m)
+      map.set(dateKey, list)
+    }
+    return map
+  }, [meetings])
+
+  const dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  // Generate calendar grid cells
+  const cells: Array<
+    | { type: 'empty'; key: string }
+    | {
+        type: 'day'
+        key: string
+        dayNumber: number
+        dateStr: string
+        isToday: boolean
+        items: Meeting[]
+      }
+  > = []
+
+  for (let i = 0; i < startDayOfWeek; i++) {
+    cells.push({ type: 'empty', key: `empty-${i}` })
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    cells.push({
+      type: 'day',
+      key: dateStr,
+      dayNumber: d,
+      dateStr,
+      isToday: dateStr === todayStr,
+      items: meetingsByDate.get(dateStr) || [],
+    })
+  }
+
+  return (
+    <Card className="bg-white border-warm-200 shadow-xs">
+      <CardHeader className="p-4 border-b border-warm-200 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5 text-sage-700" />
+          <h2 className="text-sm font-semibold text-charcoal capitalize">{monthLabel}</h2>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Button size="sm" variant="outline" onClick={today} className="text-xs h-7 px-2.5">
+            Hari Ini
+          </Button>
+          <Button size="icon" variant="ghost" onClick={prevMonth} className="h-7 w-7 text-charcoal">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={nextMonth} className="h-7 w-7 text-charcoal">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-2 sm:p-4">
+        {/* Day Header */}
+        <div className="grid grid-cols-7 gap-1 text-center font-medium text-xs text-charcoal-muted mb-2">
+          {dayNames.map((name) => (
+            <div key={name} className="py-1">
+              {name}
+            </div>
+          ))}
+        </div>
+        {/* Grid Cells */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {cells.map((cell) => {
+            if (cell.type === 'empty') {
+              return (
+                <div
+                  key={cell.key}
+                  className="min-h-[75px] sm:min-h-[95px] rounded-md bg-warm-50/50 border border-transparent"
+                />
+              )
+            }
+            return (
+              <div
+                key={cell.key}
+                onClick={() => {
+                  if (cell.items.length === 0 && canManage && onScheduleForDate) {
+                    onScheduleForDate(cell.dateStr)
+                  }
+                }}
+                className={`min-h-[75px] sm:min-h-[95px] p-1.5 rounded-md border flex flex-col justify-between transition-colors ${
+                  cell.isToday
+                    ? 'border-sage-500 bg-sage-50/40 shadow-xs'
+                    : 'border-warm-200 hover:border-warm-300 bg-white'
+                } ${cell.items.length === 0 && canManage ? 'cursor-pointer hover:bg-warm-50/80' : ''}`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`text-[11px] font-semibold rounded-full w-5 h-5 flex items-center justify-center ${
+                      cell.isToday ? 'bg-sage-700 text-white' : 'text-charcoal'
+                    }`}
+                  >
+                    {cell.dayNumber}
+                  </span>
+                  {cell.items.length > 0 && (
+                    <span className="text-[10px] text-charcoal-muted font-medium">
+                      {cell.items.length} rapat
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1 flex-1 overflow-y-auto max-h-[60px] sm:max-h-[75px]">
+                  {cell.items.map((m) => {
+                    const time = new Date(m.meeting_date).toLocaleTimeString('id-ID', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onSelectMeeting(m.id)
+                        }}
+                        className="w-full text-left p-1 rounded text-[10px] bg-warm-100 hover:bg-sage-100 hover:text-sage-900 border border-warm-200 truncate transition-colors flex items-center gap-1 group"
+                        title={`${m.title} (${time} WITA)`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            m.status === 'completed'
+                              ? 'bg-emerald-500'
+                              : m.status === 'in_progress'
+                              ? 'bg-blue-500'
+                              : m.status === 'cancelled'
+                              ? 'bg-red-400'
+                              : 'bg-amber-500'
+                          }`}
+                        />
+                        <span className="font-medium text-charcoal-muted group-hover:text-charcoal shrink-0">
+                          {time}
+                        </span>
+                        <span className="truncate text-charcoal">{m.title}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// -------------------------------------------------------------
+// Edit Meeting Modal Sub-Component
+// -------------------------------------------------------------
+interface EditMeetingModalProps {
+  open: boolean
+  onClose: () => void
+  meeting: Meeting | null
+  onSubmit: (id: string, input: UpdateMeetingInput) => Promise<void>
+  isSubmitting: boolean
+}
+
+const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
+  open,
+  onClose,
+  meeting,
+  onSubmit,
+  isSubmitting,
+}) => {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [meetingDate, setMeetingDate] = useState('')
+  const [startTime, setStartTime] = useState('19:30')
+  const [endTime, setEndTime] = useState('21:00')
+  const [location, setLocation] = useState('Posko Utama KKN')
+  const [meetingLink, setMeetingLink] = useState('')
+  const [status, setStatus] = useState<MeetingStatus>('planned')
+
+  React.useEffect(() => {
+    if (meeting) {
+      setTitle(meeting.title || '')
+      setDescription(meeting.description || '')
+      setLocation(meeting.location || 'Posko Utama KKN')
+      setMeetingLink(meeting.meeting_link || '')
+      setStatus(meeting.status || 'planned')
+
+      if (meeting.meeting_date) {
+        const d = new Date(meeting.meeting_date)
+        const yr = d.getFullYear()
+        const mo = String(d.getMonth() + 1).padStart(2, '0')
+        const dt = String(d.getDate()).padStart(2, '0')
+        setMeetingDate(`${yr}-${mo}-${dt}`)
+        const hr = String(d.getHours()).padStart(2, '0')
+        const mn = String(d.getMinutes()).padStart(2, '0')
+        setStartTime(`${hr}:${mn}`)
+      }
+      if (meeting.end_time) {
+        const d = new Date(meeting.end_time)
+        const hr = String(d.getHours()).padStart(2, '0')
+        const mn = String(d.getMinutes()).padStart(2, '0')
+        setEndTime(`${hr}:${mn}`)
+      } else {
+        setEndTime('')
+      }
+    }
+  }, [meeting])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!meeting || !title.trim() || !meetingDate) return
+
+    const startDateTime = new Date(`${meetingDate}T${startTime}:00`).toISOString()
+    const endDateTime = endTime ? new Date(`${meetingDate}T${endTime}:00`).toISOString() : undefined
+
+    await onSubmit(meeting.id, {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      meeting_date: startDateTime,
+      end_time: endDateTime,
+      location: location.trim() || undefined,
+      meeting_link: meetingLink.trim() || undefined,
+      status,
+    })
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Edit Agenda Rapat Kelompok">
+      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <div>
+          <label className="font-semibold text-charcoal block mb-1">Judul Rapat *</label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="text-xs"
+          />
+        </div>
+
+        <div>
+          <label className="font-semibold text-charcoal block mb-1">Status Rapat</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as MeetingStatus)}
+            className="w-full p-2 border border-warm-300 rounded text-xs bg-white text-charcoal"
+          >
+            <option value="planned">Direncanakan</option>
+            <option value="in_progress">Sedang Berlangsung</option>
+            <option value="completed">Selesai</option>
+            <option value="cancelled">Dibatalkan</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="font-semibold text-charcoal block mb-1">Deskripsi &amp; Tujuan</label>
+          <textarea
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full p-2 border border-warm-300 rounded text-xs"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Tanggal *</label>
+            <Input
+              type="date"
+              value={meetingDate}
+              onChange={(e) => setMeetingDate(e.target.value)}
+              required
+              className="text-xs"
+            />
+          </div>
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Jam Mulai</label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Jam Selesai</label>
+            <Input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Lokasi Pertemuan</label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="text-xs"
+            />
+          </div>
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Tautan Online (Opsional)</label>
+            <Input
+              value={meetingLink}
+              onChange={(e) => setMeetingLink(e.target.value)}
+              placeholder="https://meet.google.com/..."
+              className="text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-3 border-t border-warm-200">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-sage-700 hover:bg-sage-800 text-white"
+          >
+            {isSubmitting ? 'Menyimpan...' : 'Perbarui Rapat'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 export const MeetingsPage: React.FC = () => {
   const { user, isSuperAdmin, membership } = useAuth()
   const { toast } = useToast()
@@ -374,9 +750,12 @@ export const MeetingsPage: React.FC = () => {
   const canManage = isSuperAdmin || membership?.role === 'ketua' || membership?.role === 'sekretaris'
 
   const [activeTab, setActiveTab] = useState<'all' | 'planned' | 'completed' | 'cancelled' | 'decisions'>('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState<string | undefined>(undefined)
+  const [meetingToEdit, setMeetingToEdit] = useState<Meeting | null>(null)
   const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null)
 
   // Query: meetings list
@@ -408,9 +787,23 @@ export const MeetingsPage: React.FC = () => {
       toast({ title: 'Rapat Berhasil Dijadwalkan', variant: 'success' })
       queryClient.invalidateQueries({ queryKey: ['meetings'] })
       setIsCreateModalOpen(false)
+      setScheduledDate(undefined)
     },
     onError: (err: any) => {
       toast({ title: 'Gagal Membuat Rapat', description: err.message, variant: 'error' })
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateMeetingInput }) => updateMeeting(id, input),
+    onSuccess: () => {
+      toast({ title: 'Rapat Berhasil Diperbarui', variant: 'success' })
+      queryClient.invalidateQueries({ queryKey: ['meetings'] })
+      queryClient.invalidateQueries({ queryKey: ['meeting-detail'] })
+      setMeetingToEdit(null)
+    },
+    onError: (err: any) => {
+      toast({ title: 'Gagal Memperbarui Rapat', description: err.message, variant: 'error' })
     },
   })
 
@@ -578,14 +971,45 @@ export const MeetingsPage: React.FC = () => {
         </div>
 
         {activeTab !== 'decisions' && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-charcoal-muted" />
-            <Input
-              placeholder="Cari judul rapat..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 text-xs h-9 bg-white"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-1 border border-warm-300 rounded-lg p-0.5 bg-warm-100/80 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-2.5 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-charcoal shadow-xs font-semibold'
+                    : 'text-charcoal-muted hover:text-charcoal'
+                }`}
+                title="Tampilan Kartu"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Kartu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('calendar')}
+                className={`px-2.5 py-1.5 rounded-md text-xs flex items-center gap-1.5 transition-colors ${
+                  viewMode === 'calendar'
+                    ? 'bg-white text-charcoal shadow-xs font-semibold'
+                    : 'text-charcoal-muted hover:text-charcoal'
+                }`}
+                title="Tampilan Kalender"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Kalender</span>
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-charcoal-muted" />
+              <Input
+                placeholder="Cari judul rapat..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 text-xs h-9 bg-white"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -593,6 +1017,16 @@ export const MeetingsPage: React.FC = () => {
       {/* Decision Log View when activeTab === 'decisions' */}
       {activeTab === 'decisions' ? (
         <DecisionLogView canManage={canManage} onSelectMeeting={(id) => setSelectedMeetingId(id)} />
+      ) : viewMode === 'calendar' ? (
+        <MeetingCalendarView
+          meetings={meetings}
+          onSelectMeeting={(id) => setSelectedMeetingId(id)}
+          onScheduleForDate={(dateStr) => {
+            setScheduledDate(dateStr)
+            setIsCreateModalOpen(true)
+          }}
+          canManage={canManage}
+        />
       ) : (
         <>
           {/* Meeting Cards List */}
@@ -644,6 +1078,15 @@ export const MeetingsPage: React.FC = () => {
 
                     {canManage && (
                       <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setMeetingToEdit(meeting)}
+                          className="h-6 w-6 text-charcoal-muted hover:text-sage-700"
+                          title="Edit Agenda Rapat"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -739,11 +1182,26 @@ export const MeetingsPage: React.FC = () => {
       {/* Create Meeting Modal */}
       <CreateMeetingModal
         open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false)
+          setScheduledDate(undefined)
+        }}
+        initialDate={scheduledDate}
         onSubmit={async (data) => {
           await createMutation.mutateAsync(data)
         }}
         isSubmitting={createMutation.isPending}
+      />
+
+      {/* Edit Meeting Modal */}
+      <EditMeetingModal
+        open={Boolean(meetingToEdit)}
+        onClose={() => setMeetingToEdit(null)}
+        meeting={meetingToEdit}
+        onSubmit={async (id, data) => {
+          await updateMutation.mutateAsync({ id, input: data })
+        }}
+        isSubmitting={updateMutation.isPending}
       />
 
       {/* Delete Confirmation */}
@@ -1420,6 +1878,7 @@ interface CreateMeetingModalProps {
   onClose: () => void
   onSubmit: (input: CreateMeetingInput) => Promise<void>
   isSubmitting: boolean
+  initialDate?: string
 }
 
 const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
@@ -1427,6 +1886,7 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
   onClose,
   onSubmit,
   isSubmitting,
+  initialDate,
 }) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -1435,6 +1895,16 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
   const [endTime, setEndTime] = useState('21:00')
   const [location, setLocation] = useState('Posko Utama KKN')
   const [meetingLink, setMeetingLink] = useState('')
+
+  React.useEffect(() => {
+    if (open) {
+      if (initialDate) {
+        setMeetingDate(initialDate)
+      } else if (!meetingDate) {
+        setMeetingDate(new Date().toISOString().slice(0, 10))
+      }
+    }
+  }, [open, initialDate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

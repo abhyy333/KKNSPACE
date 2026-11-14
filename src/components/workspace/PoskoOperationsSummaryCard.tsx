@@ -9,6 +9,7 @@ import type {
   TaskItem,
   TaskAssignee,
   WorkspaceMemberSummary,
+  KknRisk,
 } from '@/types/database'
 import type { DashboardInventoryAlertItem } from '@/services/dashboardApi'
 import {
@@ -31,6 +32,7 @@ interface PoskoOperationsSummaryCardProps {
   taskAssignees: TaskAssignee[]
   members: WorkspaceMemberSummary[]
   inventoryAlerts?: DashboardInventoryAlertItem[]
+  risks?: KknRisk[]
   todayDateKey: string
 }
 
@@ -43,6 +45,7 @@ export const PoskoOperationsSummaryCard: React.FC<PoskoOperationsSummaryCardProp
   taskAssignees,
   members,
   inventoryAlerts = [],
+  risks = [],
   todayDateKey,
 }) => {
   const [periodFilter, setPeriodFilter] = useState<FinancePeriodFilter>('this_month')
@@ -140,8 +143,25 @@ export const PoskoOperationsSummaryCard: React.FC<PoskoOperationsSummaryCardProp
       })
     }
 
+    // D. Urgent Risks Needing Mitigation
+    if (risks && risks.length > 0) {
+      const activeUrgentRisks = risks.filter(
+        (r) => (r.priority === 'critical' || r.priority === 'high') && r.status !== 'resolved'
+      )
+      if (activeUrgentRisks.length > 0) {
+        list.push({
+          id: 'urgent-risks',
+          type: 'danger',
+          title: `${activeUrgentRisks.length} Risiko Membutuhkan Mitigasi`,
+          desc: `Terdapat ${activeUrgentRisks.length} potensi kendala prioritas tinggi/kritis pada operasional atau K3 posko.`,
+          to: '/workspace/risks',
+          linkLabel: 'Matriks Risiko',
+        })
+      }
+    }
+
     return list
-  }, [tasks, workPrograms, inventoryAlerts, todayDateKey])
+  }, [tasks, workPrograms, inventoryAlerts, risks, todayDateKey])
 
   // -------------------------------------------------------------
   // 2. Arus Kas KKN (Cashflow Visualizer)

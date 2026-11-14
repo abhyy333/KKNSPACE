@@ -143,6 +143,10 @@ const FinalReportPage = lazyWithRetry(() =>
   import('@/pages/workspace/FinalReportPage').then((m) => ({ default: m.FinalReportPage })),
   'FinalReportPage'
 )
+const RiskRegisterPage = lazyWithRetry(() =>
+  import('@/pages/workspace/RiskRegisterPage').then((m) => ({ default: m.RiskRegisterPage })),
+  'RiskRegisterPage'
+)
 
 // Admin Pages
 const AdminOverviewPage = lazyWithRetry(() =>
@@ -245,6 +249,7 @@ export const router = createBrowserRouter([
       { path: 'finance', element: withSuspense(<FinancePage />) },
       { path: 'inventory', element: withSuspense(<InventoryPage />) },
       { path: 'surveys', element: withSuspense(<SurveysPage />) },
+      { path: 'risks', element: withSuspense(<RiskRegisterPage />) },
       { path: 'logbook', element: <Navigate to="/workspace" replace /> },
       { path: 'duty', element: withSuspense(<DutyPage />) },
       { path: 'documentation', element: withSuspense(<DocumentationWorkspacePage />) },

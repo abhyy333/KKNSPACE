@@ -39,6 +39,7 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Download,
 } from 'lucide-react'
 
 const PROGRAM_STATUS_META: Record<
@@ -328,6 +329,62 @@ export const ProgramsWorkspacePage: React.FC = () => {
     return list.filter((p) => p.status === statusFilter)
   }, [bundle?.programs, statusFilter])
 
+  const handleExportCSV = () => {
+    const list = bundle?.programs ?? []
+    if (list.length === 0) {
+      toast({ title: 'Tidak ada data program kerja untuk diekspor', variant: 'warning' })
+      return
+    }
+
+    const headers = [
+      'No',
+      'Judul Program Kerja',
+      'Deskripsi',
+      'Status Operasional',
+      'Status Publikasi Portal',
+      'Tanggal Mulai',
+      'Tanggal Selesai',
+      'Penanggung Jawab (PJ)',
+      'Total Tugas Terkait',
+      'Tugas Selesai',
+      'Persentase Progres',
+    ]
+
+    const rows = list.map((prog, idx) => {
+      const stats = taskStatsByProgram.get(prog.id) ?? { total: 0, done: 0 }
+      const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
+      const assigned = assignmentsByProgram.get(prog.id) ?? []
+      const pjNames = assigned.map((a) => a.member?.full_name || 'Anggota').join('; ') || 'Belum Ditentukan'
+
+      return [
+        String(idx + 1),
+        `"${prog.title.replace(/"/g, '""')}"`,
+        `"${(prog.description ?? '').replace(/"/g, '""')}"`,
+        PROGRAM_STATUS_META[prog.status]?.label || prog.status,
+        PUBLICATION_META[prog.publication_status]?.label || prog.publication_status,
+        prog.start_date || '-',
+        prog.end_date || '-',
+        `"${pjNames.replace(/"/g, '""')}"`,
+        String(stats.total),
+        String(stats.done),
+        `${pct}%`,
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `program-kerja-kkn-pringgasela-selatan-${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({ title: 'Ekspor Program Kerja Berhasil', variant: 'success' })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -342,6 +399,17 @@ export const ProgramsWorkspacePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCSV}
+            className="text-xs gap-1.5"
+            title="Ekspor CSV Program Kerja"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Ekspor CSV</span>
+          </Button>
+
           <Button
             size="sm"
             variant="outline"

@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Image as ImageIcon,
   UserCheck,
+  ShieldAlert,
   ArrowRight,
   Loader2,
   X,
@@ -18,7 +19,7 @@ import {
 
 export interface SearchResultItem {
   id: string
-  category: 'program' | 'task' | 'meeting' | 'inventory' | 'survey' | 'documentation' | 'member'
+  category: 'program' | 'task' | 'meeting' | 'inventory' | 'survey' | 'documentation' | 'member' | 'risk'
   categoryLabel: string
   title: string
   subtitle: string
@@ -76,6 +77,7 @@ export const WorkspaceGlobalSearchModal: React.FC<WorkspaceGlobalSearchModalProp
           surveysRes,
           docsRes,
           membersRes,
+          risksRes,
         ] = await Promise.all([
           supabase
             .from('work_programs')
@@ -111,6 +113,11 @@ export const WorkspaceGlobalSearchModal: React.FC<WorkspaceGlobalSearchModalProp
             .from('kkn_team_directory')
             .select('id, full_name, role, position_label, study_program')
             .or(`full_name.ilike.${pattern},study_program.ilike.${pattern}`)
+            .limit(5),
+          supabase
+            .from('kkn_risks')
+            .select('id, title, category, priority, status')
+            .or(`title.ilike.${pattern},description.ilike.${pattern},mitigation_strategy.ilike.${pattern}`)
             .limit(5),
         ])
 
@@ -224,6 +231,22 @@ export const WorkspaceGlobalSearchModal: React.FC<WorkspaceGlobalSearchModalProp
           }
         }
 
+        // Risks
+        if (risksRes.data) {
+          for (const r of risksRes.data) {
+            combined.push({
+              id: `risk-${r.id}`,
+              category: 'risk',
+              categoryLabel: 'Risk Register',
+              title: r.title,
+              subtitle: `Kategori: ${r.category} · Status: ${r.status}`,
+              href: '/workspace/risks',
+              badge: `Prioritas ${r.priority.toUpperCase()}`,
+              badgeVariant: r.priority === 'critical' ? 'default' : r.priority === 'high' ? 'warning' : 'outline',
+            })
+          }
+        }
+
         setResults(combined)
         setSelectedIndex(0)
       } catch (err) {
@@ -273,6 +296,8 @@ export const WorkspaceGlobalSearchModal: React.FC<WorkspaceGlobalSearchModalProp
         return <ImageIcon className="h-4 w-4 text-rose-700" />
       case 'member':
         return <UserCheck className="h-4 w-4 text-charcoal" />
+      case 'risk':
+        return <ShieldAlert className="h-4 w-4 text-red-600" />
     }
   }
 

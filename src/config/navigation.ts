@@ -50,6 +50,7 @@ export const WORKSPACE_NAV: NavSection[] = [
       { title: "Inventaris Barang", href: "/workspace/inventory", icon: Package },
       { title: "Survei Desa", href: "/workspace/surveys", icon: ClipboardList },
       { title: "Jadwal Piket Posko", href: "/workspace/duty", icon: Clock },
+      { title: "Risk Register (Mitigasi)", href: "/workspace/risks", icon: ShieldAlert },
     ],
   },
   {
