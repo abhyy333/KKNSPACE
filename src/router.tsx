@@ -77,6 +77,10 @@ const VillageGalleryPage = lazyWithRetry(() =>
   import('@/pages/public/VillageGalleryPage').then((m) => ({ default: m.VillageGalleryPage })),
   'VillageGalleryPage'
 )
+const TimelineKknPage = lazyWithRetry(() =>
+  import('@/pages/public/TimelineKknPage').then((m) => ({ default: m.TimelineKknPage })),
+  'TimelineKknPage'
+)
 
 // Workspace Pages
 const OverviewPage = lazyWithRetry(() =>
@@ -181,6 +185,10 @@ const AdminMaintenancePage = lazyWithRetry(() =>
   import('@/pages/admin/AdminMaintenancePage').then((m) => ({ default: m.AdminMaintenancePage })),
   'AdminMaintenancePage'
 )
+const AdminTimelinePage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminTimelinePage').then((m) => ({ default: m.AdminTimelinePage })),
+  'AdminTimelinePage'
+)
 
 // Auth & Fallback Pages
 const LoginPage = lazyWithRetry(() =>
@@ -228,6 +236,9 @@ export const router = createBrowserRouter([
       { path: 'profil-desa/potensi-desa', element: withSuspense(<VillageEconomyPage />) },
       { path: 'profil-desa/potensi', element: <Navigate to="/profil-desa/potensi-desa" replace /> },
       { path: 'profil-desa/galeri', element: withSuspense(<VillageGalleryPage />) },
+      { path: 'timeline-kkn', element: withSuspense(<TimelineKknPage />) },
+      { path: 'timeline', element: <Navigate to="/timeline-kkn" replace /> },
+      { path: 'roadmap', element: <Navigate to="/timeline-kkn" replace /> },
     ],
   },
 
@@ -276,6 +287,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: withSuspense(<AdminUsersPage />) },
       { path: 'invitations', element: withSuspense(<AdminInvitationsPage />) },
       { path: 'kkn-config', element: withSuspense(<AdminKknConfigPage />) },
+      { path: 'timeline', element: withSuspense(<AdminTimelinePage />) },
       { path: 'village', element: withSuspense(<AdminVillagePage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
       { path: 'maintenance', element: withSuspense(<AdminMaintenancePage />) },

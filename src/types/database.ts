@@ -668,5 +668,66 @@ export interface KknRisk {
   }
 }
 
+// -------------------------------------------------------------
+// Timeline & Roadmap Types
+// -------------------------------------------------------------
+export interface KknTimelineSettings {
+  id: string
+  title: string
+  eyebrow: string
+  description: string | null
+  location: string | null
+  university_name: string | null
+  academic_year: string | null
+  student_count: number
+  dpl_count: number
+  start_date: string | null
+  end_date: string | null
+  timezone: string
+  hero_image_url: string | null
+  is_published: boolean
+  created_at: string
+  updated_at: string
+  updated_by: string | null
+}
+
+export type TimelineStageIconType =
+  | 'preparation'
+  | 'deployment'
+  | 'implementation'
+  | 'evaluation'
+  | 'withdrawal'
+  | 'custom'
+
+export type TimelineStageComputedStatus =
+  | 'upcoming'
+  | 'in_progress'
+  | 'awaiting_confirmation'
+  | 'completed'
+
+export interface KknTimelineStage {
+  id: string
+  timeline_id: string | null
+  stage_number: number
+  title: string
+  slug: string
+  start_date: string
+  end_date: string
+  short_description: string
+  detailed_description: string | null
+  objectives: string[]
+  icon_type: TimelineStageIconType
+  illustration_url: string | null
+  sort_order: number
+  confirmed_completed: boolean
+  is_published: boolean
+  related_program_ids: string[]
+  related_event_ids: string[]
+  related_doc_ids: string[]
+  created_at: string
+  updated_at: string
+  updated_by: string | null
+}
+
 
 

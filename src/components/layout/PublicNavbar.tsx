@@ -22,23 +22,23 @@ export const PublicNavbar: React.FC = () => {
               <span className="text-charcoal truncate">Desa Pringgasela Selatan</span>
             </div>
             <span className="text-[11px] sm:text-xs text-charcoal-muted truncate">
-              Kec. Pringgasela, Lombok Timur, NTB
+              Universitas Mataram · KKN 2026
             </span>
           </div>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1.5">
           {PUBLIC_NAV.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
               className={({ isActive }) =>
                 cn(
-                  "px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors",
+                  "px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
                   isActive
-                    ? "bg-sage-700 text-white shadow-subtle"
-                    : "text-charcoal hover:text-sage-800 hover:bg-warm-200/60"
+                    ? "bg-[#1C3B29] text-white shadow-xs font-semibold"
+                    : "text-[#243324] hover:text-[#1C3B29] hover:bg-[#EAE4D9]/60"
                 )
               }
             >

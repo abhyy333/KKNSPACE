@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -29,6 +30,7 @@ import {
   Clock,
   Edit3,
   Loader2,
+  Milestone,
   Plus,
   RefreshCw,
   Search,
@@ -275,6 +277,16 @@ export const AgendaPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link to="/timeline-kkn" target="_blank" rel="noopener noreferrer">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1.5"
+            >
+              <Milestone className="h-3.5 w-3.5 text-forest" />
+              <span>Lihat Roadmap KKN</span>
+            </Button>
+          </Link>
           <Button
             size="sm"
             variant="outline"

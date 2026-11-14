@@ -18,6 +18,7 @@ import {
   History,
   Map,
   Wrench,
+  Milestone,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -74,6 +75,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Manajemen Akun", href: "/admin/users", icon: UserCheck },
       { title: "Undangan Anggota", href: "/admin/invitations", icon: Users },
       { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
+      { title: "Timeline & Roadmap KKN", href: "/admin/timeline", icon: Milestone },
       { title: "Profil & Geoportal Desa", href: "/admin/village", icon: Map },
       { title: "Log Audit Sistem", href: "/admin/audit", icon: History },
       { title: "Status Layanan & Maintenance", href: "/admin/maintenance", icon: Wrench },
@@ -84,8 +86,8 @@ export const ADMIN_NAV: NavSection[] = [
 
 export const PUBLIC_NAV = [
   { title: "Beranda", href: "/" },
-  { title: "Tim KKN", href: "/tim" },
+  { title: "Profil Desa", href: "/profil-desa" },
   { title: "Program Kerja", href: "/program-kerja" },
   { title: "Dokumentasi", href: "/dokumentasi" },
-  { title: "Profil Desa", href: "/profil-desa" },
+  { title: "Timeline KKN", href: "/timeline-kkn" },
 ]
