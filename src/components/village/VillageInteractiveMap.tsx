@@ -484,6 +484,80 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
     }
   }, [selectedDusunSlug, dusuns])
 
+  // Dynamic Resize & InvalidateSize Handling via ResizeObserver & Window Listeners
+  useEffect(() => {
+    if (!mapContainerRef.current) return
+
+    let rafId: number | null = null
+
+    const handleResize = () => {
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize({ pan: false })
+        }
+        if (glLayerRef.current) {
+          try {
+            const libreMap = (glLayerRef.current as any).getMaplibreMap?.()
+            libreMap?.resize()
+          } catch {}
+        }
+      })
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize()
+    })
+
+    resizeObserver.observe(mapContainerRef.current)
+
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+    document.addEventListener('fullscreenchange', handleResize)
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId)
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+      document.removeEventListener('fullscreenchange', handleResize)
+    }
+  }, [])
+
+  // Fullscreen transition sizing & body scroll lock
+  useEffect(() => {
+    const runInvalidate = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ pan: false })
+      }
+      if (glLayerRef.current) {
+        try {
+          const libreMap = (glLayerRef.current as any).getMaplibreMap?.()
+          libreMap?.resize()
+        } catch {}
+      }
+    }
+
+    const t1 = setTimeout(runInvalidate, 50)
+    const t2 = setTimeout(runInvalidate, 150)
+    const t3 = setTimeout(runInvalidate, 300)
+    const t4 = setTimeout(runInvalidate, 500)
+
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      clearTimeout(t4)
+      document.body.style.overflow = ''
+    }
+  }, [isFullscreen])
+
   // Feature 3: Fokus Wilayah Desa (Smooth flyTo or fitBounds of official village limits)
   const handleFocusVillage = () => {
     const map = mapInstanceRef.current
@@ -517,9 +591,6 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
 
   const toggleFullscreen = () => {
     setIsFullscreen((prev) => !prev)
-    setTimeout(() => {
-      mapInstanceRef.current?.invalidateSize()
-    }, 300)
   }
 
   const toggleLayer = (key: keyof typeof layers) => {
@@ -532,12 +603,14 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
 
   return (
     <div
-      className={`relative rounded-2xl overflow-hidden border border-warm-300 shadow-md bg-white ${
-        isFullscreen ? 'fixed inset-0 z-50 rounded-none' : className
+      className={`relative overflow-hidden bg-white ${
+        isFullscreen
+          ? 'fixed inset-0 z-50 rounded-none w-screen h-screen max-w-none m-0 p-0 border-0 shadow-none'
+          : `w-full rounded-2xl border border-warm-300 shadow-md ${className || ''}`
       }`}
     >
-      {/* Top Map Action Bar — Always Permanently Visible with Horizontal Scroll on Mobile */}
-      <div className="absolute top-3 left-3 right-16 z-20 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pointer-events-auto">
+      {/* Top Map Action Bar — Always Visible with Horizontal Scroll on Mobile */}
+      <div className="absolute top-3 left-3 right-14 sm:right-16 z-20 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pointer-events-auto touch-pan-x">
         
         {/* Style Switcher: Positron (Default), Bright, Liberty */}
         <div className="bg-white/95 backdrop-blur-md border border-warm-300 rounded-xl p-1 shadow-subtle flex items-center gap-1 text-xs shrink-0">
@@ -651,8 +724,8 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
         </div>
       </div>
 
-      {/* Control Tools Top-Right (Focus Village, Reset & Fullscreen) */}
-      <div className="absolute top-16 right-3 z-20 flex flex-col gap-1.5">
+      {/* Control Tools Top-Right (Placed safely below Leaflet Zoom Controls) */}
+      <div className="absolute top-20 right-3 z-20 flex flex-col gap-1.5">
         
         {/* Feature 3: Dedicated "Fokus Wilayah Desa" Button with Crosshair */}
         <button
@@ -690,7 +763,7 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
 
       {/* Loading Tile Indicator */}
       {isLoadingTile && (
-        <div className="absolute top-3 right-16 z-20 bg-white/95 backdrop-blur-sm border border-warm-200 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1.5 text-[11px] text-charcoal-muted">
+        <div className="absolute top-3 right-14 sm:right-16 z-20 bg-white/95 backdrop-blur-sm border border-warm-200 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1.5 text-[11px] text-charcoal-muted">
           <Loader2 className="h-3 w-3 animate-spin text-sage-600" />
           <span>Memuat basemap...</span>
         </div>
@@ -704,11 +777,22 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
         </div>
       )}
 
-      {/* Map Leaflet Container */}
-      <div ref={mapContainerRef} className="w-full h-[520px] lg:h-[620px] bg-warm-100 z-10" />
+      {/* Map Leaflet Container with Viewport-Aware Responsive Dimensions */}
+      <div
+        ref={mapContainerRef}
+        className={`w-full bg-warm-100 z-10 transition-[height] duration-200 ${
+          isFullscreen
+            ? 'h-full w-full min-h-0 max-h-none'
+            : 'h-[52vh] min-h-[360px] max-h-[460px] sm:h-[58vh] sm:min-h-[420px] sm:max-h-[520px] lg:h-[64vh] lg:min-h-[460px] lg:max-h-[580px] xl:max-h-[620px]'
+        }`}
+      />
 
-      {/* Feature 4 & 5: Minimalist Interactive Legend & Official Boundaries Note */}
-      <div className="absolute bottom-3 left-3 z-20 max-w-xs sm:max-w-sm">
+      {/* Feature 4 & 5: Minimalist Interactive Legend & Official Boundaries Note (Responsive Collapsible) */}
+      <div
+        className={`absolute bottom-3 left-3 z-20 max-w-[calc(100vw-24px)] sm:max-w-xs transition-opacity duration-200 ${
+          selectedItem ? 'hidden sm:block' : 'block'
+        }`}
+      >
         <div className="bg-white/95 backdrop-blur-md border border-warm-300 rounded-2xl p-3 shadow-lg text-xs space-y-2">
           
           <div className="flex items-center justify-between">
@@ -790,9 +874,9 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
         </div>
       </div>
 
-      {/* Side Detail Drawer (When Item Selected) */}
+      {/* Side Detail Drawer (Responsive: Bottom Sheet on Mobile, Floating Card on Tablet/Desktop) */}
       {selectedItem && (
-        <div className="absolute top-14 left-3 right-3 sm:left-auto sm:right-3 sm:w-80 max-h-[80%] overflow-y-auto bg-white/95 backdrop-blur-md border border-warm-300 rounded-2xl shadow-2xl p-4 z-30 space-y-3 transition-all animate-in fade-in slide-in-from-right-4">
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-auto sm:top-14 sm:left-auto sm:right-3 sm:w-80 md:w-88 max-h-[55%] sm:max-h-[80%] overflow-y-auto bg-white/95 backdrop-blur-md border border-warm-300 rounded-2xl shadow-2xl p-4 z-30 space-y-3 transition-all animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-right-4">
           <div className="flex items-start justify-between border-b border-warm-200 pb-2">
             <div>
               <span className="text-[10px] font-semibold uppercase tracking-wider text-sage-700">
