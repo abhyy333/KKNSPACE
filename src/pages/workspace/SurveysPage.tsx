@@ -883,7 +883,7 @@ const FillSurveyModal: React.FC<FillSurveyModalProps> = ({ open, onClose, form, 
 
   return (
     <Modal open={open} onClose={onClose} title={`Pengisian Data: ${form.title}`} maxWidthClass="max-w-2xl">
-      <div className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+      <div className="space-y-4 text-xs">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="font-semibold text-charcoal block mb-1">Dusun Penempatan *</label>

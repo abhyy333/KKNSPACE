@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Menu, Bell, Shield, LogOut, Megaphone, Search } from 'lucide-react'
+import { Menu, Bell, Shield, LogOut, Megaphone, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
@@ -45,6 +45,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // Close notification on outside click or Escape key
   useEffect(() => {
     if (!notifOpen) return
     const handleClickOutside = (event: MouseEvent) => {
@@ -55,8 +56,17 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
         setNotifOpen(false)
       }
     }
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setNotifOpen(false)
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('keydown', handleEscape)
+    }
   }, [notifOpen])
 
   const handleLogout = async () => {
@@ -131,62 +141,92 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 mt-2 w-80 rounded-lg border border-warm-300 bg-white shadow-lg z-50 overflow-hidden">
-              <div className="flex items-center justify-between border-b border-warm-200 px-3.5 py-2.5 bg-warm-50">
-                <span className="text-xs font-semibold text-charcoal">
-                  Pengumuman Terbaru
-                </span>
-                <span className="text-[11px] text-charcoal-muted">
-                  {notifications.length} aktif
-                </span>
-              </div>
-              <div className="max-h-72 overflow-y-auto divide-y divide-warm-200">
-                {isLoadingNotifications ? (
-                  <div className="p-4 text-xs text-charcoal-muted text-center">
-                    Memuat pengumuman...
+            <>
+              {/* Mobile Backdrop for clean focus & outside tap */}
+              <div
+                className="fixed inset-0 z-40 bg-charcoal/25 backdrop-blur-2xs sm:hidden transition-opacity"
+                onClick={() => setNotifOpen(false)}
+                aria-hidden="true"
+              />
+
+              {/* Notification Panel */}
+              <div
+                role="region"
+                aria-label="Panel Pengumuman"
+                className="fixed left-3 right-3 top-18 z-50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-85 max-w-[calc(100vw-24px)] sm:max-w-sm rounded-xl border border-warm-300 bg-white shadow-xl overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150"
+              >
+                <div className="flex items-center justify-between border-b border-warm-200 px-3.5 py-2.5 bg-warm-50/95">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-charcoal">
+                      Pengumuman Terbaru
+                    </span>
+                    <span className="rounded-full bg-sage-100 text-sage-800 text-[10px] font-mono px-1.5 py-0.2">
+                      {notifications.length}
+                    </span>
                   </div>
-                ) : notifications.length === 0 ? (
-                  <div className="p-5 text-center space-y-1.5">
-                    <Megaphone className="h-5 w-5 text-warm-400 mx-auto" />
-                    <p className="text-xs font-medium text-charcoal">
-                      Belum ada pengumuman
-                    </p>
-                    <p className="text-[11px] text-charcoal-muted">
-                      Pengumuman terpublikasi dari Ketua, Sekretaris, atau DPL akan muncul di sini.
-                    </p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-charcoal-muted hidden sm:inline">
+                      {notifications.length} aktif
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen(false)}
+                      className="p-1 rounded-md text-charcoal-muted hover:text-charcoal hover:bg-warm-200 transition-colors sm:hidden"
+                      aria-label="Tutup panel notifikasi"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                ) : (
-                  notifications.map((item) => (
-                    <div key={item.id} className="p-3.5 hover:bg-warm-50/70 transition-colors">
-                      <p className="text-xs font-semibold text-charcoal line-clamp-1">
-                        {item.title}
-                      </p>
-                      <p className="text-[11px] text-charcoal-muted mt-1 line-clamp-2">
-                        {item.content}
-                      </p>
-                      {item.published_at && (
-                        <p className="text-[10px] text-sage-700 mt-1.5">
-                          {new Date(item.published_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      )}
+                </div>
+                <div className="max-h-[min(20rem,60dvh)] overflow-y-auto divide-y divide-warm-200 overscroll-contain">
+                  {isLoadingNotifications ? (
+                    <div className="p-4 text-xs text-charcoal-muted text-center">
+                      Memuat pengumuman...
                     </div>
-                  ))
-                )}
+                  ) : notifications.length === 0 ? (
+                    <div className="p-5 text-center space-y-1.5">
+                      <Megaphone className="h-5 w-5 text-warm-400 mx-auto" />
+                      <p className="text-xs font-medium text-charcoal">
+                        Belum ada pengumuman
+                      </p>
+                      <p className="text-[11px] text-charcoal-muted leading-relaxed">
+                        Pengumuman terpublikasi dari Ketua, Sekretaris, atau DPL akan muncul di sini.
+                      </p>
+                    </div>
+                  ) : (
+                    notifications.map((item) => (
+                      <div key={item.id} className="p-3.5 hover:bg-warm-50/70 transition-colors">
+                        <p className="text-xs font-semibold text-charcoal line-clamp-1 break-words">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-charcoal-muted mt-1 line-clamp-2 break-words leading-relaxed">
+                          {item.content}
+                        </p>
+                        {item.published_at && (
+                          <p className="text-[10px] text-sage-700 mt-1.5">
+                            {new Date(item.published_at).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="border-t border-warm-200 bg-warm-50/80 px-3.5 py-2.5 text-right">
+                  <Link
+                    to="/workspace"
+                    onClick={() => setNotifOpen(false)}
+                    className="text-[11px] font-medium text-sage-700 hover:text-sage-800 inline-flex items-center gap-1"
+                  >
+                    <span>Lihat di Ringkasan Workspace</span>
+                    <span>&rarr;</span>
+                  </Link>
+                </div>
               </div>
-              <div className="border-t border-warm-200 bg-warm-50/60 px-3.5 py-2 text-right">
-                <Link
-                  to="/workspace"
-                  onClick={() => setNotifOpen(false)}
-                  className="text-[11px] font-medium text-sage-700 hover:text-sage-800"
-                >
-                  Lihat di Ringkasan Workspace &rarr;
-                </Link>
-              </div>
-            </div>
+            </>
           )}
         </div>
 

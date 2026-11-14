@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { PUBLIC_NAV } from '@/config/navigation'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,15 @@ import { BrandLogo } from '@/components/brand/BrandLogo'
 
 export const PublicNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Close mobile navigation drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-warm-300 bg-warm-100/90 backdrop-blur-md">

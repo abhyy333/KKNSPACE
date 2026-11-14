@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 
 let modalCount = 0
 let scrollYPosition = 0
+let originalHtmlOverflow = ''
 
 function lockBodyScroll() {
   if (typeof document === 'undefined') return
@@ -17,7 +18,9 @@ function lockBodyScroll() {
     document.body.dataset.originalTop = document.body.style.top || ''
     document.body.dataset.originalWidth = document.body.style.width || ''
     document.body.dataset.originalPaddingRight = document.body.style.paddingRight || ''
+    originalHtmlOverflow = document.documentElement.style.overflow || ''
 
+    document.documentElement.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
     document.body.style.top = `-${scrollYPosition}px`
@@ -39,6 +42,7 @@ function unlockBodyScroll() {
     const originalWidth = document.body.dataset.originalWidth || ''
     const originalPaddingRight = document.body.dataset.originalPaddingRight || ''
 
+    document.documentElement.style.overflow = originalHtmlOverflow
     document.body.style.overflow = originalOverflow
     document.body.style.position = originalPosition
     document.body.style.top = originalTop
@@ -106,7 +110,7 @@ export const Modal: React.FC<ModalProps> = ({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-hidden overscroll-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-hidden overscroll-none select-text">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-charcoal/50 backdrop-blur-xs transition-opacity"
@@ -119,7 +123,7 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 w-full flex flex-col rounded-xl border border-warm-300 bg-white shadow-2xl overflow-hidden max-h-[88dvh] sm:max-h-[85vh] min-h-0 box-border",
+          "relative z-10 w-full flex flex-col rounded-2xl sm:rounded-xl border border-warm-300 bg-white shadow-2xl overflow-hidden max-h-[calc(100dvh-16px)] sm:max-h-[88vh] min-h-0 box-border",
           maxWidthClass,
           containerClassName
         )}

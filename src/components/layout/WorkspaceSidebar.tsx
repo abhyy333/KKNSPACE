@@ -23,6 +23,18 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   groupName = "KKN SPACE",
   villageName = "Desa belum diatur",
 }) => {
+  // Close drawer on Escape
+  React.useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -137,6 +149,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           )}
           <NavLink
             to="/"
+            onClick={onClose}
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-charcoal-muted hover:text-charcoal hover:bg-warm-200/60 transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
