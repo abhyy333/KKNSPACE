@@ -113,6 +113,51 @@ export interface TaskAssignee {
   created_at: string
 }
 
+export type AgendaCategory =
+  | 'Sosialisasi & Edukasi'
+  | 'Kerja Bakti & Lingkungan'
+  | 'Kesehatan & Posyandu'
+  | 'Pendidikan & Bimbingan'
+  | 'UMKM & Ekonomi Kreatif'
+  | 'Rapat & Koordinasi'
+  | 'Umum'
+
+export type AgendaPublicationStatus = 'draft' | 'internal' | 'published' | 'archived'
+export type AgendaExecutionStatus = 'not_started' | 'in_progress' | 'completed' | 'postponed'
+
+export interface AgendaActivityStep {
+  id: string
+  agenda_id: string
+  title: string
+  description: string | null
+  order_index: number
+  completion_status: boolean
+  completed_at: string | null
+  completed_by: string | null
+  actual_notes: string | null
+  created_at: string
+  updated_at: string
+  completed_by_profile?: {
+    id: string
+    full_name: string
+  } | null
+}
+
+export interface AgendaActivityLog {
+  id: string
+  agenda_id: string
+  actor_user_id: string | null
+  action_type: string
+  field_changed: string | null
+  old_value: string | null
+  new_value: string | null
+  created_at: string
+  actor_profile?: {
+    id: string
+    full_name: string
+  } | null
+}
+
 export interface CalendarEvent {
   id: string
   title: string
@@ -120,6 +165,37 @@ export interface CalendarEvent {
   start_at: string
   end_at: string
   created_by: string
+  location?: string
+  category?: AgendaCategory | string
+  pic_id?: string | null
+  responsible_division?: string
+  target_audience?: string | null
+  target_output?: string | null
+  equipment_needed?: string[]
+  publication_status?: AgendaPublicationStatus
+  execution_status?: AgendaExecutionStatus
+  related_program_id?: string | null
+  related_timeline_stage_id?: string | null
+  created_at?: string
+  updated_at?: string
+  created_by_profile?: {
+    id: string
+    full_name: string
+  } | null
+  pic_profile?: {
+    id: string
+    full_name: string
+  } | null
+  steps?: AgendaActivityStep[]
+  related_program?: {
+    id: string
+    title: string
+  } | null
+  related_timeline_stage?: {
+    id: string
+    title: string
+    stage_number?: number
+  } | null
 }
 
 export interface DutyShift {

@@ -225,6 +225,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: withSuspense(<HomePage />) },
       { path: 'tim', element: withSuspense(<TeamPage />) },
+      { path: 'tim-kkn', element: <Navigate to="/tim" replace /> },
       { path: 'program-kerja', element: withSuspense(<ProgramsPage />) },
       { path: 'dokumentasi', element: withSuspense(<DocumentationPage />) },
       { path: 'dokumentasi/:slug', element: withSuspense(<DocumentationDetailPage />) },
