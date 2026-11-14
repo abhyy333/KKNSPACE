@@ -16,7 +16,6 @@ import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
 import { AnnouncementModal } from '@/components/workspace/AnnouncementModal'
 import { PoskoOperationsSummaryCard } from '@/components/workspace/PoskoOperationsSummaryCard'
-import { BrandLogo } from '@/components/brand/BrandLogo'
 import { fetchTeamDirectory } from '@/services/membersApi'
 import {
   createAnnouncement,
@@ -41,12 +40,16 @@ import {
   Clock,
   DollarSign,
   Edit3,
+  Image as ImageIcon,
+  MapPin,
   Megaphone,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
   Users,
 } from 'lucide-react'
+import { PublicDocPhoto } from '@/components/public/PublicDocPhoto'
 
 const ROLE_BADGE_LABELS: Record<KknRole, string> = {
   ketua: 'Ketua',
@@ -467,19 +470,16 @@ export const OverviewPage: React.FC = () => {
     <div className="space-y-6">
       {/* Top Banner Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <BrandLogo size="lg" className="h-12 w-12 shrink-0 drop-shadow-xs hidden sm:block" />
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
-                Selamat Datang di Workspace KKN
-              </h1>
-              <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
-            </div>
-            <p className="text-xs text-charcoal-muted mt-1">
-              {subtitleParts.join(' · ')}
-            </p>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
+              Selamat Datang di Workspace KKN
+            </h1>
+            <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
           </div>
+          <p className="text-xs text-charcoal-muted mt-1">
+            {subtitleParts.join(' · ')}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -867,6 +867,139 @@ export const OverviewPage: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* B. Aktivitas Terbaru Kelompok */}
+          <Card>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-serif">
+                  Aktivitas Terbaru
+                </CardTitle>
+                <CardDescription>
+                  Pembaruan terkini dari program kerja, tugas tim, dan kegiatan posko
+                </CardDescription>
+              </div>
+              <Sparkles className="h-4 w-4 text-sage-600" />
+            </CardHeader>
+            <CardContent>
+              {!data.recentActivities || data.recentActivities.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-warm-300 bg-warm-50/70 p-5 text-center space-y-1.5">
+                  <p className="text-xs font-medium text-charcoal">
+                    Belum ada riwayat aktivitas terbaru
+                  </p>
+                  <p className="text-[11px] text-charcoal-muted">
+                    Setiap pembaruan program kerja, tugas tim, dan rapat akan tercatat di panel ini.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-warm-200">
+                  {data.recentActivities.map((act) => (
+                    <div
+                      key={act.id}
+                      className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-warm-100 text-charcoal">
+                          {act.type === 'program' && <Award className="h-3.5 w-3.5 text-sage-700" />}
+                          {act.type === 'task' && <CheckSquare className="h-3.5 w-3.5 text-amber-700" />}
+                          {act.type === 'meeting' && <Calendar className="h-3.5 w-3.5 text-blue-700" />}
+                          {act.type === 'documentation' && <ImageIcon className="h-3.5 w-3.5 text-purple-700" />}
+                        </span>
+                        <div className="min-w-0">
+                          <Link
+                            to={act.href}
+                            className="font-medium text-charcoal hover:text-sage-800 transition-colors truncate block"
+                          >
+                            {act.title}
+                          </Link>
+                          <span className="text-[11px] text-charcoal-muted">
+                            {formatShortDate(act.timestamp)}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant={act.statusVariant} className="text-[10px] shrink-0">
+                        {act.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* C. Dokumentasi Terbaru */}
+          <Card>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base font-serif">
+                  Dokumentasi Terbaru
+                </CardTitle>
+                <CardDescription>
+                  Arsip visual dan momen kegiatan lapangan tim posko
+                </CardDescription>
+              </div>
+              <Link
+                to="/workspace/documentation"
+                className="text-xs font-medium text-sage-700 hover:text-sage-800 flex items-center gap-1"
+              >
+                <span>Galeri Lengkap</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {!data.recentDocumentations || data.recentDocumentations.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-warm-300 bg-warm-50/70 p-6 text-center space-y-2">
+                  <ImageIcon className="h-6 w-6 text-charcoal-muted mx-auto" />
+                  <p className="text-xs font-medium text-charcoal">
+                    Belum ada dokumentasi kegiatan
+                  </p>
+                  <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto">
+                    Dokumentasikan kegiatan pengabdian masyarakat di menu Galeri Dokumentasi untuk ditampilkan ke publik.
+                  </p>
+                  <Link to="/workspace/documentation">
+                    <Button size="sm" variant="outline" className="text-xs h-8 mt-1">
+                      Buka Galeri Dokumentasi
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {data.recentDocumentations.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      to="/workspace/documentation"
+                      className="group flex flex-col overflow-hidden rounded-lg border border-warm-200 bg-white hover:border-sage-400 hover:shadow-subtle transition-all"
+                    >
+                      <PublicDocPhoto
+                        fileId={doc.cover_file_id}
+                        assetId={doc.id}
+                        alt={doc.title}
+                        aspectClass="aspect-[4/3]"
+                        className="w-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="p-2.5 flex-1 flex flex-col justify-between gap-1">
+                        <h4 className="text-xs font-semibold text-charcoal line-clamp-1 group-hover:text-sage-800 transition-colors">
+                          {doc.title}
+                        </h4>
+                        <div className="flex items-center justify-between text-[10px] text-charcoal-muted">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {doc.event_date ? formatShortDate(doc.event_date) : formatShortDate(doc.created_at)}
+                          </span>
+                          {doc.location && (
+                            <span className="flex items-center gap-0.5 truncate max-w-[90px]">
+                              <MapPin className="h-2.5 w-2.5" />
+                              {doc.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column: Announcements & Active Members Summary */}

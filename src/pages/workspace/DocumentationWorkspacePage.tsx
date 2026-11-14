@@ -16,11 +16,16 @@ import {
   getPrivateFileSignedUrl,
 } from '@/services/storageApi'
 import {
+  addDocumentationPhoto,
   createMediaAssetWithUpload,
   deleteMediaAsset,
+  fetchDocumentationPhotos,
   fetchMediaAssets,
   mediaUploadSchema,
+  removeDocumentationPhoto,
+  setAssetCoverPhoto,
   updateMediaAsset,
+  type DocumentationPhotoWithFile,
   type MediaAssetWithFile,
   type MediaUploadInput,
 } from '@/services/documentationApi'
@@ -36,8 +41,10 @@ import {
   Plus,
   RefreshCw,
   ShieldCheck,
+  Star,
   Trash2,
   Upload,
+  X,
 } from 'lucide-react'
 
 const PUB_META: Record<
@@ -111,8 +118,11 @@ export const DocumentationWorkspacePage: React.FC = () => {
   const [editingAsset, setEditingAsset] = useState<MediaAssetWithFile | null>(null)
   const [previewAsset, setPreviewAsset] = useState<MediaAssetWithFile | null>(null)
   const [deletingAsset, setDeletingAsset] = useState<MediaAssetWithFile | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [coverIndex, setCoverIndex] = useState<number>(0)
   const [formError, setFormError] = useState<string | null>(null)
+  const [existingPhotos, setExistingPhotos] = useState<DocumentationPhotoWithFile[]>([])
+  const [loadingPhotos, setLoadingPhotos] = useState<boolean>(false)
 
   const {
     data: assets = [],
@@ -157,6 +167,11 @@ export const DocumentationWorkspacePage: React.FC = () => {
       title: '',
       caption: '',
       publicationStatus: 'draft',
+      category: '',
+      event_date: '',
+      location: '',
+      photographer: '',
+      description_long: '',
     },
   })
 
@@ -167,24 +182,57 @@ export const DocumentationWorkspacePage: React.FC = () => {
         title: editingAsset.title ?? '',
         caption: editingAsset.caption ?? '',
         publicationStatus: editingAsset.publication_status,
+        category: editingAsset.category ?? '',
+        event_date: editingAsset.event_date ?? '',
+        location: editingAsset.location ?? '',
+        photographer: editingAsset.photographer ?? '',
+        description_long: editingAsset.description_long ?? '',
       })
+      // Load existing additional photos
+      setLoadingPhotos(true)
+      fetchDocumentationPhotos(editingAsset.id)
+        .then((photos) => setExistingPhotos(photos))
+        .catch(() => setExistingPhotos([]))
+        .finally(() => setLoadingPhotos(false))
     } else {
       reset({
         title: '',
         caption: '',
         publicationStatus: 'draft',
+        category: 'Program Kerja',
+        event_date: new Date().toISOString().split('T')[0],
+        location: '',
+        photographer: '',
+        description_long: '',
       })
+      setSelectedFiles([])
+      setCoverIndex(0)
+      setExistingPhotos([])
     }
   }, [uploadModalOpen, editingAsset, reset])
 
   const createMutation = useMutation({
-    mutationFn: ({ file, values }: { file: File; values: MediaUploadInput }) =>
-      createMediaAssetWithUpload(file, values, isLeadOrAdmin),
+    mutationFn: ({
+      files,
+      coverIdx,
+      values,
+    }: {
+      files: File[]
+      coverIdx: number
+      values: MediaUploadInput
+    }) =>
+      createMediaAssetWithUpload(
+        files[0],
+        values,
+        isLeadOrAdmin,
+        files.slice(1),
+        coverIdx
+      ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['workspace', 'media-assets'] })
       toast({
         title: 'Dokumentasi Diunggah',
-        description: 'Foto atau video berhasil disimpan secara aman ke kkn-private.',
+        description: 'Foto dokumentasi kegiatan berhasil disimpan secara aman ke kkn-private.',
         variant: 'success',
       })
     },
@@ -230,9 +278,49 @@ export const DocumentationWorkspacePage: React.FC = () => {
 
   const handleCloseModal = () => {
     setFormError(null)
-    setSelectedFile(null)
+    setSelectedFiles([])
+    setCoverIndex(0)
+    setExistingPhotos([])
     setEditingAsset(null)
     setUploadModalOpen(false)
+  }
+
+  const handleFilesChosen = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return
+    setFormError(null)
+
+    const incoming = Array.from(fileList)
+    const valid: File[] = []
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'video/mp4', 'video/quicktime', 'video/webm']
+
+    for (const f of incoming) {
+      if (f.size > 25 * 1024 * 1024) {
+        setFormError(`Berkas "${f.name}" melebihi batas 25 MB.`)
+        continue
+      }
+      if (!allowedTypes.includes(f.type) && !f.type.startsWith('image/')) {
+        setFormError(`Format berkas "${f.name}" tidak didukung. Gunakan JPG, PNG, WEBP, atau Video MP4.`)
+        continue
+      }
+      // Check duplicate
+      const duplicate = selectedFiles.some((ex) => ex.name === f.name && ex.size === f.size)
+      if (!duplicate) {
+        valid.push(f)
+      }
+    }
+
+    if (valid.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...valid])
+    }
+  }
+
+  const handleRemoveChosenFile = (idx: number) => {
+    setSelectedFiles((prev) => {
+      const next = prev.filter((_, i) => i !== idx)
+      if (coverIndex === idx) setCoverIndex(0)
+      else if (coverIndex > idx) setCoverIndex((c) => c - 1)
+      return next
+    })
   }
 
   const onSubmit = async (values: MediaUploadInput) => {
@@ -241,11 +329,15 @@ export const DocumentationWorkspacePage: React.FC = () => {
       if (editingAsset) {
         await updateMutation.mutateAsync({ id: editingAsset.id, values })
       } else {
-        if (!selectedFile) {
-          setFormError('Pilih berkas foto atau video terlebih dahulu.')
+        if (selectedFiles.length === 0) {
+          setFormError('Pilih minimal satu berkas foto dokumentasi kegiatan.')
           return
         }
-        await createMutation.mutateAsync({ file: selectedFile, values })
+        await createMutation.mutateAsync({
+          files: selectedFiles,
+          coverIdx: coverIndex,
+          values,
+        })
       }
       handleCloseModal()
     } catch (err) {
@@ -300,7 +392,8 @@ export const DocumentationWorkspacePage: React.FC = () => {
             size="sm"
             onClick={() => {
               setFormError(null)
-              setSelectedFile(null)
+              setSelectedFiles([])
+              setCoverIndex(0)
               setEditingAsset(null)
               setUploadModalOpen(true)
             }}
@@ -483,35 +576,226 @@ export const DocumentationWorkspacePage: React.FC = () => {
             </div>
           )}
 
-          {!editingAsset && (
-            <div className="space-y-1.5">
-              <label htmlFor="media-file" className="text-xs font-medium text-charcoal block">
-                Berkas Foto / Video (Maks. 25 MB) <span className="text-red-500">*</span>
-              </label>
-              <label
-                htmlFor="media-file"
-                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-warm-300 bg-warm-50/70 p-4 text-center cursor-pointer hover:border-sage-400 transition-colors"
-              >
-                <Upload className="h-5 w-5 text-sage-700 mb-1" />
-                <span className="text-xs font-medium text-charcoal">
-                  {selectedFile ? selectedFile.name : 'Klik untuk memilih foto atau video'}
-                </span>
-                {selectedFile && (
-                  <span className="text-[11px] text-charcoal-muted mt-0.5">
-                    {formatBytes(selectedFile.size)}
+          {!editingAsset ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-charcoal">
+                  Foto Dokumentasi Kegiatan (Maks. 25 MB/berkas) <span className="text-red-500">*</span>
+                </label>
+                {selectedFiles.length > 0 && (
+                  <span className="text-[11px] text-sage-800 font-semibold bg-sage-50 px-2 py-0.5 rounded border border-sage-200">
+                    {selectedFiles.length} berkas dipilih
                   </span>
                 )}
+              </div>
+
+              {/* Upload Dropzone */}
+              <label
+                htmlFor="media-files"
+                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-warm-300 bg-warm-50/70 p-4 text-center cursor-pointer hover:border-sage-400 hover:bg-warm-50 transition-colors"
+              >
+                <Upload className="h-6 w-6 text-sage-700 mb-1" />
+                <span className="text-xs font-medium text-charcoal">
+                  {selectedFiles.length === 0
+                    ? 'Klik atau seret untuk memilih satu atau beberapa foto kegiatan'
+                    : 'Tambah foto lainnya...'}
+                </span>
+                <span className="text-[11px] text-charcoal-muted mt-0.5">
+                  Mendukung multi-select JPG, PNG, WEBP, atau Video MP4 (maks 25 MB per file)
+                </span>
                 <input
-                  id="media-file"
+                  id="media-files"
                   type="file"
-                  accept="image/*,video/*"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/jpg,video/mp4,video/quicktime,video/webm"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null
-                    setSelectedFile(file)
+                    handleFilesChosen(e.target.files)
+                    e.target.value = ''
                   }}
                 />
               </label>
+
+              {/* Photo Preview Grid */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between text-[11px] text-charcoal-muted">
+                    <span>Pratinjau Berkas &amp; Pilih Foto Utama:</span>
+                    <span className="italic text-[10px]">Bintang kuning = Foto Sampul</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 border border-warm-200 rounded-lg bg-warm-50/40">
+                    {selectedFiles.map((file, idx) => {
+                      const isCover = coverIndex === idx
+                      const isVideo = file.type.startsWith('video/')
+                      const objUrl = URL.createObjectURL(file)
+
+                      return (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className={`relative group rounded-md overflow-hidden border ${
+                            isCover ? 'border-amber-400 ring-2 ring-amber-300' : 'border-warm-200 bg-white'
+                          } flex flex-col`}
+                        >
+                          <div className="relative aspect-[4/3] w-full bg-warm-100 flex items-center justify-center overflow-hidden">
+                            {isVideo ? (
+                              <Film className="h-6 w-6 text-sage-700" />
+                            ) : (
+                              <img
+                                src={objUrl}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                                onLoad={() => URL.revokeObjectURL(objUrl)}
+                              />
+                            )}
+
+                            {/* Cover Star Badge/Button */}
+                            <button
+                              type="button"
+                              onClick={() => setCoverIndex(idx)}
+                              title={isCover ? 'Foto Sampul Utama' : 'Jadikan Foto Sampul'}
+                              className={`absolute top-1 left-1 rounded p-1 text-[10px] ${
+                                isCover
+                                  ? 'bg-amber-400 text-charcoal font-bold shadow-xs'
+                                  : 'bg-charcoal/60 text-white opacity-80 hover:opacity-100'
+                              }`}
+                            >
+                              <Star className={`h-3 w-3 ${isCover ? 'fill-charcoal text-charcoal' : ''}`} />
+                            </button>
+
+                            {/* Remove button */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveChosenFile(idx)}
+                              title="Hapus foto ini"
+                              className="absolute top-1 right-1 rounded bg-red-600/80 hover:bg-red-600 text-white p-1 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+
+                            {isCover && (
+                              <span className="absolute bottom-1 left-1 bg-amber-400/90 text-[9px] font-semibold text-charcoal px-1.5 py-0.2 rounded">
+                                Cover
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-1.5 bg-white text-[10px]">
+                            <p className="truncate font-medium text-charcoal" title={file.name}>
+                              {file.name}
+                            </p>
+                            <p className="text-charcoal-muted text-[9px]">{formatBytes(file.size)}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Editing Asset: show current primary file & additional photos management */
+            <div className="space-y-2 rounded-lg border border-warm-200 bg-warm-50/50 p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-charcoal">Foto-Foto dalam Album Ini</span>
+                <span className="text-[11px] text-charcoal-muted">
+                  {existingPhotos.length + 1} foto tersimpan
+                </span>
+              </div>
+
+              {/* Upload more photos to existing album */}
+              <div>
+                <label
+                  htmlFor="add-more-photos"
+                  className="flex items-center justify-center gap-1.5 py-2 px-3 border border-dashed border-sage-300 rounded-md bg-white hover:bg-sage-50/50 text-xs text-sage-800 font-medium cursor-pointer transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Tambah Foto ke Album Ini</span>
+                  <input
+                    id="add-more-photos"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file || !editingAsset) return
+                      try {
+                        await addDocumentationPhoto(editingAsset.id, file, existingPhotos.length + 1)
+                        const updated = await fetchDocumentationPhotos(editingAsset.id)
+                        setExistingPhotos(updated)
+                        toast({ title: 'Foto Ditambahkan', variant: 'success' })
+                      } catch (err) {
+                        toast({
+                          title: 'Gagal Menambah Foto',
+                          description: err instanceof Error ? err.message : 'Terjadi kesalahan',
+                          variant: 'error',
+                        })
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* List of existing photos */}
+              {loadingPhotos ? (
+                <div className="py-4 text-center">
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto text-sage-600" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 pt-1 max-h-40 overflow-y-auto">
+                  {/* Primary cover */}
+                  <div className="relative rounded overflow-hidden border-2 border-amber-400 bg-white p-1">
+                    <div className="aspect-[4/3] bg-warm-100 flex items-center justify-center text-[10px] text-charcoal-muted">
+                      <ImageIcon className="h-5 w-5 opacity-50" />
+                    </div>
+                    <span className="text-[9px] font-semibold text-amber-800 bg-amber-50 rounded px-1 block mt-0.5 truncate">
+                      Foto Utama
+                    </span>
+                  </div>
+
+                  {/* Additional photos */}
+                  {existingPhotos.map((p) => (
+                    <div key={p.id} className="relative rounded overflow-hidden border border-warm-200 bg-white p-1 group">
+                      <div className="aspect-[4/3] bg-warm-100 flex items-center justify-center text-[10px] text-charcoal-muted">
+                        <ImageIcon className="h-5 w-5 opacity-50" />
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5 text-[9px]">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!editingAsset) return
+                            try {
+                              await setAssetCoverPhoto(editingAsset.id, p.file_id)
+                              toast({ title: 'Foto Utama Diubah', variant: 'success' })
+                            } catch (err) {
+                              toast({ title: 'Gagal Mengubah Foto Utama', variant: 'error' })
+                            }
+                          }}
+                          className="text-sage-700 hover:underline"
+                          title="Jadikan Foto Utama"
+                        >
+                          Jadikan Cover
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await removeDocumentationPhoto(p.id)
+                              setExistingPhotos((prev) => prev.filter((item) => item.id !== p.id))
+                              toast({ title: 'Foto Dihapus', variant: 'success' })
+                            } catch (err) {
+                              toast({ title: 'Gagal Menghapus', variant: 'error' })
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-800 p-0.5"
+                          title="Hapus foto"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -531,14 +815,81 @@ export const DocumentationWorkspacePage: React.FC = () => {
 
           <div className="space-y-1.5">
             <label htmlFor="media-caption" className="text-xs font-medium text-charcoal block">
-              Keterangan Kegiatan
+              Keterangan Ringkas
             </label>
             <textarea
               id="media-caption"
-              rows={3}
-              placeholder="Tanggal pelaksanaan, lokasi dusun, dan deskripsi singkat momen kegiatan..."
+              rows={2}
+              placeholder="Deskripsi singkat yang tampil pada kartu galeri..."
               className="flex w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal"
               {...register('caption')}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="media-cat" className="text-xs font-medium text-charcoal block">
+                Kategori Kegiatan
+              </label>
+              <select
+                id="media-cat"
+                className="flex h-9 w-full rounded-md border border-warm-300 bg-white px-3 py-1 text-xs text-charcoal"
+                {...register('category')}
+              >
+                <option value="Program Kerja">Program Kerja</option>
+                <option value="Observasi Survei">Observasi Survei</option>
+                <option value="Kegiatan Kelompok">Kegiatan Kelompok</option>
+                <option value="Kegiatan Sosial">Kegiatan Sosial</option>
+                <option value="Dokumentasi Lainnya">Dokumentasi Lainnya</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="media-date" className="text-xs font-medium text-charcoal block">
+                Tanggal Pelaksanaan
+              </label>
+              <Input
+                id="media-date"
+                type="date"
+                {...register('event_date')}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="media-location" className="text-xs font-medium text-charcoal block">
+                Lokasi / Dusun
+              </label>
+              <Input
+                id="media-location"
+                placeholder="Misal: Dusun Tengah, Kantor Desa"
+                {...register('location')}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="media-photographer" className="text-xs font-medium text-charcoal block">
+                Dokumentator / Fotografer
+              </label>
+              <Input
+                id="media-photographer"
+                placeholder="Nama anggota dokumentator"
+                {...register('photographer')}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="media-desc" className="text-xs font-medium text-charcoal block">
+              Deskripsi Lengkap (Halaman Detail)
+            </label>
+            <textarea
+              id="media-desc"
+              rows={3}
+              placeholder="Cerita lengkap mengenai latar belakang, proses, dan hasil kegiatan..."
+              className="flex w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal"
+              {...register('description_long')}
             />
           </div>
 

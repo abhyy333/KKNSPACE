@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom'
 import { WORKSPACE_NAV } from '@/config/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Shield, Sparkles } from 'lucide-react'
-import { BrandLogo } from '@/components/brand/BrandLogo'
 
 interface WorkspaceSidebarProps {
   isOpen: boolean
@@ -35,27 +34,29 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       {/* Sidebar container */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-50 flex h-full max-h-[100dvh] w-64 flex-col border-r border-warm-300 bg-warm-50 shrink-0 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0",
+          "fixed top-0 bottom-0 left-0 z-50 flex w-64 flex-col border-r border-warm-300 bg-warm-50 transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:max-h-[100dvh] lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Workspace Brand / Group Info */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-warm-300 px-4">
+        <div className="flex h-16 items-center justify-between border-b border-warm-300 px-4">
           <div className="flex items-center gap-3 min-w-0">
-            <BrandLogo size="md" className="h-9 w-9 shrink-0 drop-shadow-xs" />
-            <div className="flex flex-col overflow-hidden min-w-0">
-              <span className="truncate text-xs font-semibold text-charcoal tracking-tight" title={groupName}>
-                KKN SPACE
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-700 text-white font-semibold text-sm shadow-subtle">
+              {groupName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate text-xs font-semibold text-charcoal">
+                {groupName}
               </span>
-              <span className="truncate text-[10px] text-charcoal-muted leading-tight" title={villageName}>
-                {villageName && villageName !== 'Desa belum diatur' ? `Desa ${villageName}` : 'Pringgasela Selatan'} · UNRAM
+              <span className="truncate text-[11px] text-charcoal-muted">
+                {villageName}
               </span>
             </div>
           </div>
         </div>
 
         {/* User Role Tag */}
-        <div className="px-4 py-3 shrink-0 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
+        <div className="px-4 py-3 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-charcoal-muted min-w-0">
             <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0" />
             <span className="shrink-0">Peran:</span>
@@ -68,8 +69,8 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation list with independent scroll */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-6 overscroll-contain">
+        {/* Navigation list */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {WORKSPACE_NAV.map((section) => (
             <div key={section.title} className="space-y-1">
               <div className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-charcoal-muted uppercase">
@@ -109,7 +110,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </div>
 
         {/* Footer info & Public site link */}
-        <div className="shrink-0 border-t border-warm-300 p-3 bg-warm-50 space-y-2">
+        <div className="border-t border-warm-300 p-3 bg-warm-50 space-y-2">
           {isSuperAdmin && (
             <NavLink
               to="/admin"

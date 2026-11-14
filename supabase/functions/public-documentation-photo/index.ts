@@ -2,173 +2,136 @@ import { corsHeaders, errorResponse } from '../_shared/cors.ts'
 import { getSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const ALLOWED_PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/jpg'])
-const SIGNED_URL_SECONDS = 3600 // 1 hour
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_SIGNED_URL_SECONDS = 300
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  if (req.method !== 'GET' && req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return errorResponse('Method not allowed', 405)
   }
 
   try {
     const url = new URL(req.url)
-    let photoId = (url.searchParams.get('photoId') || '').trim()
-    let fileId = (url.searchParams.get('fileId') || '').trim()
-    const redirectParam = url.searchParams.get('redirect') === 'true' || url.searchParams.get('raw') === 'true'
+    const fileId = (url.searchParams.get('fileId') || '').trim()
+    const assetId = (url.searchParams.get('assetId') || '').trim()
 
-    if (req.method === 'POST') {
-      const body = await req.json().catch(() => ({}))
-      if (!photoId && typeof body?.photoId === 'string') photoId = body.photoId.trim()
-      if (!fileId && typeof body?.fileId === 'string') fileId = body.fileId.trim()
-    }
-
-    if (!photoId && !fileId) {
-      return errorResponse('Parameter photoId atau fileId wajib disertakan.', 400)
-    }
-
-    if (photoId && !UUID_REGEX.test(photoId)) {
-      return errorResponse('Format photoId tidak valid.', 400)
-    }
-    if (fileId && !UUID_REGEX.test(fileId)) {
-      return errorResponse('Format fileId tidak valid.', 400)
+    if (!fileId || !UUID_REGEX.test(fileId)) {
+      return errorResponse('Parameter fileId tidak valid.', 400)
     }
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    // Query photo and ensure parent activity is published
-    let storagePath = ''
-    let caption: string | null = null
-    let photographer: string | null = null
+    // Security gate: verify the file belongs to a published media_asset
+    // Either as the primary file_id, cover_file_id, or in documentation_photos
+    let isAuthorized = false
 
-    if (photoId) {
-      const { data: photoRec, error: photoErr } = await supabaseAdmin
-        .from('activity_documentation_photos')
-        .select(`
-          id,
-          storage_path,
-          caption,
-          photographer,
-          activity_id,
-          activity:activity_documentations!inner (
-            id,
-            publication_status
-          )
-        `)
-        .eq('id', photoId)
+    if (assetId && UUID_REGEX.test(assetId)) {
+      // Fast path: check against specific asset
+      const { data: asset } = await supabaseAdmin
+        .from('media_assets')
+        .select('id, file_id, cover_file_id, publication_status')
+        .eq('id', assetId)
+        .eq('publication_status', 'published')
         .maybeSingle()
 
-      if (photoErr) {
-        return errorResponse(`Gagal memeriksa dokumentasi: ${photoErr.message}`, 500)
+      if (asset) {
+        if (asset.file_id === fileId || asset.cover_file_id === fileId) {
+          isAuthorized = true
+        } else {
+          // Check documentation_photos
+          const { data: photoRow } = await supabaseAdmin
+            .from('documentation_photos')
+            .select('id')
+            .eq('asset_id', assetId)
+            .eq('file_id', fileId)
+            .maybeSingle()
+          if (photoRow) isAuthorized = true
+        }
       }
-
-      if (!photoRec || !photoRec.activity || (photoRec.activity as any).publication_status !== 'published') {
-        return errorResponse('Foto dokumentasi tidak ditemukan atau belum dipublikasikan.', 404)
-      }
-
-      storagePath = photoRec.storage_path
-      caption = photoRec.caption
-      photographer = photoRec.photographer
-    } else if (fileId) {
-      // Look up photo record by file_id
-      const { data: photoRec, error: photoErr } = await supabaseAdmin
-        .from('activity_documentation_photos')
-        .select(`
-          id,
-          storage_path,
-          caption,
-          photographer,
-          activity:activity_documentations!inner (
-            id,
-            publication_status
-          )
-        `)
-        .eq('file_id', fileId)
+    } else {
+      // Broad path: check if fileId appears in any published asset
+      const { data: assetByFile } = await supabaseAdmin
+        .from('media_assets')
+        .select('id')
+        .eq('publication_status', 'published')
+        .or(`file_id.eq.${fileId},cover_file_id.eq.${fileId}`)
         .maybeSingle()
 
-      if (photoErr) {
-        return errorResponse(`Gagal memeriksa file dokumentasi: ${photoErr.message}`, 500)
-      }
-
-      if (photoRec && photoRec.activity && (photoRec.activity as any).publication_status === 'published') {
-        storagePath = photoRec.storage_path
-        caption = photoRec.caption
-        photographer = photoRec.photographer
+      if (assetByFile) {
+        isAuthorized = true
       } else {
-        // Check if file is cover photo of a published activity
-        const { data: actRec, error: actErr } = await supabaseAdmin
-          .from('activity_documentations')
-          .select('id, cover_photo_id, cover_photo_path, publication_status')
-          .eq('cover_photo_id', fileId)
-          .eq('publication_status', 'published')
+        // Check in documentation_photos of a published asset
+        const { data: photoMatch } = await supabaseAdmin
+          .from('documentation_photos')
+          .select('asset_id, media_assets!inner(id, publication_status)')
+          .eq('file_id', fileId)
+          .eq('media_assets.publication_status', 'published')
           .maybeSingle()
-
-        if (actErr || !actRec) {
-          return errorResponse('Foto kegiatan tidak ditemukan atau belum dipublikasikan.', 404)
-        }
-
-        // Get object path from file_objects
-        const { data: fileObj, error: fileErr } = await supabaseAdmin
-          .from('file_objects')
-          .select('object_path, mime_type, bucket_id')
-          .eq('id', fileId)
-          .maybeSingle()
-
-        if (fileErr || !fileObj || fileObj.bucket_id !== 'kkn-private') {
-          return errorResponse('Berkas tidak ditemukan pada bucket terproteksi.', 404)
-        }
-
-        if (fileObj.mime_type && !ALLOWED_PHOTO_MIME_TYPES.has(fileObj.mime_type)) {
-          return errorResponse('Tipe berkas foto tidak didukung untuk tampilan publik.', 403)
-        }
-
-        storagePath = fileObj.object_path
+        if (photoMatch) isAuthorized = true
       }
     }
 
-    if (!storagePath || storagePath.startsWith('/') || storagePath.includes('..')) {
-      return errorResponse('Path penyimpanan berkas tidak valid.', 400)
+    if (!isAuthorized) {
+      return errorResponse('Foto tidak ditemukan atau bukan bagian dari dokumentasi yang dipublikasikan.', 404)
+    }
+
+    // Fetch file metadata
+    const { data: fileObj, error: fileErr } = await supabaseAdmin
+      .from('file_objects')
+      .select('id, bucket_id, object_path, mime_type')
+      .eq('id', fileId)
+      .maybeSingle()
+
+    if (fileErr || !fileObj) {
+      return errorResponse('Metadata foto tidak ditemukan.', 404)
+    }
+
+    if (fileObj.bucket_id !== 'kkn-private') {
+      return errorResponse('Foto tidak berada di bucket yang diizinkan.', 403)
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(fileObj.mime_type)) {
+      return errorResponse('Tipe berkas tidak diizinkan untuk tampilan publik.', 403)
+    }
+
+    const objectPath = typeof fileObj.object_path === 'string' ? fileObj.object_path : ''
+    if (
+      !objectPath ||
+      objectPath !== objectPath.trim() ||
+      objectPath.startsWith('/') ||
+      objectPath.includes('..') ||
+      objectPath.includes('//')
+    ) {
+      return errorResponse('Path berkas tidak valid.', 403)
     }
 
     const { data: signedData, error: signedErr } = await supabaseAdmin.storage
       .from('kkn-private')
-      .createSignedUrl(storagePath, SIGNED_URL_SECONDS)
+      .createSignedUrl(objectPath, MAX_SIGNED_URL_SECONDS)
 
     if (signedErr || !signedData?.signedUrl) {
       return errorResponse(
-        `Gagal membuat URL akses foto: ${signedErr?.message || 'Unknown error'}`,
+        `Gagal membuat URL foto sementara: ${signedErr?.message || 'Unknown error'}`,
         500
       )
-    }
-
-    // Direct image redirect mode for <img src="..."> tags
-    if (redirectParam) {
-      return new Response(null, {
-        status: 307,
-        headers: {
-          ...corsHeaders,
-          Location: signedData.signedUrl,
-          'Cache-Control': 'public, max-age=900, stale-while-revalidate=1800',
-        },
-      })
     }
 
     return new Response(
       JSON.stringify({
         signedUrl: signedData.signedUrl,
-        expiresIn: SIGNED_URL_SECONDS,
-        caption,
-        photographer,
+        expiresIn: MAX_SIGNED_URL_SECONDS,
+        mimeType: fileObj.mime_type,
       }),
       {
         status: 200,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=900, stale-while-revalidate=1800',
+          'Cache-Control': 'public, max-age=60',
         },
       }
     )

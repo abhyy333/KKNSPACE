@@ -38,9 +38,7 @@ const DocumentationPage = lazy(() =>
   import('@/pages/public/DocumentationPage').then((m) => ({ default: m.DocumentationPage }))
 )
 const DocumentationDetailPage = lazy(() =>
-  import('@/pages/public/DocumentationDetailPage').then((m) => ({
-    default: m.DocumentationDetailPage,
-  }))
+  import('@/pages/public/DocumentationDetailPage').then((m) => ({ default: m.DocumentationDetailPage }))
 )
 const VillageProfilePage = lazy(() =>
   import('@/pages/public/VillageProfilePage').then((m) => ({ default: m.VillageProfilePage }))

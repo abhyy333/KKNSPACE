@@ -63,7 +63,29 @@ export interface DashboardSummaryData {
   financeTransactions: FinanceTransaction[]
   inventoryAlerts: DashboardInventoryAlertItem[]
   announcements: Announcement[]
+  recentActivities: DashboardRecentActivity[]
+  recentDocumentations: DashboardRecentDoc[]
   todayDateKey: string
+}
+
+export interface DashboardRecentActivity {
+  id: string
+  type: 'program' | 'task' | 'meeting' | 'documentation'
+  title: string
+  timestamp: string
+  status: string
+  statusVariant: 'success' | 'warning' | 'secondary' | 'destructive' | 'outline'
+  href: string
+}
+
+export interface DashboardRecentDoc {
+  id: string
+  title: string
+  event_date: string | null
+  location: string | null
+  cover_file_id: string | null
+  photo_count: number
+  created_at: string
 }
 
 export function getLocalDateKey(date: Date = new Date()): string {
@@ -158,6 +180,8 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
     financeRes,
     inventoryRes,
     announcementsRes,
+    mediaRes,
+    meetingsRes,
   ] = await Promise.all([
     supabase
       .from('group_settings')
@@ -208,6 +232,16 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(12),
+    supabase
+      .from('media_assets')
+      .select('id, title, caption, event_date, location, file_id, cover_file_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(6),
+    supabase
+      .from('meetings')
+      .select('id, title, meeting_date, status, updated_at')
+      .order('meeting_date', { ascending: false })
+      .limit(6),
   ])
 
   const firstError =
@@ -246,11 +280,99 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
   const financeRows = (financeRes.data as FinanceTransaction[]) ?? []
   const financeRecap = computeFinanceSummaryAndRecap(financeRows, [])
 
+  const rawPrograms = (programsRes.data as WorkProgram[]) ?? []
+  const rawMedia = (mediaRes.data as Array<{
+    id: string
+    title: string | null
+    caption: string | null
+    event_date: string | null
+    location: string | null
+    file_id: string
+    cover_file_id: string | null
+    created_at: string
+  }>) ?? []
+  const rawMeetings = (meetingsRes.data as Array<{
+    id: string
+    title: string
+    meeting_date: string
+    status: string
+    updated_at: string
+  }>) ?? []
+
+  // Build Recent Activities feed
+  const recentActivities: DashboardRecentActivity[] = []
+
+  // Add work programs
+  for (const prog of rawPrograms.slice(0, 5)) {
+    recentActivities.push({
+      id: `prog-${prog.id}`,
+      type: 'program',
+      title: prog.title,
+      timestamp: prog.updated_at || prog.created_at,
+      status: prog.status === 'completed' ? 'Selesai' : prog.status === 'ongoing' ? 'Berjalan' : 'Rencana',
+      statusVariant: prog.status === 'completed' ? 'success' : prog.status === 'ongoing' ? 'secondary' : 'warning',
+      href: '/workspace/programs',
+    })
+  }
+
+  // Add tasks
+  for (const task of tasks.slice(0, 5)) {
+    recentActivities.push({
+      id: `task-${task.id}`,
+      type: 'task',
+      title: task.title,
+      timestamp: task.updated_at || task.created_at,
+      status: task.status === 'done' ? 'Selesai' : task.status === 'in_progress' ? 'Dikerjakan' : 'Belum Mulai',
+      statusVariant: task.status === 'done' ? 'success' : task.status === 'in_progress' ? 'secondary' : 'warning',
+      href: '/workspace/tasks',
+    })
+  }
+
+  // Add meetings
+  for (const meet of rawMeetings.slice(0, 3)) {
+    recentActivities.push({
+      id: `meet-${meet.id}`,
+      type: 'meeting',
+      title: meet.title,
+      timestamp: meet.meeting_date || meet.updated_at,
+      status: meet.status === 'completed' ? 'Selesai' : 'Terjadwal',
+      statusVariant: meet.status === 'completed' ? 'success' : 'outline',
+      href: '/workspace/meetings',
+    })
+  }
+
+  // Add documentations
+  for (const m of rawMedia.slice(0, 3)) {
+    recentActivities.push({
+      id: `media-${m.id}`,
+      type: 'documentation',
+      title: m.title || 'Dokumentasi Baru',
+      timestamp: m.created_at,
+      status: 'Terdokumentasi',
+      statusVariant: 'secondary',
+      href: '/workspace/documentation',
+    })
+  }
+
+  // Sort activities by timestamp desc
+  recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  // Recent Documentations with photo count
+  const recentDocumentations: DashboardRecentDoc[] = rawMedia.slice(0, 3).map((m) => ({
+    id: m.id,
+    title: m.title || 'Dokumentasi Kegiatan',
+    event_date: m.event_date || null,
+    location: m.location || null,
+    cover_file_id: m.cover_file_id || m.file_id || null,
+    photo_count: 1,
+    created_at: m.created_at,
+  }))
+
   return {
     groupSettings: (groupSettingsRes.data as GroupSettings | null) ?? null,
     members: (membersRes.data as WorkspaceMemberSummary[]) ?? [],
     teamDirectory: (teamDirectoryRes.data as KknTeamDirectoryMember[]) ?? [],
-    workPrograms: (programsRes.data as WorkProgram[]) ?? [],
+    workPrograms: rawPrograms,
     tasks,
     taskAssignees,
     upcomingEvents: (eventsRes.data as CalendarEvent[]) ?? [],
@@ -264,6 +386,8 @@ export async function fetchDashboardSummary(): Promise<DashboardSummaryData> {
     financeTransactions: financeRows,
     inventoryAlerts: (inventoryRes.data as DashboardInventoryAlertItem[]) ?? [],
     announcements: (announcementsRes.data as Announcement[]) ?? [],
+    recentActivities: recentActivities.slice(0, 6),
+    recentDocumentations,
     todayDateKey,
   }
 }

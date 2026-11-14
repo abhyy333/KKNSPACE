@@ -1,364 +1,367 @@
-import React, { useState, useMemo } from 'react'
+import React, { useDeferredValue, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { PublicDocPhoto } from '@/components/public/PublicDocPhoto'
 import {
-  Image as ImageIcon,
-  Calendar,
-  Clock,
-  MapPin,
-  Camera,
-  Search,
-  ArrowRight,
-  Sparkles,
-  Layers,
-  X,
-} from 'lucide-react'
-import {
-  fetchPublicActivityAlbums,
-  getPublicDocumentationPhotoUrl,
-} from '@/services/publicApi'
-import { formatPublicDate } from '@/lib/publicFormat'
-import {
-  PublicCardGridSkeleton,
   PublicEmptyState,
   PublicSectionError,
 } from '@/components/public/PublicQueryStates'
-import type { ActivityDocCategory } from '@/types/database'
+import {
+  fetchPublicDocumentationList,
+  fetchPublicDocumentationCategories,
+} from '@/services/publicApi'
+import { formatPublicDate } from '@/lib/publicFormat'
+import {
+  Camera,
+  Calendar,
+  ChevronRight,
+  Filter,
+  Image as ImageIcon,
+  Images,
+  MapPin,
+  RefreshCw,
+  Search,
+  X,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const CATEGORY_TABS: Array<{ id: 'all' | ActivityDocCategory; label: string }> = [
-  { id: 'all', label: 'Semua Album' },
-  { id: 'program_kerja', label: 'Program Kerja' },
-  { id: 'observasi_survei', label: 'Observasi & Survei' },
-  { id: 'kegiatan_desa', label: 'Kegiatan Desa' },
-  { id: 'sosialisasi', label: 'Sosialisasi' },
-]
+const PAGE_SIZE = 12
 
-const CATEGORY_BADGES: Record<
-  ActivityDocCategory,
-  { label: string; bg: string; text: string; border: string }
-> = {
-  program_kerja: {
-    label: 'Program Kerja',
-    bg: 'bg-emerald-50',
-    text: 'text-emerald-800',
-    border: 'border-emerald-200',
-  },
-  observasi_survei: {
-    label: 'Observasi & Survei',
-    bg: 'bg-sky-50',
-    text: 'text-sky-800',
-    border: 'border-sky-200',
-  },
-  kegiatan_desa: {
-    label: 'Kegiatan Desa',
-    bg: 'bg-amber-50',
-    text: 'text-amber-800',
-    border: 'border-amber-200',
-  },
-  sosialisasi: {
-    label: 'Sosialisasi',
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-800',
-    border: 'border-indigo-200',
-  },
-  lainnya: {
-    label: 'Dokumentasi',
-    bg: 'bg-warm-100',
-    text: 'text-charcoal',
-    border: 'border-warm-300',
-  },
+// ─── Category color mapping ───────────────────────────────
+const CATEGORY_COLORS: Record<string, string> = {
+  'Program Kerja': 'bg-sage-100 text-sage-800 border-sage-200',
+  'Observasi Survei': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Kegiatan Kelompok': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Kegiatan Sosial': 'bg-rose-50 text-rose-700 border-rose-200',
+}
+function categoryColor(cat: string | null): string {
+  if (!cat) return 'bg-warm-100 text-charcoal-muted border-warm-300'
+  return CATEGORY_COLORS[cat] ?? 'bg-warm-100 text-charcoal border-warm-300'
 }
 
+// ─── Documentation Card ───────────────────────────────────
+interface DocCardProps {
+  id: string
+  title: string | null
+  caption: string | null
+  category: string | null
+  event_date: string | null
+  location: string | null
+  photographer: string | null
+  cover_file_id: string | null
+  photo_count: number
+  slug: string | null
+}
+
+const DocumentationCard: React.FC<DocCardProps> = ({
+  id, title, caption, category, event_date, location, photographer, cover_file_id, photo_count, slug,
+}) => {
+  const href = `/dokumentasi/${slug || id}`
+
+  return (
+    <Link
+      to={href}
+      className="group flex flex-col overflow-hidden rounded-xl border border-warm-300 bg-white hover:shadow-card hover:border-warm-400 transition-all duration-200"
+    >
+      {/* Photo */}
+      <div className="relative overflow-hidden">
+        <PublicDocPhoto
+          fileId={cover_file_id}
+          assetId={id}
+          alt={title ?? 'Dokumentasi kegiatan'}
+          aspectClass="aspect-[4/3]"
+          className="w-full group-hover:scale-[1.03] transition-transform duration-300"
+        />
+        {/* Photo count badge */}
+        {photo_count > 1 && (
+          <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-charcoal/75 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+            <Images className="h-3 w-3" />
+            {photo_count} foto
+          </span>
+        )}
+        {/* Category overlay */}
+        {category && (
+          <span className={cn(
+            'absolute top-2 left-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium backdrop-blur-sm bg-white/80',
+            categoryColor(category)
+          )}>
+            {category}
+          </span>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 flex-col p-4 gap-2">
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-charcoal-muted">
+          {event_date && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-sage-600" />
+              {formatPublicDate(event_date, 'Tanggal menyusul')}
+            </span>
+          )}
+          {location && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3 text-sage-600" />
+              {location}
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h2 className="text-sm font-semibold text-charcoal leading-snug line-clamp-2 group-hover:text-sage-800 transition-colors">
+          {title || 'Dokumentasi Kegiatan KKN'}
+        </h2>
+
+        {/* Caption */}
+        {caption && (
+          <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-2">{caption}</p>
+        )}
+
+        {/* Footer */}
+        <div className="mt-auto flex items-center justify-between pt-2 border-t border-warm-200">
+          {photographer && (
+            <span className="flex items-center gap-1 text-[11px] text-charcoal-muted">
+              <Camera className="h-3 w-3" />
+              {photographer}
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-0.5 text-[11px] font-medium text-sage-700 group-hover:gap-1 transition-all">
+            Lihat album
+            <ChevronRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+// ─── Skeleton ───────────────────────────────────────────
+const CardSkeleton: React.FC = () => (
+  <div className="rounded-xl border border-warm-300 bg-white overflow-hidden">
+    <Skeleton className="aspect-[4/3] w-full rounded-none" />
+    <div className="p-4 space-y-2">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-3 w-3/4" />
+    </div>
+  </div>
+)
+
+// ─── Main Page ───────────────────────────────────────────
 export const DocumentationPage: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState<'all' | ActivityDocCategory>('all')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [search, setSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+
+  const deferredSearch = useDeferredValue(search)
+
+  // Reset page on filter change
+  const handleCategory = (cat: string | null) => {
+    setActiveCategory(cat)
+    setPage(0)
+  }
+  const handleSearch = (val: string) => {
+    setSearch(val)
+    setPage(0)
+  }
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['public', 'doc-categories'],
+    queryFn: fetchPublicDocumentationCategories,
+    staleTime: 120_000,
+  })
 
   const {
-    data: albums = [],
+    data: docs = [],
     isLoading,
     isError,
     error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ['public', 'activity-albums', selectedCategory, searchTerm],
+    queryKey: ['public', 'docs', activeCategory, deferredSearch, page],
     queryFn: () =>
-      fetchPublicActivityAlbums({
-        category: selectedCategory,
-        search: searchTerm,
+      fetchPublicDocumentationList({
+        category: activeCategory,
+        search: deferredSearch || null,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
       }),
     staleTime: 60_000,
     retry: 2,
+    placeholderData: (prev) => prev,
   })
 
-  const totalPhotoCount = useMemo(() => {
-    return albums.reduce((acc, curr) => acc + (curr.photos?.length || 0), 0)
-  }, [albums])
+  const hasMore = docs.length === PAGE_SIZE
+  const hasFilters = !!activeCategory || !!deferredSearch
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      {/* Page Header */}
-      <div className="border-b border-warm-300 pb-6">
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+      {/* ── Page Header ── */}
+      <div className="space-y-1 border-b border-warm-300 pb-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-          <Layers className="h-4 w-4" />
-          <span>Katalog Dokumentasi Resmi</span>
+          <ImageIcon className="h-3.5 w-3.5" />
+          <span>Dokumentasi Kegiatan</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-semibold text-charcoal mt-1 tracking-tight">
-          Dokumentasi &amp; Album Kegiatan Posko
+        <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-charcoal">
+          Galeri Dokumentasi KKN
         </h1>
-        <p className="text-xs sm:text-sm text-charcoal-muted mt-2 max-w-3xl leading-relaxed">
-          Kumpulan album foto dan catatan kronologis kegiatan mahasiswa KKN Universitas Mataram di Desa
-          Pringgasela Selatan Periode 2026–2027. Disajikan transparan untuk seluruh masyarakat desa dan sivitas akademika.
+        <p className="text-sm text-charcoal-muted max-w-2xl leading-relaxed">
+          Arsip visual dan catatan kegiatan pengabdian KKN Pringgasela Selatan 2026–2027.
+          Setiap album merekam momen dan dampak nyata di lapangan.
         </p>
-
-        {/* Quick Stats Pill */}
-        <div className="flex flex-wrap items-center gap-3 mt-4 text-xs text-charcoal-muted">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-sage-100/70 border border-sage-200/80 px-3 py-1 font-medium text-sage-800">
-            <Sparkles className="h-3 w-3 text-sage-600" />
-            {albums.length} Album Kegiatan
-          </span>
-          {totalPhotoCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-warm-200/60 border border-warm-300 px-3 py-1 font-medium text-charcoal">
-              <Camera className="h-3 w-3 text-charcoal-muted" />
-              {totalPhotoCount} Dokumentasi Foto
-            </span>
-          )}
-        </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Category Filter Pills */}
-        <div className="flex flex-wrap gap-1.5 p-1 bg-warm-100/80 rounded-xl border border-warm-200/90 w-fit">
-          {CATEGORY_TABS.map((tab) => {
-            const active = selectedCategory === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedCategory(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  active
-                    ? 'bg-sage-700 text-white shadow-xs font-semibold'
-                    : 'text-charcoal-muted hover:text-charcoal hover:bg-white/70'
-                }`}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Search Input */}
-        <div className="relative w-full md:w-72 sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
+      {/* ── Search + Filter ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-charcoal-muted pointer-events-none" />
           <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari kegiatan, dusun, atau topik..."
-            className="pl-9 pr-8 text-xs h-9 bg-white border-warm-300 focus:border-sage-500 rounded-lg"
+            type="search"
+            placeholder="Cari kegiatan, lokasi..."
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-9 h-10 text-sm bg-white border-warm-300"
           />
-          {searchTerm && (
+          {search && (
             <button
               type="button"
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-charcoal-muted hover:text-charcoal"
-              title="Hapus pencarian"
+              onClick={() => handleSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-muted hover:text-charcoal"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
+
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="h-4 w-4 text-charcoal-muted shrink-0" />
+            <button
+              onClick={() => handleCategory(null)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                !activeCategory
+                  ? 'bg-sage-700 text-white border-sage-700'
+                  : 'bg-white text-charcoal border-warm-300 hover:border-warm-400'
+              )}
+            >
+              Semua
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.category}
+                onClick={() => handleCategory(c.category)}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  activeCategory === c.category
+                    ? 'bg-sage-700 text-white border-sage-700'
+                    : 'bg-white text-charcoal border-warm-300 hover:border-warm-400'
+                )}
+              >
+                {c.category}
+                <span className="ml-1 opacity-60">({c.item_count})</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Album Cards Grid */}
+      {/* ── Grid ── */}
       {isLoading ? (
-        <PublicCardGridSkeleton count={3} columnsClass="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
       ) : isError ? (
         <PublicSectionError
-          message={error instanceof Error ? error.message : 'Gagal memuat katalog dokumentasi kegiatan.'}
+          message={error instanceof Error ? error.message : 'Gagal memuat dokumentasi kegiatan.'}
           onRetry={() => void refetch()}
           isRetrying={isFetching}
         />
-      ) : albums.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-          {albums.map((album) => {
-            const categoryMeta =
-              CATEGORY_BADGES[album.category] || CATEGORY_BADGES.lainnya
-            const photos = album.photos || []
-            const coverPhoto = photos.find((p) => p.is_cover) || photos[0]
-            const coverUrl = coverPhoto
-              ? getPublicDocumentationPhotoUrl(coverPhoto.id, coverPhoto.file_id)
-              : album.cover_photo_id
-                ? getPublicDocumentationPhotoUrl(null, album.cover_photo_id)
-                : '/brand/kkn-pringgasela-selatan-2026-2027.png'
+      ) : docs.length > 0 ? (
+        <>
+          {/* Results summary */}
+          {hasFilters && (
+            <p className="text-xs text-charcoal-muted">
+              Menampilkan {docs.length} hasil
+              {activeCategory && <> untuk kategori <strong>{activeCategory}</strong></>}
+              {deferredSearch && <> pencarian &ldquo;<strong>{deferredSearch}</strong>&rdquo;</>}
+            </p>
+          )}
 
-            // Preview thumbnails (next 3 photos)
-            const previewPhotos = photos.slice(1, 4)
+          <div className={cn(
+            'grid gap-6 transition-opacity duration-200',
+            isFetching && 'opacity-60',
+            'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+          )}>
+            {docs.map((doc) => (
+              <DocumentationCard
+                key={doc.id}
+                id={doc.id}
+                title={doc.title}
+                caption={doc.caption}
+                category={doc.category}
+                event_date={doc.event_date}
+                location={doc.location}
+                photographer={doc.photographer}
+                cover_file_id={doc.cover_file_id}
+                photo_count={doc.photo_count}
+                slug={doc.slug}
+              />
+            ))}
+          </div>
 
-            return (
-              <Card
-                key={album.id}
-                className="group border border-warm-300/80 bg-white hover:border-sage-300 transition-all duration-200 overflow-hidden flex flex-col rounded-xl shadow-xs hover:shadow-md"
-              >
-                <Link
-                  to={`/dokumentasi/${album.slug || album.id}`}
-                  className="flex flex-col flex-1"
-                >
-                  {/* Cover Image Container */}
-                  <div className="relative aspect-[16/10] w-full bg-warm-200 overflow-hidden">
-                    <img
-                      src={coverUrl}
-                      alt={album.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        // Fallback to official brand logo if storage fails to load
-                        const target = e.target as HTMLImageElement
-                        if (!target.src.includes('brand/kkn-pringgasela-selatan-2026-2027.png')) {
-                          target.src = '/brand/kkn-pringgasela-selatan-2026-2027.png'
-                          target.className = 'h-full w-full object-contain p-6 bg-warm-100'
-                        }
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-
-                    {/* Top Badges */}
-                    <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold border ${categoryMeta.bg} ${categoryMeta.text} ${categoryMeta.border} backdrop-blur-xs`}
-                      >
-                        {categoryMeta.label}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-black/60 backdrop-blur-xs px-2 py-0.5 text-[11px] font-medium text-white shadow-xs">
-                        <Camera className="h-3 w-3" />
-                        {album.photo_count || photos.length} Foto
-                      </span>
-                    </div>
-
-                    {/* Bottom overlay: Location */}
-                    <div className="absolute bottom-2.5 left-3 right-3 flex items-center gap-1.5 text-xs text-warm-100 font-medium truncate drop-shadow-sm">
-                      <MapPin className="h-3.5 w-3.5 shrink-0 text-sage-300" />
-                      <span className="truncate">
-                        {album.dusun_name ? `${album.dusun_name} · ` : ''}
-                        {album.location_name}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Content */}
-                  <CardContent className="p-5 flex-1 flex flex-col justify-between gap-4">
-                    <div className="space-y-2">
-                      {/* Date & Time info */}
-                      <div className="flex items-center gap-3 text-[11px] text-charcoal-muted">
-                        <span className="inline-flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-sage-600" />
-                          {formatPublicDate(album.activity_date)}
-                        </span>
-                        {album.start_time && (
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-sage-600" />
-                            {album.start_time}
-                            {album.end_time ? ` – ${album.end_time} WITA` : ' WITA'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Title */}
-                      <h2 className="text-base font-serif font-semibold text-charcoal leading-snug line-clamp-2 group-hover:text-sage-800 transition-colors">
-                        {album.title}
-                      </h2>
-
-                      {/* Short Description */}
-                      <p className="text-xs text-charcoal-muted line-clamp-2 leading-relaxed">
-                        {album.short_description || album.description}
-                      </p>
-                    </div>
-
-                    {/* Thumbnail preview row & Action link */}
-                    <div className="space-y-3 pt-3 border-t border-warm-200">
-                      {previewPhotos.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          {previewPhotos.map((p, idx) => (
-                            <div
-                              key={p.id || idx}
-                              className="relative h-11 w-11 rounded-lg overflow-hidden bg-warm-100 border border-warm-300 shrink-0"
-                            >
-                              <img
-                                src={getPublicDocumentationPhotoUrl(p.id, p.file_id)}
-                                alt={`Preview ${idx + 1}`}
-                                loading="lazy"
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  ;(e.target as HTMLImageElement).src =
-                                    '/brand/kkn-pringgasela-selatan-2026-2027.png'
-                                }}
-                              />
-                            </div>
-                          ))}
-                          {photos.length > 4 && (
-                            <div className="h-11 w-11 rounded-lg bg-warm-100 border border-warm-300 flex items-center justify-center text-[10px] font-semibold text-charcoal-muted shrink-0">
-                              +{photos.length - 4}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Bottom Footer: Photographer & "Buka Album" */}
-                      <div className="flex items-center justify-between text-xs pt-1">
-                        <span className="text-[11px] text-charcoal-muted truncate max-w-[50%]">
-                          {album.photographer_name
-                            ? `Dok: ${album.photographer_name}`
-                            : 'Dok: Tim KKN'}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 font-medium text-sage-700 group-hover:text-sage-900 group-hover:translate-x-0.5 transition-all text-xs">
-                          <span>Buka Album</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Link>
-              </Card>
-            )
-          })}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <PublicEmptyState
-            icon={<ImageIcon className="h-6 w-6 text-warm-400" />}
-            title={
-              searchTerm || selectedCategory !== 'all'
-                ? 'Tidak ada album yang sesuai dengan filter'
-                : 'Belum ada album dokumentasi yang dipublikasikan'
-            }
-            description={
-              searchTerm || selectedCategory !== 'all'
-                ? 'Coba ganti kata kunci pencarian atau pilih kategori Semua Album untuk menampilkan seluruh kegiatan.'
-                : 'Album kegiatan yang diunggah dan dipublikasikan oleh posko KKN akan otomatis muncul pada katalog publik ini.'
-            }
-          />
-          {(searchTerm || selectedCategory !== 'all') && (
-            <div className="text-center">
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-3 pt-4">
+            {page > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setSelectedCategory('all')
-                  setSearchTerm('')
-                }}
-                className="text-xs"
+                onClick={() => setPage((p) => p - 1)}
+                disabled={isFetching}
+                className="border-warm-300 text-charcoal hover:bg-warm-100"
               >
-                Reset Filter &amp; Pencarian
+                ← Sebelumnya
               </Button>
-            </div>
-          )}
-        </div>
+            )}
+            {hasMore && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={isFetching}
+                className="border-warm-300 text-charcoal hover:bg-warm-100"
+              >
+                {isFetching ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  'Muat lebih banyak →'
+                )}
+              </Button>
+            )}
+          </div>
+        </>
+      ) : (
+        <PublicEmptyState
+          icon={<ImageIcon className="h-5 w-5" />}
+          title={
+            hasFilters
+              ? 'Tidak ada dokumentasi yang sesuai'
+              : 'Belum ada dokumentasi yang dipublikasikan'
+          }
+          description={
+            hasFilters
+              ? 'Coba ubah kata kunci pencarian atau pilih kategori lain.'
+              : 'Galeri dokumentasi publik masih kosong. Dokumentasi yang diterbitkan oleh tim akan muncul di sini secara otomatis.'
+          }
+        />
       )}
     </div>
   )
 }
-export default DocumentationPage
