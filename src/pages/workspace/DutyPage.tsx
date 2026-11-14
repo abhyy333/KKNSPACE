@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog, Modal } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
+import { getPrivateFileSignedUrl } from '@/services/storageApi'
+import { DutyPhotoDocumentationModal } from '@/components/duty/DutyPhotoDocumentationModal'
 import {
   fetchWorkspaceMembers,
   getLocalDateKey,
@@ -25,6 +27,7 @@ import {
 import type { DutyShift, WorkspaceMemberSummary } from '@/types/database'
 import {
   AlertCircle,
+  Camera,
   Clock,
   Edit3,
   Loader2,
@@ -43,10 +46,31 @@ function formatDateHeading(dateStr: string): string {
   })
 }
 
+const DutyCardThumb: React.FC<{ fileId: string; alt: string }> = ({ fileId, alt }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['signed-url', fileId, false],
+    queryFn: () => getPrivateFileSignedUrl(fileId, false),
+    staleTime: 300_000,
+  })
+
+  if (isLoading || !data?.signedUrl) {
+    return <div className="h-full w-full bg-warm-200 animate-pulse" />
+  }
+
+  return (
+    <img
+      src={data.signedUrl}
+      alt={alt}
+      className="h-full w-full object-cover"
+      loading="lazy"
+    />
+  )
+}
+
 export const DutyPage: React.FC = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const { membership, isSuperAdmin } = useAuth()
+  const { user, membership, isSuperAdmin } = useAuth()
 
   const canManageShifts =
     isSuperAdmin ||
@@ -57,6 +81,7 @@ export const DutyPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingShift, setEditingShift] = useState<DutyShift | null>(null)
   const [deletingShift, setDeletingShift] = useState<DutyShift | null>(null)
+  const [selectedPhotoShift, setSelectedPhotoShift] = useState<DutyShift | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
   const {
@@ -343,55 +368,129 @@ export const DutyPage: React.FC = () => {
                   const assignee = shift.assigned_user_id
                     ? memberMap.get(shift.assigned_user_id)
                     : undefined
+                  const docs = shift.documentations ?? []
+                  const canUploadShift =
+                    canManageShifts ||
+                    Boolean(user?.id && (shift.assigned_user_id === user.id || shift.created_by === user.id))
 
                   return (
-                    <Card key={shift.id}>
-                      <CardContent className="p-4 flex items-start justify-between gap-3">
-                        <div className="space-y-1.5 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[11px]">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {shift.start_time.slice(0, 5)} –{' '}
-                              {shift.end_time.slice(0, 5)}
-                            </Badge>
+                    <Card key={shift.id} className="flex flex-col justify-between">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-[11px]">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {shift.start_time.slice(0, 5)} –{' '}
+                                {shift.end_time.slice(0, 5)}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal">
+                              <UserCheck className="h-3.5 w-3.5 text-sage-700 shrink-0" />
+                              <span className="truncate">
+                                {assignee?.full_name || 'Petugas belum ditentukan'}
+                              </span>
+                            </div>
+                            {shift.notes && (
+                              <p className="text-xs text-charcoal-muted">
+                                {shift.notes}
+                              </p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal">
-                            <UserCheck className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-                            <span className="truncate">
-                              {assignee?.full_name || 'Petugas belum ditentukan'}
-                            </span>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedPhotoShift(shift)}
+                              className="h-7 px-2.5 text-[11px] gap-1 border-warm-300 text-charcoal hover:bg-warm-100"
+                              title="Lihat dan kelola foto dokumentasi piket"
+                            >
+                              <Camera className="h-3 w-3 text-forest" />
+                              <span>Foto ({docs.length})</span>
+                            </Button>
+
+                            {canManageShifts && (
+                              <div className="flex items-center gap-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormError(null)
+                                    setEditingShift(shift)
+                                    setModalOpen(true)
+                                  }}
+                                  className="rounded p-1 text-charcoal-muted hover:bg-warm-100 hover:text-charcoal"
+                                  title="Edit shift"
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingShift(shift)}
+                                  className="rounded p-1 text-charcoal-muted hover:bg-red-50 hover:text-red-600"
+                                  title="Hapus shift"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          {shift.notes && (
-                            <p className="text-xs text-charcoal-muted">
-                              {shift.notes}
-                            </p>
-                          )}
                         </div>
 
-                        {canManageShifts && (
-                          <div className="flex items-center gap-1 shrink-0">
+                        {/* Foto Dokumentasi Thumbnails */}
+                        {docs.length > 0 ? (
+                          <div className="pt-2 border-t border-warm-100 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-charcoal-muted flex items-center gap-1 font-medium">
+                                <Camera className="h-3 w-3 text-forest" />
+                                Dokumentasi Pelaksanaan ({docs.length} foto)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPhotoShift(shift)}
+                                className="text-[10px] text-forest font-semibold hover:underline"
+                              >
+                                Kelola Galeri →
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                              {docs.slice(0, 4).map((doc) => (
+                                <div
+                                  key={doc.id}
+                                  onClick={() => setSelectedPhotoShift(shift)}
+                                  className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-warm-200 cursor-pointer border border-warm-300 hover:border-forest transition-colors shadow-2xs"
+                                  title={doc.caption || 'Klik untuk pratinjau foto'}
+                                >
+                                  <DutyCardThumb
+                                    fileId={doc.file_id}
+                                    alt={doc.caption || 'Foto piket'}
+                                  />
+                                </div>
+                              ))}
+                              {docs.length > 4 && (
+                                <div
+                                  onClick={() => setSelectedPhotoShift(shift)}
+                                  className="h-12 w-12 shrink-0 rounded-md bg-forest/10 text-forest text-[11px] font-bold flex items-center justify-center cursor-pointer hover:bg-forest/20 transition-colors border border-forest/20 shadow-2xs"
+                                >
+                                  +{docs.length - 4}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : canUploadShift ? (
+                          <div className="pt-2 border-t border-warm-100 flex items-center justify-between text-[11px] text-charcoal-muted">
+                            <span>Belum ada foto dokumentasi</span>
                             <button
                               type="button"
-                              onClick={() => {
-                                setFormError(null)
-                                setEditingShift(shift)
-                                setModalOpen(true)
-                              }}
-                              className="rounded p-1.5 text-charcoal-muted hover:bg-warm-100 hover:text-charcoal"
-                              title="Edit shift"
+                              onClick={() => setSelectedPhotoShift(shift)}
+                              className="text-[10px] text-forest font-semibold hover:underline flex items-center gap-1"
                             >
-                              <Edit3 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeletingShift(shift)}
-                              className="rounded p-1.5 text-charcoal-muted hover:bg-red-50 hover:text-red-600"
-                              title="Hapus shift"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Camera className="h-3 w-3" />
+                              <span>+ Unggah Foto</span>
                             </button>
                           </div>
-                        )}
+                        ) : null}
                       </CardContent>
                     </Card>
                   )
@@ -498,6 +597,16 @@ export const DutyPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <DutyPhotoDocumentationModal
+        shift={selectedPhotoShift}
+        open={Boolean(selectedPhotoShift)}
+        onClose={() => setSelectedPhotoShift(null)}
+        membersMap={memberMap}
+        currentUserId={user?.id}
+        isSuperAdmin={isSuperAdmin}
+        userRole={membership?.role}
+      />
 
       <ConfirmDialog
         open={Boolean(deletingShift)}

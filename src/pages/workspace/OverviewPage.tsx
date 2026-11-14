@@ -17,7 +17,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { AnnouncementModal } from '@/components/workspace/AnnouncementModal'
 import { PoskoOperationsSummaryCard } from '@/components/workspace/PoskoOperationsSummaryCard'
 import { fetchTeamDirectory } from '@/services/membersApi'
-import { fetchKknRisks } from '@/services/risksApi'
 import {
   createAnnouncement,
   deleteAnnouncement,
@@ -259,12 +258,6 @@ export const OverviewPage: React.FC = () => {
   } = useQuery({
     queryKey: ['workspace', 'dashboard-summary'],
     queryFn: fetchDashboardSummary,
-    staleTime: 30_000,
-  })
-
-  const { data: risks = [] } = useQuery({
-    queryKey: ['kkn-risks'],
-    queryFn: fetchKknRisks,
     staleTime: 30_000,
   })
 
@@ -1131,7 +1124,6 @@ export const OverviewPage: React.FC = () => {
             taskAssignees={data.taskAssignees ?? []}
             members={data.members ?? []}
             inventoryAlerts={data.inventoryAlerts ?? []}
-            risks={risks}
             todayDateKey={data.todayDateKey}
           />
         </div>

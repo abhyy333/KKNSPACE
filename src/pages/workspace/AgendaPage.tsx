@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,7 +28,6 @@ import {
   type AgendaStepInput,
 } from '@/services/agendaApi'
 import type { CalendarEvent, WorkspaceMemberSummary } from '@/types/database'
-import { AiAgendaAssistantModal } from '@/components/agenda/AiAgendaAssistantModal'
 import { AgendaDetailModal } from '@/components/agenda/AgendaDetailModal'
 import {
   AlertCircle,
@@ -43,7 +42,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
   Trash2,
   User,
   MapPin,
@@ -97,7 +95,6 @@ export const AgendaPage: React.FC = () => {
 
   // Modals state
   const [modalOpen, setModalOpen] = useState(false)
-  const [aiModalOpen, setAiModalOpen] = useState(false)
   const [selectedDetailId, setSelectedDetailId] = useState<string | null>(null)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null)
@@ -107,7 +104,6 @@ export const AgendaPage: React.FC = () => {
   const [formSteps, setFormSteps] = useState<AgendaStepInput[]>([])
   const [formEquipment, setFormEquipment] = useState<string[]>([])
   const [newEquipInput, setNewEquipInput] = useState('')
-  const hasAiDraftRef = useRef(false)
 
   const isLeaderOrAdmin =
     isSuperAdmin || membership?.role === 'ketua' || membership?.role === 'sekretaris'
@@ -170,7 +166,6 @@ export const AgendaPage: React.FC = () => {
     handleSubmit,
     reset,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<CalendarEventFormInput>({
     resolver: zodResolver(calendarEventFormSchema),
@@ -198,11 +193,6 @@ export const AgendaPage: React.FC = () => {
   // Synchronize form on open
   useEffect(() => {
     if (!modalOpen) return
-
-    if (hasAiDraftRef.current) {
-      hasAiDraftRef.current = false
-      return
-    }
 
     if (editingEvent) {
       const equip = Array.isArray(editingEvent.equipment_needed)
@@ -330,46 +320,6 @@ export const AgendaPage: React.FC = () => {
     setFormError(null)
     setModalOpen(false)
     setEditingEvent(null)
-  }
-
-  const handleApplyAiData = (data: {
-    title: string
-    category: string
-    description: string
-    location: string
-    responsibleDivision: string
-    targetAudience: string
-    targetOutput: string
-    equipmentNeeded: string[]
-    steps: {
-      order_index: number
-      title: string
-      description: string
-      completion_status: boolean
-    }[]
-  }) => {
-    setValue('title', data.title)
-    setValue('category', data.category)
-    setValue('description', data.description)
-    setValue('location', data.location)
-    setValue('responsibleDivision', data.responsibleDivision)
-    setValue('targetAudience', data.targetAudience)
-    setValue('targetOutput', data.targetOutput)
-    setValue('equipmentNeeded', data.equipmentNeeded)
-    setValue('steps', data.steps)
-
-    setFormEquipment(data.equipmentNeeded)
-    setFormSteps(data.steps)
-
-    hasAiDraftRef.current = true
-    // Open form modal to let user inspect and save
-    setModalOpen(true)
-
-    toast({
-      title: 'Rencana AI Diterapkan',
-      description: 'Silakan tinjau tanggal, jam, dan rincian sebelum menyimpan agenda.',
-      variant: 'success',
-    })
   }
 
   const onSubmit = async (values: CalendarEventFormInput) => {
@@ -508,9 +458,6 @@ export const AgendaPage: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
               Agenda &amp; Jadwal Kegiatan Posko
             </h1>
-            <Badge variant="outline" className="border-forest text-forest bg-forest/5 text-xs font-medium">
-              AI Co-Pilot Aktif
-            </Badge>
           </div>
           <p className="text-xs text-charcoal-muted mt-1">
             Rencanakan agenda kegiatan KKN, integrasikan tahapan checklist lapangan, dan pantau realisasi kelompok secara terpadu.
@@ -533,18 +480,7 @@ export const AgendaPage: React.FC = () => {
             <span>Tambah Agenda Manual</span>
           </Button>
 
-          {/* Secondary: AI Agenda Assistant */}
-          <Button
-            size="sm"
-            type="button"
-            onClick={() => setAiModalOpen(true)}
-            className="h-9 px-3 text-xs gap-1.5 bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 font-semibold shadow-2xs"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-emerald-700" />
-            <span>AI Agenda Assistant</span>
-          </Button>
-
-          {/* Tertiary: Roadmap KKN */}
+          {/* Secondary: Roadmap KKN */}
           <Link to="/timeline-kkn" target="_blank" rel="noopener noreferrer">
             <Button
               size="sm"
@@ -695,17 +631,21 @@ export const AgendaPage: React.FC = () => {
                 : 'Belum ada riwayat agenda tercatat'}
             </h3>
             <p className="text-xs text-charcoal-muted max-w-md mx-auto">
-              Gunakan fitur <strong>AI Agenda Assistant</strong> untuk merancang agenda kegiatan desa yang terstruktur, lengkap dengan rincian tahapan checklist.
+              Rencanakan dan kelola agenda kegiatan desa secara terstruktur, lengkap dengan rincian tahapan pelaksanaan dan pembagian tugas.
             </p>
             <div className="pt-2">
               <Button
                 type="button"
                 size="sm"
-                onClick={() => setAiModalOpen(true)}
-                className="bg-forest hover:bg-forest/90 text-white text-xs gap-1.5"
+                onClick={() => {
+                  setFormError(null)
+                  setEditingEvent(null)
+                  setModalOpen(true)
+                }}
+                className="bg-forest hover:bg-forest/90 text-white text-xs gap-1.5 shadow-xs"
               >
-                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                <span>Buka AI Agenda Assistant</span>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Tambah Agenda</span>
               </Button>
             </div>
           </CardContent>
@@ -904,32 +844,6 @@ export const AgendaPage: React.FC = () => {
                 <span>{formError}</span>
               </div>
             )}
-
-            {/* AI Assistance Header Banner inside form */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50/90 p-3 sm:p-3.5 shadow-2xs">
-              <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-forest">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-emerald-950">Gunakan AI Agenda Assistant</p>
-                  <p className="text-[11px] text-emerald-900/80 leading-relaxed">
-                    Bantu susun judul, deskripsi operasional, sasaran, dan checklist tahapan secara otomatis.
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setAiModalOpen(true)
-                }}
-                className="shrink-0 h-8 px-3 text-xs bg-forest hover:bg-forest/90 text-white font-semibold gap-1.5 shadow-xs"
-              >
-                <Sparkles className="h-3 w-3 text-amber-300" />
-                <span>Buka Asisten</span>
-              </Button>
-            </div>
 
             {/* Title */}
             <div className="space-y-1.5">
@@ -1216,7 +1130,7 @@ export const AgendaPage: React.FC = () => {
 
               {formSteps.length === 0 ? (
                 <p className="text-[11px] text-charcoal-muted italic">
-                  Belum ada rincian tahapan. Klik tombol Tambah Langkah atau gunakan AI Assistant untuk menyusun tahapan otomatis.
+                  Belum ada rincian tahapan. Klik tombol Tambah Langkah untuk menyusun tahapan kegiatan lapangan.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -1283,14 +1197,6 @@ export const AgendaPage: React.FC = () => {
           </div>
         </form>
       </Modal>
-
-      {/* AI Agenda Assistant Modal */}
-      <AiAgendaAssistantModal
-        open={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
-        currentFormValues={watch()}
-        onApplyToForm={handleApplyAiData}
-      />
 
       {/* Comprehensive Agenda Detail & Execution Modal */}
       <AgendaDetailModal

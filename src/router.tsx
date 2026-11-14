@@ -147,10 +147,6 @@ const FinalReportPage = lazyWithRetry(() =>
   import('@/pages/workspace/FinalReportPage').then((m) => ({ default: m.FinalReportPage })),
   'FinalReportPage'
 )
-const RiskRegisterPage = lazyWithRetry(() =>
-  import('@/pages/workspace/RiskRegisterPage').then((m) => ({ default: m.RiskRegisterPage })),
-  'RiskRegisterPage'
-)
 
 // Admin Pages
 const AdminOverviewPage = lazyWithRetry(() =>
@@ -261,7 +257,7 @@ export const router = createBrowserRouter([
       { path: 'finance', element: withSuspense(<FinancePage />) },
       { path: 'inventory', element: withSuspense(<InventoryPage />) },
       { path: 'surveys', element: withSuspense(<SurveysPage />) },
-      { path: 'risks', element: withSuspense(<RiskRegisterPage />) },
+      { path: 'risks', element: <Navigate to="/workspace" replace /> },
       { path: 'logbook', element: <Navigate to="/workspace" replace /> },
       { path: 'duty', element: withSuspense(<DutyPage />) },
       { path: 'documentation', element: withSuspense(<DocumentationWorkspacePage />) },
@@ -291,6 +287,7 @@ export const router = createBrowserRouter([
       { path: 'timeline', element: withSuspense(<AdminTimelinePage />) },
       { path: 'village', element: withSuspense(<AdminVillagePage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
+      { path: 'activity-log', element: <Navigate to="/admin/audit" replace /> },
       { path: 'maintenance', element: withSuspense(<AdminMaintenancePage />) },
       { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
     ],

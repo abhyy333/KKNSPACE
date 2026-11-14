@@ -50,7 +50,6 @@ export const WORKSPACE_NAV: NavSection[] = [
       { title: "Inventaris Barang", href: "/workspace/inventory", icon: Package },
       { title: "Survei Desa", href: "/workspace/surveys", icon: ClipboardList },
       { title: "Jadwal Piket Posko", href: "/workspace/duty", icon: Clock },
-      { title: "Risk Register (Mitigasi)", href: "/workspace/risks", icon: ShieldAlert },
     ],
   },
   {
@@ -75,7 +74,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
       { title: "Timeline & Roadmap KKN", href: "/admin/timeline", icon: Milestone },
       { title: "Profil & Geoportal Desa", href: "/admin/village", icon: Map },
-      { title: "Log Audit Sistem", href: "/admin/audit", icon: History },
+      { title: "Log Aktivitas", href: "/admin/audit", icon: History },
       { title: "Status Layanan & Maintenance", href: "/admin/maintenance", icon: Wrench },
       { title: "Pengaturan Platform", href: "/admin/settings", icon: ShieldAlert },
     ],

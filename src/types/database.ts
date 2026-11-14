@@ -206,6 +206,21 @@ export interface DutyShift {
   assigned_user_id: string | null
   notes: string | null
   created_by: string
+  documentations?: DutyShiftDocumentation[]
+}
+
+export interface DutyShiftDocumentation {
+  id: string
+  duty_shift_id: string
+  file_id: string
+  caption: string | null
+  uploaded_by: string
+  created_at: string
+  file_object?: FileObject
+  uploader_profile?: {
+    id: string
+    full_name: string
+  }
 }
 
 export interface FinanceCategory {

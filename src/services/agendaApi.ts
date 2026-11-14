@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
+import { uploadPrivateFile } from './storageApi'
 import type {
   CalendarEvent,
   DutyShift,
+  DutyShiftDocumentation,
   AgendaCategory,
   AgendaPublicationStatus,
   AgendaExecutionStatus,
@@ -125,68 +127,6 @@ async function getCurrentUserId(): Promise<string> {
     throw new Error('Sesi login tidak ditemukan. Silakan masuk ulang.')
   }
   return data.user.id
-}
-
-// -------------------------------------------------------------
-// AI Agenda Assistant Edge Function Invocation
-// -------------------------------------------------------------
-export interface AiAgendaAssistantResponse {
-  success: boolean
-  source: 'gemini_ai' | 'template_engine'
-  note?: string
-  data: {
-    title: string
-    category: string
-    description: string
-    location: string
-    responsible_division: string
-    target_audience: string
-    target_output: string
-    equipment_needed: string[]
-    steps: {
-      order_index: number
-      title: string
-      description: string
-    }[]
-    optional_suggestions?: string[]
-  }
-}
-
-export async function callAiAgendaAssistant(payload: {
-  action:
-    | 'generate_agenda'
-    | 'improve_description'
-    | 'regenerate_agenda'
-    | 'add_activity'
-    | 'improve_activity'
-    | 'simplify_activities'
-    | 'expand_activities'
-    | 'reorder_activities'
-  prompt?: string
-  current_agenda?: Partial<CalendarEventFormInput>
-  step_context?: {
-    step_title?: string
-    step_description?: string
-    step_index?: number
-  }
-}): Promise<AiAgendaAssistantResponse> {
-  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
-  if (sessionErr || !sessionData?.session?.access_token) {
-    throw new Error('Sesi login tidak aktif. Silakan masuk kembali.')
-  }
-
-  const { data, error } = await supabase.functions.invoke('ai-agenda-assistant', {
-    body: payload,
-    headers: {
-      Authorization: `Bearer ${sessionData.session.access_token}`,
-    },
-  })
-
-  if (error) {
-    throw new Error(error.message || 'Gagal menghubungi AI Agenda Assistant')
-  }
-
-  return data as AiAgendaAssistantResponse
 }
 
 // -------------------------------------------------------------
@@ -654,7 +594,13 @@ export async function fetchLinkedDocumentations(agendaId: string) {
 export async function fetchDutyShifts(): Promise<DutyShift[]> {
   const { data, error } = await supabase
     .from('duty_shifts')
-    .select('id, shift_date, start_time, end_time, assigned_user_id, notes, created_by')
+    .select(`
+      id, shift_date, start_time, end_time, assigned_user_id, notes, created_by,
+      documentations:duty_shift_documentations(
+        id, duty_shift_id, file_id, caption, uploaded_by, created_at,
+        file_object:file_objects(id, object_path, original_name, mime_type, file_size)
+      )
+    `)
     .order('shift_date', { ascending: true })
     .order('start_time', { ascending: true })
 
@@ -662,7 +608,7 @@ export async function fetchDutyShifts(): Promise<DutyShift[]> {
     throw new Error(`Gagal memuat jadwal piket posko: ${error.message}`)
   }
 
-  return (data as DutyShift[]) ?? []
+  return (data as unknown as DutyShift[]) ?? []
 }
 
 export async function createDutyShift(
@@ -721,5 +667,59 @@ export async function deleteDutyShift(id: string): Promise<void> {
   const { error } = await supabase.from('duty_shifts').delete().eq('id', id)
   if (error) {
     throw new Error(`Gagal menghapus jadwal piket: ${error.message}`)
+  }
+}
+
+export async function uploadDutyShiftPhoto(params: {
+  dutyShiftId: string
+  file: File
+  caption?: string
+}): Promise<DutyShiftDocumentation> {
+  const { dutyShiftId, file, caption } = params
+
+  if (file.size <= 0) {
+    throw new Error('Berkas kosong tidak dapat diunggah.')
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('Ukuran foto maksimal 5 MB per unggahan.')
+  }
+
+  const allowedMime = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedMime.includes(file.type)) {
+    throw new Error('Format foto harus berupa JPEG, JPG, PNG, atau WebP.')
+  }
+
+  const userId = await getCurrentUserId()
+  const fileObj = await uploadPrivateFile(file, 'duty')
+
+  const { data, error } = await supabase
+    .from('duty_shift_documentations')
+    .insert({
+      duty_shift_id: dutyShiftId,
+      file_id: fileObj.id,
+      caption: caption?.trim() ? caption.trim() : null,
+      uploaded_by: userId,
+    })
+    .select(`
+      id, duty_shift_id, file_id, caption, uploaded_by, created_at,
+      file_object:file_objects(id, object_path, original_name, mime_type, file_size)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal menyimpan dokumentasi piket: ${error.message}`)
+  }
+
+  return data as unknown as DutyShiftDocumentation
+}
+
+export async function deleteDutyShiftPhoto(photoId: string): Promise<void> {
+  const { error } = await supabase
+    .from('duty_shift_documentations')
+    .delete()
+    .eq('id', photoId)
+
+  if (error) {
+    throw new Error(`Gagal menghapus foto dokumentasi piket: ${error.message}`)
   }
 }

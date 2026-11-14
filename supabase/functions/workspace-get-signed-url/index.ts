@@ -108,6 +108,9 @@ Deno.serve(async (req) => {
         financeRes,
         dailyLogAttRes,
         surveyAttRes,
+        inventoryItemRes,
+        inventoryPhotoRes,
+        dutyDocRes,
       ] = await Promise.all([
         supabaseAdmin
           .from('media_assets')
@@ -175,6 +178,12 @@ Deno.serve(async (req) => {
           .eq('file_id', fileObj.id)
           .limit(1)
           .maybeSingle(),
+        supabaseAdmin
+          .from('duty_shift_documentations')
+          .select('id')
+          .eq('file_id', fileObj.id)
+          .limit(1)
+          .maybeSingle(),
       ])
 
       if (mediaRes.data) matchedDomainTable = 'media_assets'
@@ -188,6 +197,7 @@ Deno.serve(async (req) => {
       else if (dailyLogAttRes.data) matchedDomainTable = 'daily_log_attachments'
       else if (inventoryItemRes.data) matchedDomainTable = 'inventory_items'
       else if (inventoryPhotoRes.data) matchedDomainTable = 'inventory_photos'
+      else if (dutyDocRes.data) matchedDomainTable = 'duty_shift_documentations'
 
       let isAuthorizedDailyLogAttachment = false
       if (dailyLogAttRes.data) {
@@ -219,6 +229,7 @@ Deno.serve(async (req) => {
           surveyAttRes.data ||
           inventoryItemRes.data ||
           inventoryPhotoRes.data ||
+          dutyDocRes.data ||
           isAuthorizedDailyLogAttachment
       )
     }
