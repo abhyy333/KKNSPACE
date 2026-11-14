@@ -1,9 +1,11 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { WorkspaceGuard } from '@/components/auth/WorkspaceGuard'
 import { SuperAdminGuard } from '@/components/auth/SuperAdminGuard'
+import { BrandedRouteError } from '@/components/ui/BrandedRouteError'
+import { lazyWithRetry } from '@/lib/lazyWithRetry'
 
 const RouteFallback: React.FC = () => (
   <div className="min-h-[60vh] flex flex-col items-center justify-center bg-warm-100 text-charcoal px-4">
@@ -16,141 +18,186 @@ function withSuspense(node: React.ReactNode): React.ReactElement {
   return <Suspense fallback={<RouteFallback />}>{node}</Suspense>
 }
 
-// Lazy Layouts (prevents Workspace/Admin code from loading on Public Portal)
-const WorkspaceLayout = lazy(() =>
-  import('@/components/layout/WorkspaceLayout').then((m) => ({ default: m.WorkspaceLayout }))
+// Lazy Layouts (with dynamic retry protection)
+const WorkspaceLayout = lazyWithRetry(() =>
+  import('@/components/layout/WorkspaceLayout').then((m) => ({ default: m.WorkspaceLayout })),
+  'WorkspaceLayout'
 )
-const AdminLayout = lazy(() =>
-  import('@/components/layout/AdminLayout').then((m) => ({ default: m.AdminLayout }))
-)
-
-// Public Pages (lazy route chunks)
-const HomePage = lazy(() =>
-  import('@/pages/public/HomePage').then((m) => ({ default: m.HomePage }))
-)
-const TeamPage = lazy(() =>
-  import('@/pages/public/TeamPage').then((m) => ({ default: m.TeamPage }))
-)
-const ProgramsPage = lazy(() =>
-  import('@/pages/public/ProgramsPage').then((m) => ({ default: m.ProgramsPage }))
-)
-const DocumentationPage = lazy(() =>
-  import('@/pages/public/DocumentationPage').then((m) => ({ default: m.DocumentationPage }))
-)
-const DocumentationDetailPage = lazy(() =>
-  import('@/pages/public/DocumentationDetailPage').then((m) => ({ default: m.DocumentationDetailPage }))
-)
-const VillageProfilePage = lazy(() =>
-  import('@/pages/public/VillageProfilePage').then((m) => ({ default: m.VillageProfilePage }))
-)
-const VillageHistoryPage = lazy(() =>
-  import('@/pages/public/VillageHistoryPage').then((m) => ({ default: m.VillageHistoryPage }))
-)
-const VillageTerritoryPage = lazy(() =>
-  import('@/pages/public/VillageTerritoryPage').then((m) => ({ default: m.VillageTerritoryPage }))
-)
-const VillageTourismPage = lazy(() =>
-  import('@/pages/public/VillageTourismPage').then((m) => ({ default: m.VillageTourismPage }))
-)
-const VillageCulturePage = lazy(() =>
-  import('@/pages/public/VillageCulturePage').then((m) => ({ default: m.VillageCulturePage }))
-)
-const VillageEconomyPage = lazy(() =>
-  import('@/pages/public/VillageEconomyPage').then((m) => ({ default: m.VillageEconomyPage }))
-)
-const VillageGalleryPage = lazy(() =>
-  import('@/pages/public/VillageGalleryPage').then((m) => ({ default: m.VillageGalleryPage }))
+const AdminLayout = lazyWithRetry(() =>
+  import('@/components/layout/AdminLayout').then((m) => ({ default: m.AdminLayout })),
+  'AdminLayout'
 )
 
-// Workspace Pages (strictly isolated from public bundle)
-const OverviewPage = lazy(() =>
-  import('@/pages/workspace/OverviewPage').then((m) => ({ default: m.OverviewPage }))
+// Public Pages (lazy route chunks protected with single auto-reload on version updates)
+const HomePage = lazyWithRetry(() =>
+  import('@/pages/public/HomePage').then((m) => ({ default: m.HomePage })),
+  'HomePage'
 )
-const AgendaPage = lazy(() =>
-  import('@/pages/workspace/AgendaPage').then((m) => ({ default: m.AgendaPage }))
+const TeamPage = lazyWithRetry(() =>
+  import('@/pages/public/TeamPage').then((m) => ({ default: m.TeamPage })),
+  'TeamPage'
 )
-const DutyPage = lazy(() =>
-  import('@/pages/workspace/DutyPage').then((m) => ({ default: m.DutyPage }))
+const ProgramsPage = lazyWithRetry(() =>
+  import('@/pages/public/ProgramsPage').then((m) => ({ default: m.ProgramsPage })),
+  'ProgramsPage'
 )
-const ProgramsWorkspacePage = lazy(() =>
+const DocumentationPage = lazyWithRetry(() =>
+  import('@/pages/public/DocumentationPage').then((m) => ({ default: m.DocumentationPage })),
+  'DocumentationPage'
+)
+const DocumentationDetailPage = lazyWithRetry(() =>
+  import('@/pages/public/DocumentationDetailPage').then((m) => ({ default: m.DocumentationDetailPage })),
+  'DocumentationDetailPage'
+)
+const VillageProfilePage = lazyWithRetry(() =>
+  import('@/pages/public/VillageProfilePage').then((m) => ({ default: m.VillageProfilePage })),
+  'VillageProfilePage'
+)
+const VillageHistoryPage = lazyWithRetry(() =>
+  import('@/pages/public/VillageHistoryPage').then((m) => ({ default: m.VillageHistoryPage })),
+  'VillageHistoryPage'
+)
+const VillageTerritoryPage = lazyWithRetry(() =>
+  import('@/pages/public/VillageTerritoryPage').then((m) => ({ default: m.VillageTerritoryPage })),
+  'VillageTerritoryPage'
+)
+const VillageTourismPage = lazyWithRetry(() =>
+  import('@/pages/public/VillageTourismPage').then((m) => ({ default: m.VillageTourismPage })),
+  'VillageTourismPage'
+)
+const VillageCulturePage = lazyWithRetry(() =>
+  import('@/pages/public/VillageCulturePage').then((m) => ({ default: m.VillageCulturePage })),
+  'VillageCulturePage'
+)
+const VillageEconomyPage = lazyWithRetry(() =>
+  import('@/pages/public/VillageEconomyPage').then((m) => ({ default: m.VillageEconomyPage })),
+  'VillageEconomyPage'
+)
+const VillageGalleryPage = lazyWithRetry(() =>
+  import('@/pages/public/VillageGalleryPage').then((m) => ({ default: m.VillageGalleryPage })),
+  'VillageGalleryPage'
+)
+
+// Workspace Pages
+const OverviewPage = lazyWithRetry(() =>
+  import('@/pages/workspace/OverviewPage').then((m) => ({ default: m.OverviewPage })),
+  'OverviewPage'
+)
+const AgendaPage = lazyWithRetry(() =>
+  import('@/pages/workspace/AgendaPage').then((m) => ({ default: m.AgendaPage })),
+  'AgendaPage'
+)
+const DutyPage = lazyWithRetry(() =>
+  import('@/pages/workspace/DutyPage').then((m) => ({ default: m.DutyPage })),
+  'DutyPage'
+)
+const ProgramsWorkspacePage = lazyWithRetry(() =>
   import('@/pages/workspace/ProgramsWorkspacePage').then((m) => ({
     default: m.ProgramsWorkspacePage,
-  }))
+  })),
+  'ProgramsWorkspacePage'
 )
-const TasksPage = lazy(() =>
-  import('@/pages/workspace/TasksPage').then((m) => ({ default: m.TasksPage }))
+const TasksPage = lazyWithRetry(() =>
+  import('@/pages/workspace/TasksPage').then((m) => ({ default: m.TasksPage })),
+  'TasksPage'
 )
-const DocumentationWorkspacePage = lazy(() =>
+const DocumentationWorkspacePage = lazyWithRetry(() =>
   import('@/pages/workspace/DocumentationWorkspacePage').then((m) => ({
     default: m.DocumentationWorkspacePage,
-  }))
+  })),
+  'DocumentationWorkspacePage'
 )
-const DocumentsPage = lazy(() =>
-  import('@/pages/workspace/DocumentsPage').then((m) => ({ default: m.DocumentsPage }))
+const DocumentsPage = lazyWithRetry(() =>
+  import('@/pages/workspace/DocumentsPage').then((m) => ({ default: m.DocumentsPage })),
+  'DocumentsPage'
 )
-const MembersPage = lazy(() =>
-  import('@/pages/workspace/MembersPage').then((m) => ({ default: m.MembersPage }))
+const MembersPage = lazyWithRetry(() =>
+  import('@/pages/workspace/MembersPage').then((m) => ({ default: m.MembersPage })),
+  'MembersPage'
 )
-const ProfilePage = lazy(() =>
-  import('@/pages/workspace/ProfilePage').then((m) => ({ default: m.ProfilePage }))
+const ProfilePage = lazyWithRetry(() =>
+  import('@/pages/workspace/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+  'ProfilePage'
 )
-const SettingsPage = lazy(() =>
-  import('@/pages/workspace/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+const SettingsPage = lazyWithRetry(() =>
+  import('@/pages/workspace/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+  'SettingsPage'
 )
-const MeetingsPage = lazy(() =>
-  import('@/pages/workspace/MeetingsPage').then((m) => ({ default: m.MeetingsPage }))
+const MeetingsPage = lazyWithRetry(() =>
+  import('@/pages/workspace/MeetingsPage').then((m) => ({ default: m.MeetingsPage })),
+  'MeetingsPage'
 )
-const FinancePage = lazy(() =>
-  import('@/pages/workspace/FinancePage').then((m) => ({ default: m.FinancePage }))
+const FinancePage = lazyWithRetry(() =>
+  import('@/pages/workspace/FinancePage').then((m) => ({ default: m.FinancePage })),
+  'FinancePage'
 )
-const InventoryPage = lazy(() =>
-  import('@/pages/workspace/InventoryPage').then((m) => ({ default: m.InventoryPage }))
+const InventoryPage = lazyWithRetry(() =>
+  import('@/pages/workspace/InventoryPage').then((m) => ({ default: m.InventoryPage })),
+  'InventoryPage'
 )
-const SurveysPage = lazy(() =>
-  import('@/pages/workspace/SurveysPage').then((m) => ({ default: m.SurveysPage }))
-)
-
-// Admin Pages (strictly isolated from public bundle)
-const AdminOverviewPage = lazy(() =>
-  import('@/pages/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage }))
-)
-const AdminUsersPage = lazy(() =>
-  import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage }))
-)
-const AdminInvitationsPage = lazy(() =>
-  import('@/pages/admin/AdminInvitationsPage').then((m) => ({ default: m.AdminInvitationsPage }))
-)
-const AdminKknConfigPage = lazy(() =>
-  import('@/pages/admin/AdminKknConfigPage').then((m) => ({ default: m.AdminKknConfigPage }))
-)
-const AdminVillagePage = lazy(() =>
-  import('@/pages/admin/AdminVillagePage').then((m) => ({ default: m.AdminVillagePage }))
-)
-const AdminAuditPage = lazy(() =>
-  import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage }))
-)
-const AdminSettingsPage = lazy(() =>
-  import('@/pages/admin/AdminPages').then((m) => ({ default: m.AdminSettingsPage }))
+const SurveysPage = lazyWithRetry(() =>
+  import('@/pages/workspace/SurveysPage').then((m) => ({ default: m.SurveysPage })),
+  'SurveysPage'
 )
 
-// Auth & Fallback Pages (lazy loaded so form libs stay out of public portal initial bundle)
-const LoginPage = lazy(() =>
-  import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
+// Admin Pages
+const AdminOverviewPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })),
+  'AdminOverviewPage'
 )
-const ForgotPasswordPage = lazy(() =>
-  import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage }))
+const AdminUsersPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
+  'AdminUsersPage'
 )
-const ResetPasswordPage = lazy(() =>
-  import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage }))
+const AdminInvitationsPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminInvitationsPage').then((m) => ({ default: m.AdminInvitationsPage })),
+  'AdminInvitationsPage'
 )
-const AcceptInvitePage = lazy(() =>
-  import('@/pages/auth/AcceptInvitePage').then((m) => ({ default: m.AcceptInvitePage }))
+const AdminKknConfigPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminKknConfigPage').then((m) => ({ default: m.AdminKknConfigPage })),
+  'AdminKknConfigPage'
 )
-const UnauthorizedPage = lazy(() =>
-  import('@/pages/auth/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage }))
+const AdminVillagePage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminVillagePage').then((m) => ({ default: m.AdminVillagePage })),
+  'AdminVillagePage'
 )
-const NotFoundPage = lazy(() =>
-  import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
+const AdminAuditPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminAuditPage').then((m) => ({ default: m.AdminAuditPage })),
+  'AdminAuditPage'
+)
+const AdminSettingsPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminPages').then((m) => ({ default: m.AdminSettingsPage })),
+  'AdminSettingsPage'
+)
+const AdminMaintenancePage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminMaintenancePage').then((m) => ({ default: m.AdminMaintenancePage })),
+  'AdminMaintenancePage'
+)
+
+// Auth & Fallback Pages
+const LoginPage = lazyWithRetry(() =>
+  import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+  'LoginPage'
+)
+const ForgotPasswordPage = lazyWithRetry(() =>
+  import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+  'ForgotPasswordPage'
+)
+const ResetPasswordPage = lazyWithRetry(() =>
+  import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+  'ResetPasswordPage'
+)
+const AcceptInvitePage = lazyWithRetry(() =>
+  import('@/pages/auth/AcceptInvitePage').then((m) => ({ default: m.AcceptInvitePage })),
+  'AcceptInvitePage'
+)
+const UnauthorizedPage = lazyWithRetry(() =>
+  import('@/pages/auth/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage })),
+  'UnauthorizedPage'
+)
+const NotFoundPage = lazyWithRetry(() =>
+  import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+  'NotFoundPage'
 )
 
 export const router = createBrowserRouter([
@@ -158,6 +205,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <PublicLayout />,
+    errorElement: <BrandedRouteError />,
     children: [
       { index: true, element: withSuspense(<HomePage />) },
       { path: 'tim', element: withSuspense(<TeamPage />) },
@@ -182,6 +230,7 @@ export const router = createBrowserRouter([
         {withSuspense(<WorkspaceLayout />)}
       </WorkspaceGuard>
     ),
+    errorElement: <BrandedRouteError />,
     children: [
       { index: true, element: withSuspense(<OverviewPage />) },
       { path: 'agenda', element: withSuspense(<AgendaPage />) },
@@ -210,6 +259,7 @@ export const router = createBrowserRouter([
         {withSuspense(<AdminLayout />)}
       </SuperAdminGuard>
     ),
+    errorElement: <BrandedRouteError />,
     children: [
       { index: true, element: withSuspense(<AdminOverviewPage />) },
       { path: 'users', element: withSuspense(<AdminUsersPage />) },
@@ -217,6 +267,7 @@ export const router = createBrowserRouter([
       { path: 'kkn-config', element: withSuspense(<AdminKknConfigPage />) },
       { path: 'village', element: withSuspense(<AdminVillagePage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
+      { path: 'maintenance', element: withSuspense(<AdminMaintenancePage />) },
       { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
     ],
   },
@@ -224,6 +275,7 @@ export const router = createBrowserRouter([
   // Auth Routes
   {
     path: '/auth',
+    errorElement: <BrandedRouteError />,
     children: [
       { path: 'login', element: withSuspense(<LoginPage />) },
       { path: 'forgot-password', element: withSuspense(<ForgotPasswordPage />) },
@@ -236,11 +288,13 @@ export const router = createBrowserRouter([
   {
     path: '/unauthorized',
     element: withSuspense(<UnauthorizedPage />),
+    errorElement: <BrandedRouteError />,
   },
 
   // 404
   {
     path: '*',
     element: withSuspense(<NotFoundPage />),
+    errorElement: <BrandedRouteError />,
   },
 ])

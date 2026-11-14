@@ -16,6 +16,7 @@ import {
   UserCog,
   History,
   Map,
+  Wrench,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -72,6 +73,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
       { title: "Profil & Geoportal Desa", href: "/admin/village", icon: Map },
       { title: "Log Audit Sistem", href: "/admin/audit", icon: History },
+      { title: "Status Layanan & Maintenance", href: "/admin/maintenance", icon: Wrench },
       { title: "Pengaturan Platform", href: "/admin/settings", icon: ShieldAlert },
     ],
   },
