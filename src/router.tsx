@@ -285,6 +285,11 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Auth Route Aliases
+  { path: '/login', element: <Navigate to="/auth/login" replace /> },
+  { path: '/forgot-password', element: <Navigate to="/auth/forgot-password" replace /> },
+  { path: '/reset-password', element: <Navigate to="/auth/reset-password" replace /> },
+
   // Access Control / Unauthorized
   {
     path: '/unauthorized',

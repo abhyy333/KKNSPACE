@@ -18,8 +18,8 @@ import {
   Trash2,
   UserCog,
   Users,
-  ShieldCheck,
   KeyRound,
+  Lock,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -28,7 +28,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
-import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal'
+import { ChangePasswordDialog } from '@/components/profile/ChangePasswordDialog'
 import { ACADEMIC_STATUS_LABELS } from '@/lib/directory'
 import {
   fetchOwnDirectoryProfile,
@@ -372,72 +372,36 @@ export const ProfilePage: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      ) : !ownProfile ? (
+      ) : (
         <div className="space-y-6">
-          <Card className="border-warm-300">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="space-y-1.5">
-                  <h2 className="text-base font-serif font-semibold text-charcoal">
-                    Akun Anda Belum Tertaut ke Slot Anggota Direktori
-                  </h2>
-                  <p className="text-xs text-charcoal-muted leading-relaxed">
-                    Akun login <span className="font-mono text-charcoal">{user?.email ?? '—'}</span> saat ini belum terhubung ke salah satu dari 11 record pada <span className="font-mono">kkn_team_directory</span>. Hubungi Super Admin untuk menautkan slot anggota yang sesuai.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <Badge variant="secondary">{authProfile?.full_name || user?.email || 'Pengguna'}</Badge>
-                    {role && <Badge variant="outline">Role: {ROLE_LABELS[role] ?? role}</Badge>}
-                    {isSuperAdmin && (
-                      <Badge variant="sand" className="gap-1">
-                        <Shield className="h-3 w-3" />
-                        <span>Super Admin</span>
-                      </Badge>
-                    )}
+          {!ownProfile ? (
+            <Card className="border-warm-300">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1.5">
+                    <h2 className="text-base font-serif font-semibold text-charcoal">
+                      Akun Anda Belum Tertaut ke Slot Anggota Direktori
+                    </h2>
+                    <p className="text-xs text-charcoal-muted leading-relaxed">
+                      Akun login <span className="font-mono text-charcoal">{user?.email ?? '—'}</span> saat ini belum terhubung ke salah satu dari 11 record pada <span className="font-mono">kkn_team_directory</span>. Hubungi Super Admin untuk menautkan slot anggota yang sesuai.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <Badge variant="secondary">{authProfile?.full_name || user?.email || 'Pengguna'}</Badge>
+                      {role && <Badge variant="outline">Role: {ROLE_LABELS[role] ?? role}</Badge>}
+                      {isSuperAdmin && (
+                        <Badge variant="sand" className="gap-1">
+                          <Shield className="h-3 w-3" />
+                          <span>Super Admin</span>
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Keamanan Akun Card */}
-          <Card className="border-warm-300 bg-white shadow-2xs">
-            <CardHeader className="pb-4 border-b border-warm-200">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-sage-100 text-sage-800 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-serif">Keamanan Akun</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    Kelola password untuk menjaga keamanan akun KKN SPACE Anda.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-charcoal-muted" />
-                  <span className="text-xs font-semibold text-charcoal">Password Akun Login</span>
-                </div>
-                <p className="text-xs text-charcoal-muted leading-relaxed max-w-md">
-                  Perbarui password Anda secara berkala untuk melindungi akses data dan akun posko KKN SPACE.
-                </p>
-              </div>
-              <Button
-                type="button"
-                onClick={() => setIsChangePasswordOpen(true)}
-                className="bg-sage-800 hover:bg-sage-900 text-white text-xs gap-2 shrink-0 h-9 px-4 rounded-xl shadow-xs"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-                <span>Ganti Password</span>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Identity Summary & Photo Card */}
           <Card className="border-warm-300 bg-white">
             <CardContent className="p-6 space-y-5">
@@ -594,10 +558,8 @@ export const ProfilePage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Editable Profile & Account Security Column */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Editable Profile Form */}
-            <Card className="border-warm-300 bg-white">
+          {/* Editable Profile Form */}
+          <Card className="lg:col-span-2 border-warm-300 bg-white">
             <CardHeader className="pb-4 border-b border-warm-200">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -757,53 +719,53 @@ export const ProfilePage: React.FC = () => {
               </form>
             </CardContent>
           </Card>
+        </div>
+        )}
 
-          {/* Keamanan Akun Section */}
-          <Card className="border-warm-300 bg-white shadow-2xs">
-            <CardHeader className="pb-4 border-b border-warm-200">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-sage-100 text-sage-800 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-serif">Keamanan Akun</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    Kelola password untuk menjaga keamanan akun KKN SPACE Anda.
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Keamanan Akun Section */}
+        <Card className="border-warm-300 bg-white shadow-xs">
+          <CardHeader className="pb-4 border-b border-warm-200">
+            <div className="flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-base font-serif">Keamanan Akun</CardTitle>
+            </div>
+            <CardDescription className="text-xs mt-1">
+              Kelola password untuk menjaga keamanan akun KKN SPACE Anda.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-charcoal-muted" />
-                  <span className="text-xs font-semibold text-charcoal">Password Akun Login</span>
+                  <span className="text-sm font-semibold text-charcoal">Kata Sandi Akun</span>
+                  <Badge variant="outline" className="text-[10px] text-sage-800 bg-sage-50 border-sage-200">
+                    Supabase Auth
+                  </Badge>
                 </div>
-                <p className="text-xs text-charcoal-muted leading-relaxed max-w-md">
-                  Perbarui password Anda secara berkala untuk melindungi akses data program kerja, keuangan, dan dokumentasi posko KKN.
+                <p className="text-xs text-charcoal-muted leading-relaxed max-w-xl">
+                  Ganti kata sandi secara berkala dengan minimal 8 karakter untuk memastikan ruang kerja kelompok tetap terlindungi.
                 </p>
               </div>
               <Button
                 type="button"
                 onClick={() => setIsChangePasswordOpen(true)}
-                className="bg-sage-800 hover:bg-sage-900 text-white text-xs gap-2 shrink-0 h-9 px-4 rounded-xl shadow-xs"
+                className="bg-sage-800 hover:bg-sage-900 text-white text-xs gap-2 shrink-0 shadow-subtle min-w-[140px]"
               >
-                <KeyRound className="h-3.5 w-3.5" />
+                <Lock className="h-3.5 w-3.5" />
                 <span>Ganti Password</span>
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Change Password Dialog Modal */}
+        <ChangePasswordDialog
+          open={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
+          userEmail={ownProfile?.auth_email || user?.email}
+        />
       </div>
       )}
-
-      {/* Change Password Modal */}
-      <ChangePasswordModal
-        open={isChangePasswordOpen}
-        onClose={() => setIsChangePasswordOpen(false)}
-        userEmail={user?.email}
-        provider={user?.app_metadata?.provider}
-      />
     </div>
   )
 }
