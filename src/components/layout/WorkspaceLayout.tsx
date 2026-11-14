@@ -53,6 +53,7 @@ export const WorkspaceLayout: React.FC = () => {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         userRole={displayRole}
+        rawRole={membership?.role}
         isSuperAdmin={isSuperAdmin}
         groupName={groupName}
         villageName={villageName}

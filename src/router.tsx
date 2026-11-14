@@ -81,6 +81,10 @@ const TimelineKknPage = lazyWithRetry(() =>
   import('@/pages/public/TimelineKknPage').then((m) => ({ default: m.TimelineKknPage })),
   'TimelineKknPage'
 )
+const SponsorsPage = lazyWithRetry(() =>
+  import('@/pages/public/SponsorsPage').then((m) => ({ default: m.SponsorsPage })),
+  'SponsorsPage'
+)
 
 // Workspace Pages
 const OverviewPage = lazyWithRetry(() =>
@@ -147,6 +151,10 @@ const FinalReportPage = lazyWithRetry(() =>
   import('@/pages/workspace/FinalReportPage').then((m) => ({ default: m.FinalReportPage })),
   'FinalReportPage'
 )
+const SponsorsWorkspacePage = lazyWithRetry(() =>
+  import('@/pages/workspace/SponsorsWorkspacePage').then((m) => ({ default: m.SponsorsWorkspacePage })),
+  'SponsorsWorkspacePage'
+)
 
 // Admin Pages
 const AdminOverviewPage = lazyWithRetry(() =>
@@ -184,6 +192,10 @@ const AdminMaintenancePage = lazyWithRetry(() =>
 const AdminTimelinePage = lazyWithRetry(() =>
   import('@/pages/admin/AdminTimelinePage').then((m) => ({ default: m.AdminTimelinePage })),
   'AdminTimelinePage'
+)
+const AdminSponsorsPage = lazyWithRetry(() =>
+  import('@/pages/admin/AdminSponsorsPage').then((m) => ({ default: m.AdminSponsorsPage })),
+  'AdminSponsorsPage'
 )
 
 // Auth & Fallback Pages
@@ -236,6 +248,10 @@ export const router = createBrowserRouter([
       { path: 'timeline-kkn', element: withSuspense(<TimelineKknPage />) },
       { path: 'timeline', element: <Navigate to="/timeline-kkn" replace /> },
       { path: 'roadmap', element: <Navigate to="/timeline-kkn" replace /> },
+      { path: 'sponsors', element: withSuspense(<SponsorsPage />) },
+      { path: 'sponsor', element: <Navigate to="/sponsors" replace /> },
+      { path: 'partners', element: <Navigate to="/sponsors" replace /> },
+      { path: 'mitra', element: <Navigate to="/sponsors" replace /> },
     ],
   },
 
@@ -260,6 +276,7 @@ export const router = createBrowserRouter([
       { path: 'risks', element: <Navigate to="/workspace" replace /> },
       { path: 'logbook', element: <Navigate to="/workspace" replace /> },
       { path: 'duty', element: withSuspense(<DutyPage />) },
+      { path: 'sponsors', element: withSuspense(<SponsorsWorkspacePage />) },
       { path: 'documentation', element: withSuspense(<DocumentationWorkspacePage />) },
       { path: 'documents', element: withSuspense(<DocumentsPage />) },
       { path: 'final-report', element: withSuspense(<FinalReportPage />) },
@@ -285,6 +302,7 @@ export const router = createBrowserRouter([
       { path: 'invitations', element: withSuspense(<AdminInvitationsPage />) },
       { path: 'kkn-config', element: withSuspense(<AdminKknConfigPage />) },
       { path: 'timeline', element: withSuspense(<AdminTimelinePage />) },
+      { path: 'sponsors', element: withSuspense(<AdminSponsorsPage />) },
       { path: 'village', element: withSuspense(<AdminVillagePage />) },
       { path: 'audit', element: withSuspense(<AdminAuditPage />) },
       { path: 'activity-log', element: <Navigate to="/admin/audit" replace /> },

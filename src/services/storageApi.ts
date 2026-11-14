@@ -14,7 +14,7 @@ function sanitizeFilename(name: string): string {
 
 export async function uploadPrivateFile(
   file: File,
-  folder: 'documentation' | 'documents' | 'reports' | 'finance' | 'logbook' | 'directory' | 'inventory' | 'duty'
+  folder: 'documentation' | 'documents' | 'reports' | 'finance' | 'logbook' | 'directory' | 'inventory' | 'duty' | 'sponsors'
 ): Promise<FileObject> {
   if (file.size <= 0) {
     throw new Error('Berkas kosong tidak dapat diunggah.')

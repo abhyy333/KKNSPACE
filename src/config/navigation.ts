@@ -18,6 +18,7 @@ import {
   Map,
   Wrench,
   Milestone,
+  Handshake,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -50,6 +51,7 @@ export const WORKSPACE_NAV: NavSection[] = [
       { title: "Inventaris Barang", href: "/workspace/inventory", icon: Package },
       { title: "Survei Desa", href: "/workspace/surveys", icon: ClipboardList },
       { title: "Jadwal Piket Posko", href: "/workspace/duty", icon: Clock },
+      { title: "Sponsor & Mitra", href: "/workspace/sponsors", icon: Handshake },
     ],
   },
   {
@@ -73,6 +75,7 @@ export const ADMIN_NAV: NavSection[] = [
       { title: "Undangan Anggota", href: "/admin/invitations", icon: Users },
       { title: "Konfigurasi KKN", href: "/admin/kkn-config", icon: Settings },
       { title: "Timeline & Roadmap KKN", href: "/admin/timeline", icon: Milestone },
+      { title: "Sponsor & Partners", href: "/admin/sponsors", icon: Handshake },
       { title: "Profil & Geoportal Desa", href: "/admin/village", icon: Map },
       { title: "Log Aktivitas", href: "/admin/audit", icon: History },
       { title: "Status Layanan & Maintenance", href: "/admin/maintenance", icon: Wrench },
@@ -88,4 +91,5 @@ export const PUBLIC_NAV = [
   { title: "Program Kerja", href: "/program-kerja" },
   { title: "Dokumentasi", href: "/dokumentasi" },
   { title: "Timeline KKN", href: "/timeline-kkn" },
+  { title: "Sponsor & Mitra", href: "/sponsors" },
 ]

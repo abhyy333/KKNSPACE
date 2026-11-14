@@ -8,6 +8,7 @@ interface WorkspaceSidebarProps {
   isOpen: boolean
   onClose?: () => void
   userRole?: string
+  rawRole?: string
   isSuperAdmin?: boolean
   groupName?: string
   villageName?: string
@@ -17,6 +18,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   isOpen,
   onClose,
   userRole = "Anggota",
+  rawRole,
   isSuperAdmin = false,
   groupName = "KKN SPACE",
   villageName = "Desa belum diatur",
@@ -71,42 +73,54 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 
         {/* Navigation list */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {WORKSPACE_NAV.map((section) => (
-            <div key={section.title} className="space-y-1">
-              <div className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-charcoal-muted uppercase">
-                {section.title}
+          {WORKSPACE_NAV.map((section) => {
+            const canManageSponsors = isSuperAdmin || rawRole === 'ketua' || rawRole === 'sekretaris'
+            const visibleItems = section.items.filter((item) => {
+              if (item.href === '/workspace/sponsors') {
+                return canManageSponsors
+              }
+              return true
+            })
+
+            if (visibleItems.length === 0) return null
+
+            return (
+              <div key={section.title} className="space-y-1">
+                <div className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-charcoal-muted uppercase">
+                  {section.title}
+                </div>
+                <div className="space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <NavLink
+                        key={item.href}
+                        to={item.href}
+                        end={item.href === "/workspace"}
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          cn(
+                            "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                            isActive
+                              ? "bg-sage-600 text-white shadow-subtle"
+                              : "text-charcoal hover:bg-warm-200/70"
+                          )
+                        }
+                      >
+                        <Icon className="h-4 w-4 shrink-0 transition-opacity" />
+                        <span className="truncate">{item.title}</span>
+                        {item.badge && (
+                          <span className="ml-auto rounded-full bg-sage-200 px-1.5 py-0.2 text-[10px] text-sage-800 font-mono">
+                            {item.badge}
+                          </span>
+                        )}
+                      </NavLink>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <NavLink
-                      key={item.href}
-                      to={item.href}
-                      end={item.href === "/workspace"}
-                      onClick={onClose}
-                      className={({ isActive }) =>
-                        cn(
-                          "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                          isActive
-                            ? "bg-sage-600 text-white shadow-subtle"
-                            : "text-charcoal hover:bg-warm-200/70"
-                        )
-                      }
-                    >
-                      <Icon className="h-4 w-4 shrink-0 transition-opacity" />
-                      <span className="truncate">{item.title}</span>
-                      {item.badge && (
-                        <span className="ml-auto rounded-full bg-sage-200 px-1.5 py-0.2 text-[10px] text-sage-800 font-mono">
-                          {item.badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Footer info & Public site link */}

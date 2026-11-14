@@ -1,9 +1,17 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Mail, Calendar, ShieldCheck } from 'lucide-react'
+import { MapPin, Mail, Calendar, ShieldCheck, Handshake } from 'lucide-react'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { useQuery } from '@tanstack/react-query'
+import { fetchPublicSponsors } from '@/services/sponsorsApi'
+import { SponsorLogoThumbnail } from '@/components/sponsors/SponsorLogoThumbnail'
 
 export const PublicFooter: React.FC = () => {
+  const { data: sponsors = [] } = useQuery({
+    queryKey: ['public-sponsors'],
+    queryFn: fetchPublicSponsors,
+    staleTime: 1000 * 60 * 5,
+  })
   return (
     <footer className="border-t border-warm-300 bg-white text-charcoal">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -69,6 +77,11 @@ export const PublicFooter: React.FC = () => {
                   Profil Desa
                 </Link>
               </li>
+              <li>
+                <Link to="/sponsors" className="hover:text-sage-700 transition-colors">
+                  Sponsor & Mitra
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -91,6 +104,45 @@ export const PublicFooter: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Sponsor & Mitra Showcase Strip */}
+        {sponsors.length > 0 && (
+          <div className="mt-8 border-t border-warm-200 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2 text-xs font-semibold text-charcoal">
+                <Handshake className="h-3.5 w-3.5 text-forest" />
+                <span>Mitra Resmi & Sponsor Kegiatan KKN SPACE:</span>
+              </div>
+              <Link
+                to="/sponsors"
+                className="text-[11px] font-semibold text-forest hover:underline"
+              >
+                Lihat Semua Direktori Mitra →
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {sponsors.slice(0, 8).map((sp) => (
+                <Link
+                  key={sp.id}
+                  to="/sponsors"
+                  className="flex items-center gap-2 rounded-xl border border-warm-200 bg-warm-50/60 hover:bg-white hover:border-forest/30 px-3 py-1.5 transition-all shadow-2xs"
+                  title={sp.name}
+                >
+                  <SponsorLogoThumbnail
+                    fileId={sp.logo_file_id}
+                    sponsorId={sp.id}
+                    alt={sp.name}
+                    isPublic={true}
+                    containerClassName="w-7 h-5 flex items-center justify-center shrink-0"
+                    className="w-full h-full object-contain"
+                  />
+                  <span className="text-xs font-medium text-charcoal truncate max-w-[140px]">{sp.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 border-t border-warm-300 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-charcoal-muted gap-2">
           <p>© 2026–2027 KKN Pringgasela Selatan Universitas Mataram · Platform KKN SPACE.</p>

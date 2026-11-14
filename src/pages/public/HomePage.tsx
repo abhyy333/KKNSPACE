@@ -27,6 +27,7 @@ import {
   PublicEmptyState,
   PublicSectionError,
 } from '@/components/public/PublicQueryStates'
+import { HomeSponsorsSection } from '@/components/public/HomeSponsorsSection'
 
 export const HomePage: React.FC = () => {
   const {
@@ -421,6 +422,9 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
       </section>
+
+      {/* Our Sponsors & Partners Section */}
+      <HomeSponsorsSection />
     </div>
   )
 }

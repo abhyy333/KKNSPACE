@@ -30,6 +30,7 @@ import {
   RefreshCw,
   AlertCircle,
   Database,
+  Handshake,
 } from 'lucide-react'
 
 export interface AuditEventRow {
@@ -101,6 +102,11 @@ const MODULE_DEFINITIONS: Record<
     label: 'Survei & Respon',
     icon: UserCheck,
     tables: ['surveys', 'survey_responses'],
+  },
+  sponsors: {
+    label: 'Sponsor & Mitra',
+    icon: Handshake,
+    tables: ['sponsors', 'sponsor_communications'],
   },
 }
 
