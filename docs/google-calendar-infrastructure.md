@@ -30,7 +30,7 @@ Arsitektur terdiri dari dua lapisan:
 | **Google Calendar API** | Belum diaktifkan pada project KKN SPACE | **ACTION REQUIRED** | Diaktifkan via Google Cloud Console: `calendar-json.googleapis.com` |
 | **OAuth Consent Screen** | Belum dikonfigurasi untuk KKN SPACE | **ACTION REQUIRED** | Konfigurasi tipe *External* dengan status *Testing* |
 | **OAuth 2.0 Client ID** | Belum dibuat untuk KKN SPACE Web Client | **ACTION REQUIRED** | Dibuat tipe *Web application* dengan Authorized Redirect URI terdaftar |
-| **Antigravity Calendar MCP** | Plugin resmi tersedia di Marketplace (`antigravity-plugins-official/plugin/gcalendar`) | **AVAILABLE** | Pengguna dapat menambahkan via card plugin di Antigravity |
+| **Antigravity Calendar MCP** | Plugin resmi terpasang (`antigravity-plugins-official/plugin/gcalendar`), terautentikasi sebagai `abhyy333@gmail.com`, dan berhasil diuji coba (read-only) | **VERIFIED & READY** | Alat siap digunakan oleh asisten Antigravity |
 
 ---
 
@@ -134,5 +134,5 @@ Sebelum melanjutkan ke implementasi kode backend dan modul kalender, persetujuan
    - Konfirmasi apakah ingin menggunakan project Google Cloud yang sudah ada di akun `abhyy333@gmail.com` atau membuat project baru bernama `kkn-space-production`.
 2. **Persetujuan Pemasukan Kredensial ke Supabase Vault**:
    - Memasukkan `GOOGLE_CLIENT_SECRET` ke dalam secret Supabase secara privat tanpa commit ke Git.
-3. **Instalasi Plugin Google Calendar di Antigravity**:
-   - Menambahkan plugin Google Calendar dari Marketplace Card untuk kebutuhan asisten Antigravity.
+3. **Instalasi Plugin Google Calendar di Antigravity (SELESAI)**:
+   - Plugin resmi `antigravity-plugins-official/plugin/gcalendar` telah terpasang, terhubung ke akun `abhyy333@gmail.com`, dan berhasil lolos verifikasi uji baca (read-only calendar list).
