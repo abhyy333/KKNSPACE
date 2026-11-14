@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { setWorkerUrl } from 'maplibre-gl'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import '@maplibre/maplibre-gl-leaflet'
+
+// Set MapLibre worker URL for Vite bundler
+setWorkerUrl(workerUrl)
 import {
   Maximize2,
   Minimize2,
   RotateCcw,
   Info,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react'
 import type { VillageDusun, VillageDestination } from '@/types/village'
 
@@ -21,6 +30,16 @@ interface VillageInteractiveMapProps {
 const DEFAULT_CENTER: [number, number] = [-8.5492, 116.4485]
 const DEFAULT_ZOOM = 14
 
+// OpenFreeMap vector styles (100% Free, No API key, No token, No watermark)
+const OPENFREEMAP_STYLES = {
+  positron: 'https://tiles.openfreemap.org/styles/positron', // Default style requested
+  bright: 'https://tiles.openfreemap.org/styles/bright',
+  liberty: 'https://tiles.openfreemap.org/styles/liberty',
+}
+
+const OPENFREEMAP_ATTRIBUTION =
+  '<a href="https://openfreemap.org" target="_blank" rel="noopener" class="hover:underline">© OpenFreeMap</a> <a href="https://openmaptiles.org" target="_blank" rel="noopener" class="hover:underline">© OpenMapTiles</a> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="hover:underline">© OpenStreetMap contributors</a>'
+
 export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
   dusuns,
   destinations,
@@ -31,21 +50,24 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
+  const glLayerRef = useRef<L.Layer | null>(null)
   const markersLayerRef = useRef<L.LayerGroup | null>(null)
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null)
+
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [activeTileLayer, setActiveTileLayer] = useState<'osm' | 'topo' | 'light'>('light')
+  const [activeStyle, setActiveStyle] = useState<'positron' | 'bright' | 'liberty'>('positron')
+  const [isLoadingTile, setIsLoadingTile] = useState(true)
+  const [tileError, setTileError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<{
     type: 'dusun' | 'destination'
     data: VillageDusun | VillageDestination
   } | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
 
-  // Initialize Map
+  // Initialize Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return
 
-    // Avoid duplicate initialization
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove()
       mapInstanceRef.current = null
@@ -57,17 +79,24 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
       zoomControl: false,
       attributionControl: false,
       scrollWheelZoom: true,
+      maxBounds: [
+        [180, -Infinity],
+        [-180, Infinity],
+      ],
+      maxBoundsViscosity: 1,
+      minZoom: 2,
     })
 
     // Custom Zoom Control top-right
     L.control.zoom({ position: 'topright' }).addTo(map)
 
-    // Attribution
+    // Attribution Control at bottom-right clearly showing OpenFreeMap credits
     L.control
       .attribution({
         position: 'bottomright',
-        prefix: '<span class="text-[10px] text-charcoal-muted">Leaflet | © OpenStreetMap contributors</span>',
+        prefix: false,
       })
+      .addAttribution(OPENFREEMAP_ATTRIBUTION)
       .addTo(map)
 
     const markersGroup = L.layerGroup().addTo(map)
@@ -77,44 +106,87 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
     // Fix leaflet default icon asset paths
     delete (L.Icon.Default.prototype as any)._getIconUrl
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconRetinaUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+      iconUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
     })
 
     return () => {
+      if (glLayerRef.current && map) {
+        map.removeLayer(glLayerRef.current)
+        glLayerRef.current = null
+      }
       map.remove()
       mapInstanceRef.current = null
     }
   }, [])
 
-  // Manage Tile Layers
+  // Manage OpenFreeMap Basemap Layer (Positron Default)
   useEffect(() => {
     const map = mapInstanceRef.current
     if (!map) return
 
-    // Clean old tile layers
-    map.eachLayer((layer) => {
-      if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer)
-      }
-    })
+    setIsLoadingTile(true)
+    setTileError(null)
 
-    let tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-    let maxZoom = 19
-
-    if (activeTileLayer === 'osm') {
-      tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-    } else if (activeTileLayer === 'topo') {
-      tileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
-      maxZoom = 17
+    // Remove existing GL or tile layer
+    if (glLayerRef.current) {
+      map.removeLayer(glLayerRef.current)
+      glLayerRef.current = null
     }
 
-    L.tileLayer(tileUrl, {
-      maxZoom,
-      subdomains: 'abcd',
-    }).addTo(map)
-  }, [activeTileLayer])
+    const styleUrl = OPENFREEMAP_STYLES[activeStyle]
+
+    try {
+      // Use @maplibre/maplibre-gl-leaflet to render OpenFreeMap vector basemap
+      const gl = (L as any).maplibreGL({
+        style: styleUrl,
+        attribution: OPENFREEMAP_ATTRIBUTION,
+        interactive: true,
+      })
+
+      gl.addTo(map)
+      glLayerRef.current = gl
+
+      // Hook into maplibre map events for loading and error states
+      try {
+        const libreMap = gl.getMaplibreMap?.()
+        if (libreMap) {
+          libreMap.once('load', () => {
+            setIsLoadingTile(false)
+          })
+          libreMap.on('error', (e: any) => {
+            console.warn('OpenFreeMap style event:', e)
+          })
+        } else {
+          setIsLoadingTile(false)
+        }
+      } catch {
+        setIsLoadingTile(false)
+      }
+    } catch (err: any) {
+      console.warn('MapLibre GL initialization failed, falling back to OSM tile:', err)
+      setTileError('WebGL vector renderer dialihkan ke basemap alternatif.')
+
+      // Safe fallback to standard OpenStreetMap raster tile (free, zero API key)
+      const fallbackLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(map)
+      glLayerRef.current = fallbackLayer
+      setIsLoadingTile(false)
+    }
+
+    // Safety timer to clear loading spinner
+    const timer = setTimeout(() => {
+      setIsLoadingTile(false)
+    }, 1500)
+
+    return () => clearTimeout(timer)
+  }, [activeStyle])
 
   // Handle GeoJSON Polygons (if provided officially)
   useEffect(() => {
@@ -170,7 +242,6 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
           dusun.center_coordinates.lng,
         ]
 
-        // Custom HTML marker for Dusun
         const dusunIcon = L.divIcon({
           className: 'custom-dusun-marker',
           html: `
@@ -273,40 +344,43 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
     >
       {/* Top Map Action Bar */}
       <div className="absolute top-3 left-3 z-20 flex flex-wrap items-center gap-2">
-        {/* Layer Switcher */}
+        {/* Style Switcher: OpenFreeMap Positron (Default), Bright, Liberty */}
         <div className="bg-white/95 backdrop-blur-sm border border-warm-200 rounded-lg p-1 shadow-sm flex items-center gap-1 text-xs">
           <button
             type="button"
-            onClick={() => setActiveTileLayer('light')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTileLayer === 'light'
-                ? 'bg-sage-700 text-white font-medium'
+            onClick={() => setActiveStyle('positron')}
+            className={`px-2.5 py-1 rounded transition-colors ${
+              activeStyle === 'positron'
+                ? 'bg-sage-800 text-white font-medium'
                 : 'text-charcoal-muted hover:text-charcoal'
             }`}
+            title="OpenFreeMap Positron (Tampilan Bersih & Minimal)"
           >
-            Kartografi
+            Positron
           </button>
           <button
             type="button"
-            onClick={() => setActiveTileLayer('osm')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTileLayer === 'osm'
-                ? 'bg-sage-700 text-white font-medium'
+            onClick={() => setActiveStyle('bright')}
+            className={`px-2.5 py-1 rounded transition-colors ${
+              activeStyle === 'bright'
+                ? 'bg-sage-800 text-white font-medium'
                 : 'text-charcoal-muted hover:text-charcoal'
             }`}
+            title="OpenFreeMap Bright (Warna Natural)"
           >
-            OpenStreetMap
+            Bright
           </button>
           <button
             type="button"
-            onClick={() => setActiveTileLayer('topo')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTileLayer === 'topo'
-                ? 'bg-sage-700 text-white font-medium'
+            onClick={() => setActiveStyle('liberty')}
+            className={`px-2.5 py-1 rounded transition-colors ${
+              activeStyle === 'liberty'
+                ? 'bg-sage-800 text-white font-medium'
                 : 'text-charcoal-muted hover:text-charcoal'
             }`}
+            title="OpenFreeMap Liberty (Detail Kartografi)"
           >
-            Topografi
+            Liberty
           </button>
         </div>
 
@@ -329,7 +403,7 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
                   : 'text-charcoal-muted hover:text-charcoal'
               }`}
             >
-              ${cat.label}
+              {cat.label}
             </button>
           ))}
         </div>
@@ -355,12 +429,28 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
         </button>
       </div>
 
+      {/* Loading Tile Indicator */}
+      {isLoadingTile && (
+        <div className="absolute top-3 right-16 z-20 bg-white/95 backdrop-blur-sm border border-warm-200 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1.5 text-[11px] text-charcoal-muted">
+          <Loader2 className="h-3 w-3 animate-spin text-sage-600" />
+          <span>Memuat basemap...</span>
+        </div>
+      )}
+
+      {/* Tile Error Warning */}
+      {tileError && (
+        <div className="absolute top-16 left-3 z-20 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1 shadow-sm flex items-center gap-1.5 text-[11px] text-amber-800">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+          <span>{tileError}</span>
+        </div>
+      )}
+
       {/* Map Leaflet Container */}
       <div ref={mapContainerRef} className="w-full h-[520px] lg:h-[620px] bg-warm-100 z-10" />
 
       {/* Official Geospatial Disclaimer Note */}
-      <div className="absolute bottom-2 left-2 right-2 sm:right-auto sm:max-w-md z-20">
-        <div className="bg-white/95 backdrop-blur-md border border-warm-200 rounded-xl p-3 shadow-lg text-[11px] text-charcoal leading-relaxed flex items-start gap-2.5">
+      <div className="absolute bottom-2 left-2 right-2 sm:right-auto sm:max-w-md z-20 pointer-events-none">
+        <div className="bg-white/95 backdrop-blur-md border border-warm-200 rounded-xl p-3 shadow-lg text-[11px] text-charcoal leading-relaxed flex items-start gap-2.5 pointer-events-auto">
           <Info className="h-4 w-4 text-sage-600 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-sage-900 font-serif">
@@ -368,8 +458,8 @@ export const VillageInteractiveMap: React.FC<VillageInteractiveMapProps> = ({
             </p>
             <p className="text-charcoal-muted text-[10px] mt-0.5">
               Peta menampilkan koordinat sentroid 7 dusun dan lokasi penting yang telah diverifikasi
-              secara faktual. Batas poligon resmi dusun sedang dalam proses digitalisasi oleh
-              pemerintah desa.
+              secara faktual menggunakan basemap OpenFreeMap. Batas poligon resmi dusun sedang dalam
+              proses digitalisasi oleh pemerintah desa.
             </p>
           </div>
         </div>
