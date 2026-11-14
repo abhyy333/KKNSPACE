@@ -67,10 +67,16 @@ export const FinalReportPage: React.FC = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('activity_documentations')
-        .select('id, title, event_date, location, description, photo_count')
-        .order('event_date', { ascending: false })
+        .select('id, title, activity_date, location_name, description')
+        .order('activity_date', { ascending: false })
         .limit(6)
-      return data || []
+      return (data || []).map((d) => ({
+        id: d.id,
+        title: d.title,
+        event_date: d.activity_date,
+        location: d.location_name,
+        description: d.description,
+      }))
     },
   })
 

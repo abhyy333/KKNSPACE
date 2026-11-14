@@ -10,7 +10,6 @@ import {
   Award,
   Image,
   FolderOpen,
-  FileText,
   Settings,
   ShieldAlert,
   UserCheck,
@@ -59,7 +58,6 @@ export const WORKSPACE_NAV: NavSection[] = [
     items: [
       { title: "Galeri Dokumentasi", href: "/workspace/documentation", icon: Image },
       { title: "Arsip Dokumen", href: "/workspace/documents", icon: FolderOpen },
-      { title: "Laporan Akhir KKN", href: "/workspace/final-report", icon: FileText },
       { title: "Daftar Anggota", href: "/workspace/members", icon: Users },
       { title: "Profil Saya", href: "/workspace/profile", icon: UserCog },
       { title: "Pengaturan Posko", href: "/workspace/settings", icon: Settings },
