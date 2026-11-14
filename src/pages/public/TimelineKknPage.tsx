@@ -26,7 +26,6 @@ import {
   AlertCircle,
   ArrowRight,
   Flag,
-  Sparkles,
   LayoutGrid,
   List,
   Target,
@@ -90,12 +89,6 @@ export const TimelineKknPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Column: Headings & Metadata */}
             <div className="lg:col-span-7 space-y-5">
-              {/* Eyebrow Badge */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2C5E3D]/90 border border-emerald-400/30 text-emerald-100 text-xs font-semibold tracking-wide uppercase shadow-xs">
-                <Sparkles className="h-3 w-3 text-emerald-300" />
-                <span>{settings?.eyebrow || 'Roadmap KKN'}</span>
-              </div>
-
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold text-white tracking-tight leading-[1.12]">
                 {settings?.title || 'Timeline & Roadmap KKN'}
