@@ -1,89 +1,49 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ConfirmDialog, Modal } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/toast'
 import { useAuth } from '@/hooks/useAuth'
 import { getPrivateFileSignedUrl } from '@/services/storageApi'
-import { DutyPhotoDocumentationModal } from '@/components/duty/DutyPhotoDocumentationModal'
+import { fetchWorkspaceMembers } from '@/services/dashboardApi'
 import {
-  fetchWorkspaceMembers,
-  getLocalDateKey,
-} from '@/services/dashboardApi'
-import {
-  createDutyShift,
-  deleteDutyShift,
-  dutyShiftFormSchema,
   fetchDutyShifts,
-  updateDutyShift,
-  type DutyShiftFormInput,
+  deleteDutyShift,
 } from '@/services/agendaApi'
+import { DutyDocumentationFormModal } from '@/components/duty/DutyDocumentationFormModal'
+import { DutyDocumentationDetailModal } from '@/components/duty/DutyDocumentationDetailModal'
 import type { DutyShift, WorkspaceMemberSummary } from '@/types/database'
 import {
   AlertCircle,
   Camera,
-  Clock,
+  Calendar,
   Edit3,
   Loader2,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
-  UserCheck,
 } from 'lucide-react'
-
-function formatDateHeading(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-const DutyCardThumb: React.FC<{ fileId: string; alt: string }> = ({ fileId, alt }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['signed-url', fileId, false],
-    queryFn: () => getPrivateFileSignedUrl(fileId, false),
-    staleTime: 300_000,
-  })
-
-  if (isLoading || !data?.signedUrl) {
-    return <div className="h-full w-full bg-warm-200 animate-pulse" />
-  }
-
-  return (
-    <img
-      src={data.signedUrl}
-      alt={alt}
-      className="h-full w-full object-cover"
-      loading="lazy"
-    />
-  )
-}
 
 export const DutyPage: React.FC = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user, membership, isSuperAdmin } = useAuth()
 
-  const canManageShifts =
-    isSuperAdmin ||
-    membership?.role === 'ketua' ||
-    membership?.role === 'sekretaris'
+  // Authorized to create: Super Admin, or active team members
+  const canCreate = Boolean(isSuperAdmin || membership?.status === 'active')
 
-  const [showAllDates, setShowAllDates] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
+  // Modals state
+  const [formModalOpen, setFormModalOpen] = useState(false)
   const [editingShift, setEditingShift] = useState<DutyShift | null>(null)
+  const [detailShift, setDetailShift] = useState<DutyShift | null>(null)
   const [deletingShift, setDeletingShift] = useState<DutyShift | null>(null)
-  const [selectedPhotoShift, setSelectedPhotoShift] = useState<DutyShift | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
+  // Fetch duty shifts (ordered by newest first)
   const {
     data: shifts = [],
     isLoading,
@@ -97,6 +57,7 @@ export const DutyPage: React.FC = () => {
     staleTime: 30_000,
   })
 
+  // Fetch workspace members for author profile mapping
   const { data: members = [] } = useQuery({
     queryKey: ['workspace', 'members'],
     queryFn: fetchWorkspaceMembers,
@@ -109,518 +70,450 @@ export const DutyPage: React.FC = () => {
     return map
   }, [members])
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<DutyShiftFormInput>({
-    resolver: zodResolver(dutyShiftFormSchema),
-    defaultValues: {
-      shiftDate: getLocalDateKey(),
-      startTime: '07:00',
-      endTime: '12:00',
-      assignedUserId: '',
-      notes: '',
-    },
-  })
-
-  useEffect(() => {
-    if (!modalOpen) return
-    if (editingShift) {
-      reset({
-        shiftDate: editingShift.shift_date,
-        startTime: editingShift.start_time.slice(0, 5),
-        endTime: editingShift.end_time.slice(0, 5),
-        assignedUserId: editingShift.assigned_user_id ?? '',
-        notes: editingShift.notes ?? '',
-      })
-    } else {
-      reset({
-        shiftDate: getLocalDateKey(),
-        startTime: '07:00',
-        endTime: '12:00',
-        assignedUserId: '',
-        notes: '',
-      })
-    }
-  }, [modalOpen, editingShift, reset])
-
+  // Invalidate queries helper
   const invalidateDutyQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['workspace', 'duty-shifts'] }),
       queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-activity-logs'] }),
     ])
   }
 
-  const createMutation = useMutation({
-    mutationFn: createDutyShift,
-    onSuccess: async () => {
-      await invalidateDutyQueries()
-      toast({
-        title: 'Shift Piket Ditambahkan',
-        description: 'Jadwal piket posko berhasil disimpan.',
-        variant: 'success',
-      })
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, values }: { id: string; values: DutyShiftFormInput }) =>
-      updateDutyShift(id, values),
-    onSuccess: async () => {
-      await invalidateDutyQueries()
-      toast({
-        title: 'Shift Piket Diperbarui',
-        description: 'Perubahan jadwal piket berhasil disimpan.',
-        variant: 'success',
-      })
-    },
-  })
-
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: deleteDutyShift,
     onSuccess: async () => {
       setDeletingShift(null)
+      if (detailShift && deletingShift && detailShift.id === deletingShift.id) {
+        setDetailShift(null)
+      }
       await invalidateDutyQueries()
       toast({
-        title: 'Shift Piket Dihapus',
-        description: 'Jadwal shift telah dihapus.',
+        title: 'Dokumentasi Dihapus',
+        description: 'Dokumentasi piket posko berhasil dihapus.',
         variant: 'success',
       })
     },
     onError: (err) => {
       toast({
-        title: 'Gagal Menghapus Shift',
+        title: 'Gagal Menghapus Dokumentasi',
         description: err instanceof Error ? err.message : 'Terjadi kesalahan.',
         variant: 'error',
       })
     },
   })
 
-  const todayKey = getLocalDateKey()
+  // Filtered documentation list based on search
+  const filteredShifts = useMemo(() => {
+    if (!searchQuery.trim()) return shifts
+    const q = searchQuery.toLowerCase().trim()
+    return shifts.filter((s) => {
+      const title = (s.title || s.notes || '').toLowerCase()
+      const notes = (s.notes || '').toLowerCase()
+      const creator = s.created_by ? memberMap.get(s.created_by)?.full_name.toLowerCase() : ''
+      return title.includes(q) || notes.includes(q) || (creator && creator.includes(q))
+    })
+  }, [shifts, searchQuery, memberMap])
 
-  const groupedShifts = useMemo(() => {
-    const filtered = showAllDates
-      ? shifts
-      : shifts.filter((s) => s.shift_date >= todayKey)
-
-    const groups = new Map<string, DutyShift[]>()
-    for (const s of filtered) {
-      const bucket = groups.get(s.shift_date) ?? []
-      bucket.push(s)
-      groups.set(s.shift_date, bucket)
-    }
-    return Array.from(groups.entries())
-  }, [shifts, showAllDates, todayKey])
-
-  const handleCloseModal = () => {
-    setFormError(null)
-    setModalOpen(false)
-    setEditingShift(null)
-  }
-
-  const onSubmit = async (values: DutyShiftFormInput) => {
-    setFormError(null)
-    try {
-      if (editingShift) {
-        await updateMutation.mutateAsync({ id: editingShift.id, values })
-      } else {
-        await createMutation.mutateAsync(values)
-      }
-      handleCloseModal()
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Gagal menyimpan jadwal piket.'
-      )
-    }
+  // Permission helper to check edit/delete rights
+  const canManageShift = (shift: DutyShift) => {
+    return Boolean(
+      isSuperAdmin ||
+        membership?.role === 'ketua' ||
+        membership?.role === 'sekretaris' ||
+        (user?.id && shift.created_by === user.id)
+    )
   }
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
         <div>
           <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
             Jadwal Piket Posko
           </h1>
           <p className="text-xs text-charcoal-muted mt-1">
-            Pembagian shift kebersihan posko, penerimaan tamu warga, dan koordinasi harian.
+            Dokumentasi visual kegiatan dan kondisi posko harian tim KKN.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <Button
             size="sm"
             variant="outline"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="text-xs gap-1.5"
+            className="text-xs gap-1.5 border-warm-300 hover:bg-warm-100 text-charcoal"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-forest' : ''}`} />
             <span>Segarkan</span>
           </Button>
-          {canManageShifts && (
+
+          {canCreate && (
             <Button
               size="sm"
               variant="default"
               onClick={() => {
-                setFormError(null)
                 setEditingShift(null)
-                setModalOpen(true)
+                setFormModalOpen(true)
               }}
-              className="text-xs gap-1.5"
+              className="text-xs gap-1.5 bg-forest hover:bg-forest-dark text-white shadow-xs"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Tambah Shift</span>
+              <span>Tambah Dokumentasi</span>
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-warm-300 bg-warm-50 p-1">
-          <button
-            type="button"
-            onClick={() => setShowAllDates(false)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              !showAllDates
-                ? 'bg-sage-600 text-white shadow-xs'
-                : 'text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Hari Ini &amp; Mendatang
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAllDates(true)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              showAllDates
-                ? 'bg-sage-600 text-white shadow-xs'
-                : 'text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Semua Riwayat Shift
-          </button>
-        </div>
-      </div>
+      {/* Search Bar */}
+      {shifts.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-charcoal-muted" />
+            <Input
+              placeholder="Cari dokumentasi kegiatan piket..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 text-xs bg-warm-50/50 border-warm-300 focus-visible:ring-forest"
+            />
+          </div>
 
+          <p className="text-xs text-charcoal-muted self-start sm:self-auto">
+            Menampilkan <span className="font-semibold text-charcoal">{filteredShifts.length}</span> dokumentasi
+          </p>
+        </div>
+      )}
+
+      {/* Content State: Loading, Error, Empty, or Visual Cards Grid */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-5 space-y-2">
-                <Skeleton className="h-4 w-44" />
-                <Skeleton className="h-12 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="overflow-hidden border-warm-200">
+              <Skeleton className="w-full aspect-4/3 bg-warm-200" />
+              <CardContent className="p-4 space-y-2.5">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-1/2" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : isError ? (
-        <Card className="border-red-200 bg-red-50/40">
+        <Card className="border-rose-200 bg-rose-50/50">
           <CardContent className="p-6 flex items-center justify-between gap-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-charcoal">
-                  Gagal Memuat Jadwal Piket
+                  Gagal Memuat Dokumentasi Piket
                 </p>
                 <p className="text-xs text-charcoal-muted mt-1">
-                  {error instanceof Error ? error.message : 'Terjadi kesalahan.'}
+                  {error instanceof Error ? error.message : 'Terjadi kesalahan saat membaca data piket.'}
                 </p>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => refetch()}>
+            <Button size="sm" variant="outline" onClick={() => refetch()} className="text-xs bg-white">
               Coba Lagi
             </Button>
           </CardContent>
         </Card>
-      ) : groupedShifts.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center space-y-2">
-            <Clock className="h-8 w-8 text-warm-400 mx-auto" />
-            <h3 className="text-sm font-semibold text-charcoal">
-              Belum ada jadwal piket posko
-            </h3>
-            <p className="text-xs text-charcoal-muted max-w-md mx-auto">
-              {canManageShifts
-                ? 'Tambahkan pembagian shift harian untuk anggota posko.'
-                : 'Ketua atau Sekretaris akan mengatur pembagian jadwal piket posko.'}
+      ) : shifts.length === 0 ? (
+        /* Empty State */
+        <Card className="border-warm-200 bg-white shadow-xs">
+          <CardContent className="py-16 px-6 text-center space-y-4 max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full bg-forest/10 text-forest mx-auto flex items-center justify-center">
+              <Camera className="h-8 w-8 text-forest opacity-80" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-serif font-semibold text-charcoal">
+                Belum ada dokumentasi piket posko
+              </h3>
+              <p className="text-xs text-charcoal-muted leading-relaxed">
+                Tambahkan dokumentasi kegiatan dan kondisi posko agar aktivitas kita tetap tercatat.
+              </p>
+            </div>
+            {canCreate && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingShift(null)
+                  setFormModalOpen(true)
+                }}
+                className="text-xs gap-1.5 bg-forest hover:bg-forest-dark text-white px-4"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Tambah Dokumentasi</span>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : filteredShifts.length === 0 ? (
+        /* Search Not Found State */
+        <Card className="border-warm-200 bg-white">
+          <CardContent className="py-12 px-6 text-center space-y-2">
+            <p className="text-sm font-semibold text-charcoal">
+              Tidak ada dokumentasi piket yang cocok
             </p>
+            <p className="text-xs text-charcoal-muted">
+              Tidak ditemukan hasil untuk kata kunci &ldquo;{searchQuery}&rdquo;.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchQuery('')}
+              className="text-xs mt-2 border-warm-300"
+            >
+              Reset Pencarian
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {groupedShifts.map(([dateKey, items]) => (
-            <div key={dateKey} className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-charcoal-muted">
-                  {formatDateHeading(dateKey)}
-                </h2>
-                {dateKey === todayKey && (
-                  <Badge variant="success" className="text-[10px]">
-                    Hari Ini
-                  </Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {items.map((shift) => {
-                  const assignee = shift.assigned_user_id
-                    ? memberMap.get(shift.assigned_user_id)
-                    : undefined
-                  const docs = shift.documentations ?? []
-                  const canUploadShift =
-                    canManageShifts ||
-                    Boolean(user?.id && (shift.assigned_user_id === user.id || shift.created_by === user.id))
-
-                  return (
-                    <Card key={shift.id} className="flex flex-col justify-between">
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1.5 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-[11px]">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {shift.start_time.slice(0, 5)} –{' '}
-                                {shift.end_time.slice(0, 5)}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs font-semibold text-charcoal">
-                              <UserCheck className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-                              <span className="truncate">
-                                {assignee?.full_name || 'Petugas belum ditentukan'}
-                              </span>
-                            </div>
-                            {shift.notes && (
-                              <p className="text-xs text-charcoal-muted">
-                                {shift.notes}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedPhotoShift(shift)}
-                              className="h-7 px-2.5 text-[11px] gap-1 border-warm-300 text-charcoal hover:bg-warm-100"
-                              title="Lihat dan kelola foto dokumentasi piket"
-                            >
-                              <Camera className="h-3 w-3 text-forest" />
-                              <span>Foto ({docs.length})</span>
-                            </Button>
-
-                            {canManageShifts && (
-                              <div className="flex items-center gap-0.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFormError(null)
-                                    setEditingShift(shift)
-                                    setModalOpen(true)
-                                  }}
-                                  className="rounded p-1 text-charcoal-muted hover:bg-warm-100 hover:text-charcoal"
-                                  title="Edit shift"
-                                >
-                                  <Edit3 className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeletingShift(shift)}
-                                  className="rounded p-1 text-charcoal-muted hover:bg-red-50 hover:text-red-600"
-                                  title="Hapus shift"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Foto Dokumentasi Thumbnails */}
-                        {docs.length > 0 ? (
-                          <div className="pt-2 border-t border-warm-100 space-y-1.5">
-                            <div className="flex items-center justify-between text-[11px]">
-                              <span className="text-charcoal-muted flex items-center gap-1 font-medium">
-                                <Camera className="h-3 w-3 text-forest" />
-                                Dokumentasi Pelaksanaan ({docs.length} foto)
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedPhotoShift(shift)}
-                                className="text-[10px] text-forest font-semibold hover:underline"
-                              >
-                                Kelola Galeri →
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                              {docs.slice(0, 4).map((doc) => (
-                                <div
-                                  key={doc.id}
-                                  onClick={() => setSelectedPhotoShift(shift)}
-                                  className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-warm-200 cursor-pointer border border-warm-300 hover:border-forest transition-colors shadow-2xs"
-                                  title={doc.caption || 'Klik untuk pratinjau foto'}
-                                >
-                                  <DutyCardThumb
-                                    fileId={doc.file_id}
-                                    alt={doc.caption || 'Foto piket'}
-                                  />
-                                </div>
-                              ))}
-                              {docs.length > 4 && (
-                                <div
-                                  onClick={() => setSelectedPhotoShift(shift)}
-                                  className="h-12 w-12 shrink-0 rounded-md bg-forest/10 text-forest text-[11px] font-bold flex items-center justify-center cursor-pointer hover:bg-forest/20 transition-colors border border-forest/20 shadow-2xs"
-                                >
-                                  +{docs.length - 4}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : canUploadShift ? (
-                          <div className="pt-2 border-t border-warm-100 flex items-center justify-between text-[11px] text-charcoal-muted">
-                            <span>Belum ada foto dokumentasi</span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedPhotoShift(shift)}
-                              className="text-[10px] text-forest font-semibold hover:underline flex items-center gap-1"
-                            >
-                              <Camera className="h-3 w-3" />
-                              <span>+ Unggah Foto</span>
-                            </button>
-                          </div>
-                        ) : null}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
+        /* Visual Documentation Cards Grid (Larger Preview Cards) */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredShifts.map((shift) => (
+            <DutyDocumentationCard
+              key={shift.id}
+              shift={shift}
+              memberMap={memberMap}
+              canManage={canManageShift(shift)}
+              onClick={() => setDetailShift(shift)}
+              onEdit={() => {
+                setEditingShift(shift)
+                setFormModalOpen(true)
+              }}
+              onDelete={() => setDeletingShift(shift)}
+            />
           ))}
         </div>
       )}
 
-      <Modal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        title={editingShift ? 'Edit Shift Piket' : 'Tambah Shift Piket Posko'}
-        description="Tentukan tanggal, jam jaga, dan anggota yang bertugas."
-        maxWidthClass="max-w-md"
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {formError && (
-            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{formError}</span>
-            </div>
-          )}
+      {/* Form Modal (Tambah / Edit Dokumentasi Piket) */}
+      <DutyDocumentationFormModal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false)
+          setEditingShift(null)
+        }}
+        onSuccess={invalidateDutyQueries}
+        shift={editingShift}
+        currentUserId={user?.id}
+      />
 
-          <div className="space-y-1.5">
-            <label htmlFor="shift-date" className="text-xs font-medium text-charcoal block">
-              Tanggal Piket <span className="text-red-500">*</span>
-            </label>
-            <Input id="shift-date" type="date" {...register('shiftDate')} />
-            {errors.shiftDate && (
-              <p className="text-[11px] text-red-600">{errors.shiftDate.message}</p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="shift-start" className="text-xs font-medium text-charcoal block">
-                Jam Mulai <span className="text-red-500">*</span>
-              </label>
-              <Input id="shift-start" type="time" {...register('startTime')} />
-              {errors.startTime && (
-                <p className="text-[11px] text-red-600">{errors.startTime.message}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="shift-end" className="text-xs font-medium text-charcoal block">
-                Jam Selesai <span className="text-red-500">*</span>
-              </label>
-              <Input id="shift-end" type="time" {...register('endTime')} />
-              {errors.endTime && (
-                <p className="text-[11px] text-red-600">{errors.endTime.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="shift-member" className="text-xs font-medium text-charcoal block">
-              Petugas Jaga
-            </label>
-            <select
-              id="shift-member"
-              className="flex h-9 w-full rounded-md border border-warm-300 bg-white px-3 py-1 text-xs text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
-              {...register('assignedUserId')}
-            >
-              <option value="">-- Pilih anggota posko --</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {m.full_name} ({m.role})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="shift-notes" className="text-xs font-medium text-charcoal block">
-              Tugas / Catatan Shift
-            </label>
-            <Input
-              id="shift-notes"
-              placeholder="Misal: Kebersihan ruang tamu & konsumsi pagi"
-              {...register('notes')}
-            />
-            {errors.notes && (
-              <p className="text-[11px] text-red-600">{errors.notes.message}</p>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-warm-200">
-            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal}>
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="gap-1.5"
-            >
-              {(createMutation.isPending || updateMutation.isPending) && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              )}
-              <span>{editingShift ? 'Simpan Perubahan' : 'Simpan Shift'}</span>
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <DutyPhotoDocumentationModal
-        shift={selectedPhotoShift}
-        open={Boolean(selectedPhotoShift)}
-        onClose={() => setSelectedPhotoShift(null)}
-        membersMap={memberMap}
+      {/* Detail Modal (Detail Dokumentasi & Full Gallery Lightbox) */}
+      <DutyDocumentationDetailModal
+        shift={detailShift}
+        open={Boolean(detailShift)}
+        onClose={() => setDetailShift(null)}
+        onEdit={(s) => {
+          setEditingShift(s)
+          setFormModalOpen(true)
+        }}
+        onDelete={(s) => setDeletingShift(s)}
+        memberMap={memberMap}
         currentUserId={user?.id}
         isSuperAdmin={isSuperAdmin}
         userRole={membership?.role}
       />
 
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={Boolean(deletingShift)}
         onClose={() => setDeletingShift(null)}
         onConfirm={() => {
           if (deletingShift) deleteMutation.mutate(deletingShift.id)
         }}
-        title="Hapus Jadwal Piket?"
-        description="Shift piket yang dipilih akan dihapus dari jadwal posko."
-        confirmLabel="Hapus Shift"
+        title="Hapus Dokumentasi Piket?"
+        description="Dokumentasi piket beserta seluruh foto terlampir akan dihapus permanen dari sistem."
+        confirmLabel="Hapus Dokumentasi"
         cancelLabel="Batal"
         variant="destructive"
         isLoading={deleteMutation.isPending}
       />
+    </div>
+  )
+}
+
+/**
+ * Visual Documentation Card Component (Larger Visual Preview)
+ */
+interface DutyDocumentationCardProps {
+  shift: DutyShift
+  memberMap: Map<string, WorkspaceMemberSummary>
+  canManage: boolean
+  onClick: () => void
+  onEdit: () => void
+  onDelete: () => void
+}
+
+const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
+  shift,
+  memberMap,
+  canManage,
+  onClick,
+  onEdit,
+  onDelete,
+}) => {
+  const docs = shift.documentations || []
+  const firstPhoto = docs.length > 0 ? docs[0] : null
+  const photoCount = docs.length
+
+  const title = shift.title || shift.notes || 'Dokumentasi Piket Posko'
+  const notes = shift.notes || ''
+
+  const creator = shift.created_by ? memberMap.get(shift.created_by) : undefined
+  const creatorName = creator?.full_name || 'Anggota Posko'
+  const creatorInitials = creatorName
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  const formattedDate = shift.created_at
+    ? new Date(shift.created_at).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : shift.shift_date
+    ? new Date(`${shift.shift_date}T00:00:00`).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'Hari ini'
+
+  return (
+    <Card className="group flex flex-col justify-between overflow-hidden border-warm-200 bg-white hover:border-forest/40 hover:shadow-md transition-all duration-200 rounded-xl cursor-pointer">
+      <div onClick={onClick}>
+        {/* Top Visual Thumbnail (4:3 ratio) */}
+        <DutyCardThumbnail
+          fileId={firstPhoto?.file_id}
+          alt={title}
+          photoCount={photoCount}
+        />
+
+        {/* Card Body */}
+        <CardContent className="p-4 sm:p-5 space-y-2">
+          {/* Judul Piket */}
+          <h3 className="font-serif font-semibold text-base sm:text-lg text-charcoal group-hover:text-forest transition-colors line-clamp-1">
+            {title}
+          </h3>
+
+          {/* Keterangan Singkat */}
+          {notes ? (
+            <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-2">
+              {notes}
+            </p>
+          ) : (
+            <p className="text-xs text-charcoal-muted/60 italic">
+              Tidak ada keterangan tambahan.
+            </p>
+          )}
+        </CardContent>
+      </div>
+
+      {/* Card Footer (Author & Action Buttons) */}
+      <div className="px-4 sm:px-5 pb-4 pt-3 border-t border-warm-100 flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 min-w-0" onClick={onClick}>
+          <div className="h-6 w-6 rounded-full bg-forest/10 border border-forest/20 text-forest font-semibold text-[10px] flex items-center justify-center shrink-0">
+            {creatorInitials}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-charcoal truncate max-w-28 sm:max-w-32">
+              {creatorName}
+            </p>
+            <p className="text-[10px] text-charcoal-muted flex items-center gap-1">
+              <Calendar className="h-2.5 w-2.5 text-forest/70" />
+              <span>{formattedDate}</span>
+            </p>
+          </div>
+        </div>
+
+        {canManage && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit()
+              }}
+              className="p-1.5 rounded-md text-charcoal-muted hover:text-forest hover:bg-forest/5 transition-colors"
+              title="Edit dokumentasi"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+              className="p-1.5 rounded-md text-charcoal-muted hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Hapus dokumentasi"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+/**
+ * Thumbnail Loader for Duty Card
+ */
+const DutyCardThumbnail: React.FC<{
+  fileId?: string
+  alt: string
+  photoCount: number
+}> = ({ fileId, alt, photoCount }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['signed-url', fileId, false],
+    queryFn: () => (fileId ? getPrivateFileSignedUrl(fileId, false) : null),
+    enabled: Boolean(fileId),
+    staleTime: 300_000,
+  })
+
+  // Placeholder when no photo is attached
+  if (!fileId) {
+    return (
+      <div className="relative w-full aspect-4/3 bg-linear-to-br from-warm-100 to-warm-200 border-b border-warm-200 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-forest/10 text-forest flex items-center justify-center mb-2">
+          <Camera className="h-6 w-6 opacity-60" />
+        </div>
+        <p className="text-xs font-medium text-charcoal-muted">Belum ada foto kegiatan</p>
+      </div>
+    )
+  }
+
+  // Loading skeleton
+  if (isLoading || !data?.signedUrl) {
+    return (
+      <div className="w-full aspect-4/3 bg-warm-200 animate-pulse border-b border-warm-200 flex items-center justify-center">
+        <Loader2 className="h-5 w-5 text-charcoal-muted/40 animate-spin" />
+      </div>
+    )
+  }
+
+  // Render actual image
+  return (
+    <div className="relative w-full aspect-4/3 overflow-hidden bg-charcoal/5 border-b border-warm-200">
+      <img
+        src={data.signedUrl}
+        alt={alt}
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        loading="lazy"
+      />
+      {photoCount > 0 && (
+        <div className="absolute top-3 right-3 bg-charcoal/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+          <Camera className="h-3 w-3" />
+          <span>{photoCount} Foto</span>
+        </div>
+      )}
     </div>
   )
 }

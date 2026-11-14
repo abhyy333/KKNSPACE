@@ -200,12 +200,14 @@ export interface CalendarEvent {
 
 export interface DutyShift {
   id: string
+  title?: string | null
   shift_date: string
   start_time: string
   end_time: string
   assigned_user_id: string | null
   notes: string | null
   created_by: string
+  created_at?: string
   documentations?: DutyShiftDocumentation[]
 }
 

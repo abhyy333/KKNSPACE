@@ -88,6 +88,21 @@ export const calendarEventFormSchema = z
 
 export type CalendarEventFormInput = z.infer<typeof calendarEventFormSchema>
 
+export const dutyDocumentationSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Judul piket wajib diisi')
+    .max(150, 'Judul piket maksimal 150 karakter'),
+  notes: z
+    .string()
+    .trim()
+    .max(2000, 'Keterangan maksimal 2000 karakter')
+    .optional(),
+})
+
+export type DutyDocumentationFormInput = z.infer<typeof dutyDocumentationSchema>
+
 export const dutyShiftFormSchema = z
   .object({
     shiftDate: z
@@ -112,6 +127,14 @@ export const dutyShiftFormSchema = z
   })
 
 export type DutyShiftFormInput = z.infer<typeof dutyShiftFormSchema>
+
+function getLocalDateKey(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 function toLocalDateTimeIso(dateStr: string, timeStr: string): string {
   const local = new Date(`${dateStr}T${timeStr}:00`)
@@ -595,20 +618,101 @@ export async function fetchDutyShifts(): Promise<DutyShift[]> {
   const { data, error } = await supabase
     .from('duty_shifts')
     .select(`
-      id, shift_date, start_time, end_time, assigned_user_id, notes, created_by,
+      id, title, shift_date, start_time, end_time, assigned_user_id, notes, created_by, created_at,
       documentations:duty_shift_documentations(
         id, duty_shift_id, file_id, caption, uploaded_by, created_at,
         file_object:file_objects(id, object_path, original_name, mime_type, file_size)
       )
     `)
-    .order('shift_date', { ascending: true })
-    .order('start_time', { ascending: true })
+    .order('created_at', { ascending: false })
 
   if (error) {
     throw new Error(`Gagal memuat jadwal piket posko: ${error.message}`)
   }
 
   return (data as unknown as DutyShift[]) ?? []
+}
+
+export async function createDutyDocumentation(input: {
+  title: string
+  notes?: string
+  files?: File[]
+}): Promise<DutyShift> {
+  const title = input.title.trim()
+  if (!title) {
+    throw new Error('Judul piket wajib diisi.')
+  }
+
+  const userId = await getCurrentUserId()
+  const todayKey = getLocalDateKey()
+
+  const { data: shift, error: shiftErr } = await supabase
+    .from('duty_shifts')
+    .insert({
+      title,
+      notes: input.notes?.trim() ? input.notes.trim() : null,
+      shift_date: todayKey,
+      start_time: '08:00:00',
+      end_time: '12:00:00',
+      assigned_user_id: userId,
+      created_by: userId,
+    })
+    .select('id, title, shift_date, start_time, end_time, assigned_user_id, notes, created_by, created_at')
+    .single()
+
+  if (shiftErr || !shift) {
+    throw new Error(`Gagal menyimpan dokumentasi piket: ${shiftErr?.message || 'Error tidak diketahui'}`)
+  }
+
+  if (input.files && input.files.length > 0) {
+    for (const file of input.files) {
+      await uploadDutyShiftPhoto({
+        dutyShiftId: shift.id,
+        file,
+      })
+    }
+  }
+
+  return shift as DutyShift
+}
+
+export async function updateDutyDocumentation(
+  id: string,
+  input: {
+    title: string
+    notes?: string
+    newFiles?: File[]
+  }
+): Promise<DutyShift> {
+  const title = input.title.trim()
+  if (!title) {
+    throw new Error('Judul piket wajib diisi.')
+  }
+
+  const { data: shift, error: shiftErr } = await supabase
+    .from('duty_shifts')
+    .update({
+      title,
+      notes: input.notes?.trim() ? input.notes.trim() : null,
+    })
+    .eq('id', id)
+    .select('id, title, shift_date, start_time, end_time, assigned_user_id, notes, created_by, created_at')
+    .single()
+
+  if (shiftErr || !shift) {
+    throw new Error(`Gagal memperbarui dokumentasi piket: ${shiftErr?.message || 'Error tidak diketahui'}`)
+  }
+
+  if (input.newFiles && input.newFiles.length > 0) {
+    for (const file of input.newFiles) {
+      await uploadDutyShiftPhoto({
+        dutyShiftId: shift.id,
+        file,
+      })
+    }
+  }
+
+  return shift as DutyShift
 }
 
 export async function createDutyShift(
