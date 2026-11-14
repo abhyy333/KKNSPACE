@@ -1,11 +1,12 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchPublicSponsors } from '@/services/sponsorsApi'
+import { fetchPublicSponsors, fetchPublicSponsorshipPackages } from '@/services/sponsorsApi'
 import { SponsorLogoThumbnail } from '@/components/sponsors/SponsorLogoThumbnail'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   SPONSOR_CATEGORY_LABELS,
   SPONSOR_CONTRIBUTION_LABELS,
+  SPONSORSHIP_TIER_LABELS,
   type SponsorCategory,
   type PublicSponsor,
 } from '@/types/sponsor'
@@ -14,6 +15,11 @@ import {
   Globe,
   Share2,
   Sparkles,
+  CheckCircle2,
+  ShieldCheck,
+  Mail,
+  ArrowRight,
+  Handshake,
 } from 'lucide-react'
 
 interface CategoryConfig {
@@ -57,6 +63,12 @@ export const SponsorsPage: React.FC = () => {
     queryKey: ['public-sponsors'],
     queryFn: fetchPublicSponsors,
     staleTime: 1000 * 60 * 5,
+  })
+
+  const { data: packages = [] } = useQuery({
+    queryKey: ['public-sponsorship-packages'],
+    queryFn: fetchPublicSponsorshipPackages,
+    staleTime: 1000 * 60 * 10,
   })
 
   // Group sponsors strictly by category, preserving saved order
@@ -215,12 +227,20 @@ export const SponsorsPage: React.FC = () => {
                           <div className="flex-1 flex flex-col justify-between space-y-4 text-center md:text-left py-1">
                             <div className="space-y-3">
                               {/* Category Eyebrow in Muted Brass */}
-                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warm-100 border border-warm-200/80 text-[11px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold">
+                              <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1 rounded-full bg-warm-100 border border-warm-200/80 text-[11px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold">
                                 <span>{SPONSOR_CATEGORY_LABELS[sponsor.category]}</span>
                                 <span className="text-warm-400">·</span>
                                 <span className="text-charcoal font-medium">
                                   {SPONSOR_CONTRIBUTION_LABELS[sponsor.contribution_type]}
                                 </span>
+                                {sponsor.tier_key && sponsor.tier_key !== 'none' && (
+                                  <>
+                                    <span className="text-warm-400">·</span>
+                                    <span className="text-[#19382B] font-bold">
+                                      {SPONSORSHIP_TIER_LABELS[sponsor.tier_key]}
+                                    </span>
+                                  </>
+                                )}
                               </div>
 
                               {/* Prominent Serif Sponsor Name */}
@@ -305,9 +325,16 @@ export const SponsorsPage: React.FC = () => {
                             </div>
 
                             <div className="min-w-0 flex-1 space-y-1.5">
-                              <span className="text-[10px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold block">
-                                {SPONSOR_CATEGORY_LABELS[sponsor.category]}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold block">
+                                  {SPONSOR_CATEGORY_LABELS[sponsor.category]}
+                                </span>
+                                {sponsor.tier_key && sponsor.tier_key !== 'none' && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wider uppercase bg-emerald-100/80 text-[#19382B]">
+                                    {SPONSORSHIP_TIER_LABELS[sponsor.tier_key]}
+                                  </span>
+                                )}
+                              </div>
                               <h3
                                 className="text-xl font-serif font-medium text-[#252A26] group-hover:text-[#19382B] transition-colors truncate"
                                 title={sponsor.name}
@@ -374,6 +401,182 @@ export const SponsorsPage: React.FC = () => {
             )
           })
         )}
+
+        {/* ========================================================= */}
+        {/* 03. PARTNERSHIP OPPORTUNITIES & SPONSORSHIP TIERS         */}
+        {/* ========================================================= */}
+        <section className="pt-10 border-t border-warm-300/80 space-y-10">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warm-100 border border-warm-200 text-[11px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold">
+              <Handshake className="h-3.5 w-3.5" />
+              <span>OPPORTUNITIES · SPONSORSHIP TIERS</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-serif font-medium text-[#252A26] tracking-tight">
+              Peluang Kemitraan & Paket Sponsorship
+            </h2>
+            <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed font-light">
+              Kami membuka kesempatan kolaborasi strategis dengan model kontribusi fleksibel tanpa batasan nominal kaku.
+              Dukungan dapat berbentuk pendanaan program, penyediaan sarana/logistik, maupun sinergi program pengabdian.
+            </p>
+          </div>
+
+          {/* Tiers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages.map((pkg) => {
+              const isDiamond = pkg.tier_key === 'diamond'
+              const isPlatinum = pkg.tier_key === 'platinum'
+              const isCustom = pkg.tier_key === 'custom'
+
+              return (
+                <div
+                  key={pkg.id}
+                  className={`rounded-3xl border transition-all duration-300 flex flex-col justify-between p-6 sm:p-7 ${
+                    isDiamond
+                      ? 'bg-gradient-to-b from-[#19382B] to-[#12261E] text-white border-[#2A5240] shadow-md'
+                      : isPlatinum
+                      ? 'bg-white border-[#B19A6B]/50 shadow-xs ring-1 ring-[#B19A6B]/20'
+                      : 'bg-white border-warm-200/90 shadow-2xs hover:shadow-subtle'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    {/* Header badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-widest uppercase ${
+                          isDiamond
+                            ? 'bg-[#B19A6B]/30 text-[#D8C7A5] border border-[#B19A6B]/40'
+                            : isPlatinum
+                            ? 'bg-emerald-50 text-forest border border-forest/20'
+                            : isCustom
+                            ? 'bg-warm-100 text-charcoal border border-warm-200'
+                            : 'bg-warm-100 text-charcoal-muted border border-warm-200'
+                        }`}
+                      >
+                        {pkg.badge_label}
+                      </span>
+                      {isDiamond && (
+                        <span className="text-[10px] font-mono tracking-wider text-[#B19A6B] flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" /> Utama
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Title & Description */}
+                    <div>
+                      <h3
+                        className={`text-xl font-serif font-medium tracking-tight ${
+                          isDiamond ? 'text-white' : 'text-[#252A26]'
+                        }`}
+                      >
+                        {pkg.display_name}
+                      </h3>
+                      <p
+                        className={`text-xs mt-2 leading-relaxed ${
+                          isDiamond ? 'text-emerald-100/80 font-light' : 'text-charcoal-muted'
+                        }`}
+                      >
+                        {pkg.description}
+                      </p>
+                    </div>
+
+                    {/* Flexible Value Note */}
+                    <div
+                      className={`rounded-xl p-3 text-[11px] leading-relaxed border ${
+                        isDiamond
+                          ? 'bg-white/10 border-white/15 text-emerald-100'
+                          : 'bg-[#FAF9F6] border-warm-200 text-charcoal-muted'
+                      }`}
+                    >
+                      <span
+                        className={`font-semibold block mb-0.5 ${
+                          isDiamond ? 'text-[#D8C7A5]' : 'text-forest'
+                        }`}
+                      >
+                        Skema Kontribusi Fleksibel
+                      </span>
+                      {isCustom
+                        ? 'Disesuaikan dengan format kemitraan (CSR, natura, riset, atau pendampingan warga).'
+                        : 'Nilai kontribusi finansial atau setara barang disepakati bersama berdasarkan kebutuhan program.'}
+                    </div>
+
+                    {/* Benefits List */}
+                    <div className="space-y-2 pt-2">
+                      <span
+                        className={`text-[11px] font-mono uppercase tracking-wider block font-semibold ${
+                          isDiamond ? 'text-[#D8C7A5]' : 'text-charcoal'
+                        }`}
+                      >
+                        Hak & Manfaat Mitra:
+                      </span>
+                      <ul className="space-y-2">
+                        {pkg.default_benefits.map((benefit, bIdx) => (
+                          <li key={bIdx} className="flex items-start gap-2.5 text-xs">
+                            <CheckCircle2
+                              className={`h-4 w-4 shrink-0 mt-0.5 ${
+                                isDiamond ? 'text-[#B19A6B]' : 'text-forest'
+                              }`}
+                            />
+                            <span
+                              className={`leading-snug ${
+                                isDiamond ? 'text-emerald-50/90' : 'text-charcoal'
+                              }`}
+                            >
+                              {benefit}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Consultation Button */}
+                  <div className="pt-6 mt-6 border-t border-warm-200/40">
+                    <a
+                      href={`mailto:kknunrampringgaselaselatan@gmail.com?subject=Konsultasi Kemitraan KKN SPACE - Paket ${encodeURIComponent(
+                        pkg.display_name
+                      )}`}
+                      className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                        isDiamond
+                          ? 'bg-[#B19A6B] text-white hover:bg-[#9E8759] shadow-xs'
+                          : 'bg-warm-100 hover:bg-warm-200/80 text-charcoal border border-warm-300/80'
+                      }`}
+                    >
+                      <span>Konsultasi Paket Ini</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Institutional Contact Callout Banner */}
+          <div className="rounded-3xl border border-warm-300/90 bg-white p-8 sm:p-10 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 text-forest text-xs font-semibold">
+                <ShieldCheck className="h-4 w-4 text-[#B19A6B]" />
+                <span>Sekretariat & Hubungan Kemitraan KKN SPACE</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-serif font-medium text-[#252A26]">
+                Siap Berkolaborasi Bersama Kami?
+              </h3>
+              <p className="text-xs sm:text-sm text-charcoal-muted max-w-xl font-light">
+                Tim kemitraan kami siap memaparkan proposal resmi, menyusun rencana penyerapan manfaat, dan mendiskusikan
+                perjanjian kerja sama secara profesional.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+              <a
+                href="mailto:kknunrampringgaselaselatan@gmail.com?subject=Permohonan Proposal dan Kemitraan KKN SPACE"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#19382B] text-white text-xs font-medium hover:bg-[#132B21] transition-colors shadow-xs"
+              >
+                <Mail className="h-4 w-4 text-[#B19A6B]" />
+                <span>Hubungi Sekretariat Posko</span>
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   )

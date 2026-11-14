@@ -56,11 +56,22 @@ import {
   User,
 } from 'lucide-react'
 
+import { PackageManagementView } from './PackageManagementView'
+import { AgreementsManagementView } from './AgreementsManagementView'
+import { ProposalsManagementView } from './ProposalsManagementView'
+
 interface SponsorsManagementViewProps {
   baseContext: 'admin' | 'workspace'
 }
 
-type TabType = 'overview' | 'pipeline' | 'directory' | 'publication_requests'
+type TabType =
+  | 'overview'
+  | 'pipeline'
+  | 'directory'
+  | 'agreements'
+  | 'proposals'
+  | 'packages'
+  | 'publication_requests'
 
 export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ baseContext }) => {
   const { isSuperAdmin, membership } = useAuth()
@@ -332,7 +343,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
               : 'border-transparent text-charcoal-muted hover:text-charcoal'
           }`}
         >
-          <Handshake className="h-3.5 w-3.5" />
+          <Building2 className="h-3.5 w-3.5" />
           <span>Sponsor Directory</span>
           {stats?.totalActiveSponsors ? (
             <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono px-1.5 py-0.2">
@@ -340,6 +351,57 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
             </span>
           ) : null}
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('agreements')}
+          className={`flex items-center gap-2 py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            activeTab === 'agreements'
+              ? 'border-forest text-forest bg-warm-100/50 rounded-t-lg'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+          }`}
+        >
+          <Handshake className="h-3.5 w-3.5" />
+          <span>Kesepakatan &amp; Benefit</span>
+          {stats?.totalAgreementsCount ? (
+            <span className="rounded-full bg-cyan-100 text-cyan-800 text-[10px] font-mono px-1.5 py-0.2">
+              {stats.totalAgreementsCount}
+            </span>
+          ) : null}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('proposals')}
+          className={`flex items-center gap-2 py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+            activeTab === 'proposals'
+              ? 'border-forest text-forest bg-warm-100/50 rounded-t-lg'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+          }`}
+        >
+          <Edit2 className="h-3.5 w-3.5" />
+          <span>Proposal Generator</span>
+          {stats?.totalProposalsCount ? (
+            <span className="rounded-full bg-warm-200 text-charcoal text-[10px] font-mono px-1.5 py-0.2">
+              {stats.totalProposalsCount}
+            </span>
+          ) : null}
+        </button>
+
+        {canApprovePublication && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('packages')}
+            className={`flex items-center gap-2 py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+              activeTab === 'packages'
+                ? 'border-forest text-forest bg-warm-100/50 rounded-t-lg'
+                : 'border-transparent text-charcoal-muted hover:text-charcoal'
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Paket Kemitraan (Tiers)</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -1038,7 +1100,22 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
       )}
 
       {/* ========================================================================= */}
-      {/* 4. PUBLICATION REQUESTS TAB (ADMIN / SUPER ADMIN REVIEW)                 */}
+      {/* 4. AGREEMENTS & BENEFIT TRACKER TAB                                       */}
+      {/* ========================================================================= */}
+      {activeTab === 'agreements' && <AgreementsManagementView />}
+
+      {/* ========================================================================= */}
+      {/* 5. MANUAL PROPOSAL GENERATOR TAB (NO AI)                                  */}
+      {/* ========================================================================= */}
+      {activeTab === 'proposals' && <ProposalsManagementView />}
+
+      {/* ========================================================================= */}
+      {/* 6. SPONSORSHIP PACKAGES (TIERS) TAB                                       */}
+      {/* ========================================================================= */}
+      {activeTab === 'packages' && canApprovePublication && <PackageManagementView />}
+
+      {/* ========================================================================= */}
+      {/* 7. PUBLICATION REQUESTS TAB (ADMIN / SUPER ADMIN REVIEW)                 */}
       {/* ========================================================================= */}
       {activeTab === 'publication_requests' && (
         <div className="space-y-4">

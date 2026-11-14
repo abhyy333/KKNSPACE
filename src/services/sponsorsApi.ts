@@ -8,6 +8,13 @@ import type {
   SponsorContributionType,
   SponsorPartnershipStatus,
   SponsorPublicationStatus,
+  SponsorshipPackage,
+  PublicSponsorshipPackage,
+  SponsorAgreement,
+  SponsorAgreementStatus,
+  SponsorBenefitFulfillment,
+  SponsorProposal,
+  SponsorshipTierKey,
 } from '@/types/sponsor'
 
 export interface SponsorFilterParams {
@@ -15,6 +22,7 @@ export interface SponsorFilterParams {
   publication_status?: SponsorPublicationStatus | 'all'
   category?: SponsorCategory | 'all'
   contribution_type?: SponsorContributionType | 'all'
+  tier_key?: SponsorshipTierKey | 'all'
   search?: string
   pic_user_id?: string
   is_archived?: boolean
@@ -27,12 +35,16 @@ export interface SponsorOverviewStats {
   upcomingFollowUps: number
   endingSoonCount: number
   publishedCount: number
+  totalAgreementsCount: number
+  totalProposalsCount: number
 }
 
 const SPONSOR_SELECT_FIELDS = `
   id,
   name,
   category,
+  tier_key,
+  package_id,
   contribution_type,
   contribution_description,
   description,
@@ -61,7 +73,8 @@ const SPONSOR_SELECT_FIELDS = `
   updated_at,
   pic_profile:profiles!sponsors_pic_user_id_fkey(full_name, phone),
   creator_profile:profiles!sponsors_created_by_profile_fkey(full_name),
-  approver_profile:profiles!sponsors_approved_by_profile_fkey(full_name)
+  approver_profile:profiles!sponsors_approved_by_profile_fkey(full_name),
+  package:sponsorship_packages(id, tier_key, display_name, badge_label, description, default_benefits)
 `
 
 export async function fetchSponsors(filters?: SponsorFilterParams): Promise<Sponsor[]> {
@@ -358,14 +371,32 @@ export async function addSponsorCommunication(payload: {
 // ----------------- Public Showcase -----------------
 
 export async function fetchPublicSponsors(): Promise<PublicSponsor[]> {
-  const { data, error } = await supabase.rpc('get_public_sponsors')
+  // First try v2 RPC which includes tier_key
+  const { data: v2Data, error: v2Err } = await supabase.rpc('get_public_sponsors_v2')
+  if (!v2Err && v2Data) {
+    return v2Data as PublicSponsor[]
+  }
 
+  // Fallback to v1
+  const { data, error } = await supabase.rpc('get_public_sponsors')
   if (error) {
     console.error('Error fetching public sponsors:', error)
     return []
   }
 
-  return (data || []) as PublicSponsor[]
+  return (data || []).map((s: any) => ({
+    ...s,
+    tier_key: s.tier_key || 'none',
+  })) as PublicSponsor[]
+}
+
+export async function fetchPublicSponsorshipPackages(): Promise<PublicSponsorshipPackage[]> {
+  const { data, error } = await supabase.rpc('get_public_sponsorship_packages')
+  if (error) {
+    console.error('Error fetching public sponsorship packages:', error)
+    return []
+  }
+  return (data || []) as PublicSponsorshipPackage[]
 }
 
 export async function getPublicSponsorLogoUrl(sponsorId: string, fileId?: string): Promise<string | null> {
@@ -392,12 +423,324 @@ export async function getPublicSponsorLogoUrl(sponsorId: string, fileId?: string
   }
 }
 
+// ----------------- Sponsorship Packages (Admin Management) -----------------
+
+export async function fetchSponsorshipPackages(): Promise<SponsorshipPackage[]> {
+  const { data, error } = await supabase
+    .from('sponsorship_packages')
+    .select('*')
+    .order('display_order', { ascending: true })
+
+  if (error) {
+    throw new Error(`Gagal memuat paket kemitraan: ${error.message}`)
+  }
+  return (data || []) as SponsorshipPackage[]
+}
+
+export async function updateSponsorshipPackage(
+  id: string,
+  payload: Partial<Pick<SponsorshipPackage, 'display_name' | 'badge_label' | 'description' | 'default_benefits' | 'display_order' | 'is_active' | 'public_visibility'>>
+): Promise<SponsorshipPackage> {
+  const { data, error } = await supabase
+    .from('sponsorship_packages')
+    .update({
+      ...payload,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal memperbarui paket kemitraan: ${error.message}`)
+  }
+  return data as SponsorshipPackage
+}
+
+// ----------------- Sponsor Agreements & Snapshots -----------------
+
+export async function fetchSponsorAgreements(sponsorId?: string): Promise<SponsorAgreement[]> {
+  let query = supabase
+    .from('sponsor_agreements')
+    .select(`
+      *,
+      sponsor:sponsors(id, name, logo_file_id),
+      pic_profile:profiles!sponsor_agreements_pic_user_id_fkey(full_name, phone),
+      creator_profile:profiles!sponsor_agreements_created_by_fkey(full_name)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (sponsorId) {
+    query = query.eq('sponsor_id', sponsorId)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    throw new Error(`Gagal memuat kesepakatan kemitraan: ${error.message}`)
+  }
+  return (data || []) as unknown as SponsorAgreement[]
+}
+
+export async function createSponsorAgreement(payload: {
+  sponsor_id: string
+  package_id?: string | null
+  tier_key: SponsorshipTierKey
+  title: string
+  relationship_type: SponsorCategory
+  agreed_financial_contribution?: number
+  estimated_non_financial_value?: number
+  contribution_format_summary?: string
+  payment_schedule?: string
+  start_date?: string | null
+  end_date?: string | null
+  special_terms?: string
+  agreement_status?: SponsorAgreementStatus
+  confirmation_date?: string | null
+  pic_user_id?: string | null
+  package_snapshot: {
+    package_name?: string
+    tier_key?: string
+    badge_label?: string
+    benefits?: string[]
+    description?: string
+  }
+}): Promise<SponsorAgreement> {
+  const { data: authData, error: authErr } = await supabase.auth.getUser()
+  if (authErr || !authData.user) {
+    throw new Error('Sesi autentikasi tidak valid.')
+  }
+
+  const { data, error } = await supabase
+    .from('sponsor_agreements')
+    .insert({
+      ...payload,
+      created_by: authData.user.id,
+    })
+    .select(`
+      *,
+      sponsor:sponsors(id, name, logo_file_id),
+      pic_profile:profiles!sponsor_agreements_pic_user_id_fkey(full_name, phone),
+      creator_profile:profiles!sponsor_agreements_created_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal membuat kesepakatan kemitraan: ${error.message}`)
+  }
+
+  // Update sponsor's tier_key and package_id if confirmed/active
+  if (payload.tier_key && payload.tier_key !== 'none') {
+    await supabase
+      .from('sponsors')
+      .update({
+        tier_key: payload.tier_key,
+        package_id: payload.package_id || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payload.sponsor_id)
+  }
+
+  return data as unknown as SponsorAgreement
+}
+
+export async function updateSponsorAgreement(
+  id: string,
+  payload: Partial<SponsorAgreement>
+): Promise<SponsorAgreement> {
+  const { data: authData } = await supabase.auth.getUser()
+
+  const { data, error } = await supabase
+    .from('sponsor_agreements')
+    .update({
+      ...payload,
+      updated_by: authData?.user?.id || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select(`
+      *,
+      sponsor:sponsors(id, name, logo_file_id),
+      pic_profile:profiles!sponsor_agreements_pic_user_id_fkey(full_name, phone),
+      creator_profile:profiles!sponsor_agreements_created_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal memperbarui kesepakatan kemitraan: ${error.message}`)
+  }
+  return data as unknown as SponsorAgreement
+}
+
+// ----------------- Benefit Fulfillment Tracker -----------------
+
+export async function fetchBenefitFulfillments(agreementId: string): Promise<SponsorBenefitFulfillment[]> {
+  const { data, error } = await supabase
+    .from('sponsor_benefit_fulfillments')
+    .select(`
+      *,
+      responsible_profile:profiles!sponsor_benefit_fulfillments_responsible_user_id_fkey(full_name),
+      completed_profile:profiles!sponsor_benefit_fulfillments_completed_by_fkey(full_name)
+    `)
+    .eq('agreement_id', agreementId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    throw new Error(`Gagal memuat daftar realisasi benefit: ${error.message}`)
+  }
+  return (data || []) as unknown as SponsorBenefitFulfillment[]
+}
+
+export async function createBenefitFulfillment(payload: {
+  agreement_id: string
+  benefit_title: string
+  benefit_description?: string
+  responsible_user_id?: string | null
+  target_date?: string | null
+  fulfillment_status?: string
+}): Promise<SponsorBenefitFulfillment> {
+  const { data, error } = await supabase
+    .from('sponsor_benefit_fulfillments')
+    .insert(payload)
+    .select(`
+      *,
+      responsible_profile:profiles!sponsor_benefit_fulfillments_responsible_user_id_fkey(full_name),
+      completed_profile:profiles!sponsor_benefit_fulfillments_completed_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal menambahkan komitmen benefit: ${error.message}`)
+  }
+  return data as unknown as SponsorBenefitFulfillment
+}
+
+export async function updateBenefitFulfillment(
+  id: string,
+  payload: Partial<SponsorBenefitFulfillment>
+): Promise<SponsorBenefitFulfillment> {
+  const { data: authData } = await supabase.auth.getUser()
+
+  const updateFields: any = {
+    ...payload,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (payload.fulfillment_status === 'terpenuhi') {
+    updateFields.completed_at = new Date().toISOString()
+    updateFields.completed_by = authData?.user?.id || null
+  }
+
+  const { data, error } = await supabase
+    .from('sponsor_benefit_fulfillments')
+    .update(updateFields)
+    .eq('id', id)
+    .select(`
+      *,
+      responsible_profile:profiles!sponsor_benefit_fulfillments_responsible_user_id_fkey(full_name),
+      completed_profile:profiles!sponsor_benefit_fulfillments_completed_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal memperbarui status benefit: ${error.message}`)
+  }
+  return data as unknown as SponsorBenefitFulfillment
+}
+
+// ----------------- Sponsor Proposal Generator (Template-based, NO AI) -----------------
+
+export async function fetchSponsorProposals(): Promise<SponsorProposal[]> {
+  const { data, error } = await supabase
+    .from('sponsor_proposals')
+    .select(`
+      *,
+      sponsor:sponsors(id, name),
+      author_profile:profiles!sponsor_proposals_created_by_fkey(full_name),
+      sender_profile:profiles!sponsor_proposals_sent_by_fkey(full_name)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Gagal memuat arsip proposal sponsor: ${error.message}`)
+  }
+  return (data || []) as unknown as SponsorProposal[]
+}
+
+export async function createSponsorProposal(payload: {
+  sponsor_id?: string | null
+  proposal_number: string
+  recipient_organization: string
+  recipient_pic_name?: string
+  tier_key: SponsorshipTierKey
+  proposal_title: string
+  package_id?: string | null
+  requested_contribution_summary?: string
+  proposal_content_snapshot: any
+  status?: string
+}): Promise<SponsorProposal> {
+  const { data: authData, error: authErr } = await supabase.auth.getUser()
+  if (authErr || !authData.user) {
+    throw new Error('Sesi autentikasi tidak valid.')
+  }
+
+  const { data, error } = await supabase
+    .from('sponsor_proposals')
+    .insert({
+      ...payload,
+      created_by: authData.user.id,
+    })
+    .select(`
+      *,
+      sponsor:sponsors(id, name),
+      author_profile:profiles!sponsor_proposals_created_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal membuat proposal sponsor: ${error.message}`)
+  }
+  return data as unknown as SponsorProposal
+}
+
+export async function updateSponsorProposal(
+  id: string,
+  payload: Partial<SponsorProposal>
+): Promise<SponsorProposal> {
+  const { data: authData } = await supabase.auth.getUser()
+
+  const updateFields: any = {
+    ...payload,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (payload.status === 'sent' && !payload.sent_at) {
+    updateFields.sent_at = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar' }).format(new Date())
+    updateFields.sent_by = authData?.user?.id || null
+  }
+
+  const { data, error } = await supabase
+    .from('sponsor_proposals')
+    .update(updateFields)
+    .eq('id', id)
+    .select(`
+      *,
+      sponsor:sponsors(id, name),
+      author_profile:profiles!sponsor_proposals_created_by_fkey(full_name)
+    `)
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal memperbarui status proposal: ${error.message}`)
+  }
+  return data as unknown as SponsorProposal
+}
+
 // ----------------- Overview Stats (Live DB Queries) -----------------
 
 export async function fetchSponsorOverviewStats(): Promise<SponsorOverviewStats> {
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar' }).format(new Date())
 
-  const [allRes, followUpRes] = await Promise.all([
+  const [allRes, followUpRes, agreementsRes, proposalsRes] = await Promise.all([
     supabase
       .from('sponsors')
       .select('id, partnership_status, publication_status, next_follow_up_date, end_date, is_archived')
@@ -408,6 +751,12 @@ export async function fetchSponsorOverviewStats(): Promise<SponsorOverviewStats>
       .eq('is_archived', false)
       .not('next_follow_up_date', 'is', null)
       .gte('next_follow_up_date', todayStr),
+    supabase
+      .from('sponsor_agreements')
+      .select('id', { count: 'exact', head: true }),
+    supabase
+      .from('sponsor_proposals')
+      .select('id', { count: 'exact', head: true }),
   ])
 
   if (allRes.error) {
@@ -446,6 +795,8 @@ export async function fetchSponsorOverviewStats(): Promise<SponsorOverviewStats>
   ).length
 
   const upcomingFollowUps = followUpRes.data?.length || 0
+  const totalAgreementsCount = agreementsRes.count || 0
+  const totalProposalsCount = proposalsRes.count || 0
 
   return {
     totalActiveSponsors,
@@ -454,6 +805,8 @@ export async function fetchSponsorOverviewStats(): Promise<SponsorOverviewStats>
     upcomingFollowUps,
     endingSoonCount,
     publishedCount,
+    totalAgreementsCount,
+    totalProposalsCount,
   }
 }
 

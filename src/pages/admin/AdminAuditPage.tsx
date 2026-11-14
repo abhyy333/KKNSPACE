@@ -106,7 +106,14 @@ const MODULE_DEFINITIONS: Record<
   sponsors: {
     label: 'Sponsor & Mitra',
     icon: Handshake,
-    tables: ['sponsors', 'sponsor_communications'],
+    tables: [
+      'sponsors',
+      'sponsor_communications',
+      'sponsorship_packages',
+      'sponsor_agreements',
+      'sponsor_benefit_fulfillments',
+      'sponsor_proposals',
+    ],
   },
 }
 

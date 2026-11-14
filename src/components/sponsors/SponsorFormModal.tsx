@@ -8,12 +8,15 @@ import {
   createSponsor,
   updateSponsor,
   fetchTeamProfilesForSelect,
+  fetchSponsorshipPackages,
 } from '@/services/sponsorsApi'
 import type {
   Sponsor,
   SponsorCategory,
   SponsorContributionType,
   SponsorPartnershipStatus,
+  SponsorshipTierKey,
+  SponsorshipPackage,
 } from '@/types/sponsor'
 import {
   SPONSOR_CATEGORY_LABELS,
@@ -58,6 +61,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
   // Form states
   const [name, setName] = useState('')
   const [category, setCategory] = useState<SponsorCategory>('sponsor_pendukung')
+  const [tierKey, setTierKey] = useState<SponsorshipTierKey>('none')
+  const [packageId, setPackageId] = useState<string>('')
+  const [packages, setPackages] = useState<SponsorshipPackage[]>([])
   const [contributionType, setContributionType] = useState<SponsorContributionType>('finansial')
   const [contributionDescription, setContributionDescription] = useState('')
   const [description, setDescription] = useState('')
@@ -83,10 +89,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // Load team profiles
+  // Load team profiles and packages
   useEffect(() => {
     if (open) {
       fetchTeamProfilesForSelect().then(setTeamProfiles).catch(console.error)
+      fetchSponsorshipPackages().then(setPackages).catch(console.error)
     }
   }, [open])
 
@@ -105,6 +112,8 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
     if (sponsor) {
       setName(sponsor.name || '')
       setCategory(sponsor.category || 'sponsor_pendukung')
+      setTierKey(sponsor.tier_key || 'none')
+      setPackageId(sponsor.package_id || '')
       setContributionType(sponsor.contribution_type || 'finansial')
       setContributionDescription(sponsor.contribution_description || '')
       setDescription(sponsor.description || '')
@@ -125,6 +134,8 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
     } else {
       setName('')
       setCategory('sponsor_pendukung')
+      setTierKey('none')
+      setPackageId('')
       setContributionType('finansial')
       setContributionDescription('')
       setDescription('')
@@ -200,6 +211,8 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
       const payload = {
         name: name.trim(),
         category,
+        tier_key: tierKey,
+        package_id: packageId || null,
         contribution_type: contributionType,
         contribution_description: contributionDescription.trim() || null,
         description: description.trim() || null,
@@ -378,6 +391,53 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
                 {Object.entries(SPONSOR_CONTRIBUTION_LABELS).map(([typeKey, label]) => (
                   <option key={typeKey} value={typeKey}>
                     {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-charcoal">Tier Kemitraan (Sponsorship Tier)</label>
+              <select
+                value={tierKey}
+                onChange={(e) => {
+                  const val = e.target.value as SponsorshipTierKey
+                  setTierKey(val)
+                  const matched = packages.find((p) => p.tier_key === val)
+                  if (matched) {
+                    setPackageId(matched.id)
+                  } else if (val === 'none') {
+                    setPackageId('')
+                  }
+                }}
+                className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30"
+              >
+                <option value="none">Tanpa Tier Khusus</option>
+                <option value="diamond">Diamond Partner</option>
+                <option value="platinum">Platinum Partner</option>
+                <option value="gold">Gold Partner</option>
+                <option value="silver">Silver Partner</option>
+                <option value="custom">Custom Partnership</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-charcoal">Paket Template (Opsional)</label>
+              <select
+                value={packageId}
+                onChange={(e) => {
+                  setPackageId(e.target.value)
+                  const p = packages.find((pkg) => pkg.id === e.target.value)
+                  if (p) setTierKey(p.tier_key)
+                }}
+                className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30"
+              >
+                <option value="">-- Hubungkan Template Paket --</option>
+                {packages.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>
+                    {pkg.display_name} ({pkg.badge_label})
                   </option>
                 ))}
               </select>
