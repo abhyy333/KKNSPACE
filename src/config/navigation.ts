@@ -86,6 +86,7 @@ export const ADMIN_NAV: NavSection[] = [
 
 export const PUBLIC_NAV = [
   { title: "Beranda", href: "/" },
+  { title: "Tim KKN", href: "/tim" },
   { title: "Profil Desa", href: "/profil-desa" },
   { title: "Program Kerja", href: "/program-kerja" },
   { title: "Dokumentasi", href: "/dokumentasi" },

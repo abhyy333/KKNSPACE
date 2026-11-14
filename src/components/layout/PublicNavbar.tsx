@@ -28,14 +28,14 @@ export const PublicNavbar: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1.5">
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5">
           {PUBLIC_NAV.map((item) => (
             <NavLink
               key={item.href}
               to={item.href}
               className={({ isActive }) =>
                 cn(
-                  "px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
+                  "px-2.5 xl:px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 whitespace-nowrap",
                   isActive
                     ? "bg-[#1C3B29] text-white shadow-xs font-semibold"
                     : "text-[#243324] hover:text-[#1C3B29] hover:bg-[#EAE4D9]/60"
@@ -48,11 +48,11 @@ export const PublicNavbar: React.FC = () => {
         </nav>
 
         {/* Workspace Login CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <Link to="/workspace">
             <Button
               size="sm"
-              className="bg-sage-700 hover:bg-sage-800 text-white gap-2 text-xs font-medium px-4 py-2 rounded-lg shadow-subtle"
+              className="bg-sage-700 hover:bg-sage-800 text-white gap-2 text-xs font-medium px-4 py-2 rounded-lg shadow-subtle shrink-0"
             >
               <span>Masuk Workspace</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -61,7 +61,7 @@ export const PublicNavbar: React.FC = () => {
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden">
+        <div className="flex lg:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -75,7 +75,7 @@ export const PublicNavbar: React.FC = () => {
 
       {/* Mobile navigation drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-warm-300 bg-warm-50 px-4 py-4 space-y-2">
+        <div className="lg:hidden border-b border-warm-300 bg-warm-50 px-4 py-4 space-y-2">
           {PUBLIC_NAV.map((item) => (
             <NavLink
               key={item.href}
