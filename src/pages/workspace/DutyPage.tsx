@@ -471,35 +471,55 @@ const DutyCardThumbnail: React.FC<{
   alt: string
   photoCount: number
 }> = ({ fileId, alt, photoCount }) => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['signed-url', fileId, false],
     queryFn: () => (fileId ? getPrivateFileSignedUrl(fileId, false) : null),
     enabled: Boolean(fileId),
     staleTime: 300_000,
+    retry: 1,
   })
 
-  // Placeholder when no photo is attached
+  // 1. Placeholder when no photo is attached
   if (!fileId) {
     return (
       <div className="relative w-full aspect-4/3 bg-linear-to-br from-warm-100 to-warm-200 border-b border-warm-200 flex flex-col items-center justify-center p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-forest/10 text-forest flex items-center justify-center mb-2">
           <Camera className="h-6 w-6 opacity-60" />
         </div>
-        <p className="text-xs font-medium text-charcoal-muted">Belum ada foto kegiatan</p>
+        <p className="text-xs font-medium text-charcoal-muted">Belum ada foto dokumentasi</p>
       </div>
     )
   }
 
-  // Loading skeleton
-  if (isLoading || !data?.signedUrl) {
+  // 2. Loading state
+  if (isLoading) {
     return (
-      <div className="w-full aspect-4/3 bg-warm-200 animate-pulse border-b border-warm-200 flex items-center justify-center">
-        <Loader2 className="h-5 w-5 text-charcoal-muted/40 animate-spin" />
+      <div className="relative w-full aspect-4/3 bg-warm-200/80 animate-pulse border-b border-warm-200 flex flex-col items-center justify-center text-charcoal-muted">
+        <Skeleton className="absolute inset-0 w-full h-full" />
+        <div className="relative z-10 flex flex-col items-center gap-1.5">
+          <Loader2 className="h-6 w-6 text-forest animate-spin" />
+          <span className="text-[11px] font-medium">Memuat foto...</span>
+        </div>
       </div>
     )
   }
 
-  // Render actual image
+  // 3. Error state
+  if (isError || !data?.signedUrl) {
+    return (
+      <div className="relative w-full aspect-4/3 bg-warm-100 border-b border-warm-200 flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-1.5">
+          <AlertCircle className="h-5 w-5" />
+        </div>
+        <p className="text-xs font-semibold text-charcoal">Gagal memuat foto</p>
+        <p className="text-[10px] text-charcoal-muted mt-0.5 max-w-[200px] line-clamp-2">
+          {error instanceof Error ? error.message : 'Tautan foto privat tidak dapat diakses.'}
+        </p>
+      </div>
+    )
+  }
+
+  // 4. Render actual image
   return (
     <div className="relative w-full aspect-4/3 overflow-hidden bg-charcoal/5 border-b border-warm-200">
       <img

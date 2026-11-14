@@ -15,7 +15,7 @@ import {
   X,
   Calendar,
   AlertCircle,
-  Image as ImageIcon,
+  Loader2,
 } from 'lucide-react'
 
 interface DutyDocumentationDetailModalProps {
@@ -320,17 +320,27 @@ const DetailPhotoCard: React.FC<{
   onClick: () => void
   onDownload: () => void
 }> = ({ photo, onClick, onDownload }) => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['signed-url', photo.file_id, false],
     queryFn: () => getPrivateFileSignedUrl(photo.file_id, false),
     staleTime: 300_000,
+    retry: 1,
   })
 
   return (
     <div className="group relative aspect-4/3 rounded-xl overflow-hidden bg-charcoal/5 border border-warm-200 shadow-2xs hover:shadow-md transition-shadow">
-      {isLoading || !data?.signedUrl ? (
-        <div className="w-full h-full bg-warm-200 animate-pulse flex items-center justify-center">
-          <ImageIcon className="h-5 w-5 text-warm-400" />
+      {isLoading ? (
+        <div className="w-full h-full bg-warm-200 animate-pulse flex flex-col items-center justify-center gap-1.5 text-charcoal-muted">
+          <Skeleton className="absolute inset-0 w-full h-full" />
+          <Loader2 className="relative z-10 h-5 w-5 text-forest animate-spin" />
+        </div>
+      ) : isError || !data?.signedUrl ? (
+        <div className="w-full h-full bg-warm-100 flex flex-col items-center justify-center p-3 text-center">
+          <AlertCircle className="h-5 w-5 text-rose-500 mb-1" />
+          <p className="text-[11px] font-semibold text-charcoal">Gagal memuat foto</p>
+          <p className="text-[9px] text-charcoal-muted line-clamp-1">
+            {error instanceof Error ? error.message : 'Tautan tidak valid'}
+          </p>
         </div>
       ) : (
         <>
