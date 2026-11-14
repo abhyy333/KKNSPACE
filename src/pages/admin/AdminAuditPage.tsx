@@ -113,6 +113,7 @@ const MODULE_DEFINITIONS: Record<
       'sponsor_agreements',
       'sponsor_benefit_fulfillments',
       'sponsor_proposals',
+      'partnership_contact_settings',
     ],
   },
 }

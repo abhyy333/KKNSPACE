@@ -1,6 +1,11 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchPublicSponsors, fetchPublicSponsorshipPackages } from '@/services/sponsorsApi'
+import {
+  fetchPublicSponsors,
+  fetchPublicSponsorshipPackages,
+  fetchPublicPartnershipContact,
+} from '@/services/sponsorsApi'
+import { buildPartnershipContactDestination } from '@/lib/sponsorContact'
 import { SponsorLogoThumbnail } from '@/components/sponsors/SponsorLogoThumbnail'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -18,6 +23,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   Mail,
+  MessageCircle,
   ArrowRight,
   Handshake,
 } from 'lucide-react'
@@ -69,6 +75,12 @@ export const SponsorsPage: React.FC = () => {
     queryKey: ['public-sponsorship-packages'],
     queryFn: fetchPublicSponsorshipPackages,
     staleTime: 1000 * 60 * 10,
+  })
+
+  const { data: contactConfig } = useQuery({
+    queryKey: ['public-partnership-contact'],
+    queryFn: fetchPublicPartnershipContact,
+    staleTime: 1000 * 60 * 5,
   })
 
   // Group sponsors strictly by category, preserving saved order
@@ -531,19 +543,41 @@ export const SponsorsPage: React.FC = () => {
 
                   {/* Consultation Button */}
                   <div className="pt-6 mt-6 border-t border-warm-200/40">
-                    <a
-                      href={`mailto:kknunrampringgaselaselatan@gmail.com?subject=Konsultasi Kemitraan KKN SPACE - Paket ${encodeURIComponent(
-                        pkg.display_name
-                      )}`}
-                      className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                        isDiamond
-                          ? 'bg-[#B19A6B] text-white hover:bg-[#9E8759] shadow-xs'
-                          : 'bg-warm-100 hover:bg-warm-200/80 text-charcoal border border-warm-300/80'
-                      }`}
-                    >
-                      <span>Konsultasi Paket Ini</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </a>
+                    {(() => {
+                      const cardDest = buildPartnershipContactDestination(contactConfig, pkg.display_name)
+                      if (!cardDest.isAvailable || !cardDest.url) {
+                        return (
+                          <button
+                            type="button"
+                            disabled
+                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-warm-200/50 text-charcoal-muted cursor-not-allowed border border-warm-300/60"
+                            title="Informasi kontak partnership belum tersedia"
+                          >
+                            <span>Kontak Belum Tersedia</span>
+                          </button>
+                        )
+                      }
+                      return (
+                        <a
+                          href={cardDest.url}
+                          target={cardDest.type === 'whatsapp' ? '_blank' : undefined}
+                          rel={cardDest.type === 'whatsapp' ? 'noopener noreferrer' : undefined}
+                          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                            isDiamond
+                              ? 'bg-[#B19A6B] text-white hover:bg-[#9E8759] shadow-xs'
+                              : 'bg-warm-100 hover:bg-warm-200/80 text-charcoal border border-warm-300/80'
+                          }`}
+                        >
+                          {cardDest.type === 'whatsapp' ? (
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          ) : (
+                            <Mail className="h-3.5 w-3.5" />
+                          )}
+                          <span>Konsultasi Paket Ini</span>
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      )
+                    })()}
                   </div>
                 </div>
               )
@@ -566,15 +600,32 @@ export const SponsorsPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
-              <a
-                href="mailto:kknunrampringgaselaselatan@gmail.com?subject=Permohonan Proposal dan Kemitraan KKN SPACE"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#19382B] text-white text-xs font-medium hover:bg-[#132B21] transition-colors shadow-xs"
-              >
-                <Mail className="h-4 w-4 text-[#B19A6B]" />
-                <span>Hubungi Sekretariat Posko</span>
-              </a>
-            </div>
+            {(() => {
+              const generalDest = buildPartnershipContactDestination(contactConfig)
+              return (
+                <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+                  {generalDest.isAvailable && generalDest.url ? (
+                    <a
+                      href={generalDest.url}
+                      target={generalDest.type === 'whatsapp' ? '_blank' : undefined}
+                      rel={generalDest.type === 'whatsapp' ? 'noopener noreferrer' : undefined}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#19382B] text-white text-xs font-medium hover:bg-[#132B21] transition-colors shadow-xs"
+                    >
+                      {generalDest.type === 'whatsapp' ? (
+                        <MessageCircle className="h-4 w-4 text-[#B19A6B]" />
+                      ) : (
+                        <Mail className="h-4 w-4 text-[#B19A6B]" />
+                      )}
+                      <span>Konsultasikan Paket / Kemitraan</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-charcoal-muted italic">
+                      Informasi kontak partnership belum tersedia.
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </section>
       </main>

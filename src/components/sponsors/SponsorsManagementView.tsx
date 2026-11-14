@@ -54,11 +54,13 @@ import {
   ShieldCheck,
   Phone,
   User,
+  Settings,
 } from 'lucide-react'
 
 import { PackageManagementView } from './PackageManagementView'
 import { AgreementsManagementView } from './AgreementsManagementView'
 import { ProposalsManagementView } from './ProposalsManagementView'
+import { PartnershipContactSettingsView } from './PartnershipContactSettingsView'
 
 interface SponsorsManagementViewProps {
   baseContext: 'admin' | 'workspace'
@@ -72,6 +74,7 @@ type TabType =
   | 'proposals'
   | 'packages'
   | 'publication_requests'
+  | 'contact_settings'
 
 export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ baseContext }) => {
   const { isSuperAdmin, membership } = useAuth()
@@ -420,6 +423,21 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
             </span>
           ) : null}
         </button>
+
+        {(canApprovePublication || isKetuaOrSekretaris) && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('contact_settings')}
+            className={`flex items-center gap-2 py-2.5 px-3.5 text-xs font-semibold border-b-2 transition-all shrink-0 ${
+              activeTab === 'contact_settings'
+                ? 'border-forest text-forest bg-warm-100/50 rounded-t-lg'
+                : 'border-transparent text-charcoal-muted hover:text-charcoal'
+            }`}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            <span>Partnership Settings</span>
+          </button>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -1227,6 +1245,13 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
             </div>
           )}
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. PARTNERSHIP SETTINGS TAB                                              */}
+      {/* ========================================================================= */}
+      {activeTab === 'contact_settings' && (
+        <PartnershipContactSettingsView />
       )}
 
       {/* Modals */}

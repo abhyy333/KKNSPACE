@@ -2,16 +2,8 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Mail, Calendar, ShieldCheck } from 'lucide-react'
 import { BrandLogo } from '@/components/brand/BrandLogo'
-import { useQuery } from '@tanstack/react-query'
-import { fetchPublicSponsors } from '@/services/sponsorsApi'
-import { SponsorLogoThumbnail } from '@/components/sponsors/SponsorLogoThumbnail'
 
 export const PublicFooter: React.FC = () => {
-  const { data: sponsors = [] } = useQuery({
-    queryKey: ['public-sponsors'],
-    queryFn: fetchPublicSponsors,
-    staleTime: 1000 * 60 * 5,
-  })
   return (
     <footer className="border-t border-warm-300 bg-white text-charcoal">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -104,50 +96,6 @@ export const PublicFooter: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Refined Institutional Sponsor Recognition Strip */}
-        {sponsors.length > 0 && (
-          <div className="mt-10 border-t border-warm-200/80 pt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B19A6B]" />
-                <h4 className="text-xs font-mono font-semibold uppercase tracking-wider text-charcoal">
-                  Official Partners &amp; Sponsors
-                </h4>
-              </div>
-              <Link
-                to="/sponsors"
-                className="text-[11px] font-mono tracking-wider text-charcoal-muted hover:text-[#19382B] transition-colors inline-flex items-center gap-1 group"
-              >
-                <span>Lihat Direktori Mitra</span>
-                <span className="transition-transform group-hover:translate-x-0.5">→</span>
-              </Link>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {sponsors.slice(0, 8).map((sp) => (
-                <Link
-                  key={sp.id}
-                  to="/sponsors"
-                  className="group flex items-center gap-3 rounded-xl border border-warm-200/90 bg-[#FAF9F6] hover:bg-white hover:border-[#19382B]/30 px-3.5 py-2 transition-all duration-200 shadow-2xs"
-                  title={`Lihat profil resmi kemitraan ${sp.name}`}
-                >
-                  <SponsorLogoThumbnail
-                    fileId={sp.logo_file_id}
-                    sponsorId={sp.id}
-                    alt={sp.name}
-                    isPublic={true}
-                    containerClassName="w-8 h-6 flex items-center justify-center shrink-0 overflow-hidden"
-                    className="w-full h-full object-contain filter group-hover:scale-105 transition-transform"
-                  />
-                  <span className="text-xs font-serif font-medium text-charcoal group-hover:text-[#19382B] transition-colors truncate max-w-[160px]">
-                    {sp.name}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="mt-8 border-t border-warm-300 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-charcoal-muted gap-2">
           <p>© 2026–2027 KKN Pringgasela Selatan Universitas Mataram · Platform KKN SPACE.</p>

@@ -15,6 +15,8 @@ import type {
   SponsorBenefitFulfillment,
   SponsorProposal,
   SponsorshipTierKey,
+  PartnershipContactSettings,
+  PublicPartnershipContact,
 } from '@/types/sponsor'
 
 export interface SponsorFilterParams {
@@ -822,3 +824,54 @@ export async function fetchTeamProfilesForSelect(): Promise<Array<{ id: string; 
   }
   return data || []
 }
+
+// ----------------- Partnership Contact Settings (Configurable CTA) -----------------
+
+export async function fetchPublicPartnershipContact(): Promise<PublicPartnershipContact | null> {
+  const { data, error } = await supabase.rpc('get_public_partnership_contact')
+  if (error) {
+    console.error('Error fetching public partnership contact:', error)
+    return null
+  }
+  if (!data || data.length === 0) return null
+  return data[0] as PublicPartnershipContact
+}
+
+export async function fetchPartnershipContactSettings(): Promise<PartnershipContactSettings> {
+  const { data, error } = await supabase
+    .from('partnership_contact_settings')
+    .select('*')
+    .eq('id', 'active_config')
+    .single()
+
+  if (error) {
+    throw new Error(`Gagal memuat pengaturan kontak partnership: ${error.message}`)
+  }
+  return data as PartnershipContactSettings
+}
+
+export async function updatePartnershipContactSettings(payload: {
+  active_destination: 'whatsapp' | 'email'
+  whatsapp_number: string
+  whatsapp_country_code: string
+  whatsapp_default_message: string
+  email_address: string
+  email_subject: string
+  email_body: string
+}): Promise<PartnershipContactSettings> {
+  const { data, error } = await supabase.rpc('update_partnership_contact_settings', {
+    p_active_destination: payload.active_destination,
+    p_whatsapp_number: payload.whatsapp_number,
+    p_whatsapp_country_code: payload.whatsapp_country_code,
+    p_whatsapp_default_message: payload.whatsapp_default_message,
+    p_email_address: payload.email_address,
+    p_email_subject: payload.email_subject,
+    p_email_body: payload.email_body,
+  })
+
+  if (error) {
+    throw new Error(`Gagal menyimpan pengaturan kontak partnership: ${error.message}`)
+  }
+  return data as PartnershipContactSettings
+}
+

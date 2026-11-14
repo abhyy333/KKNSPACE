@@ -94,4 +94,10 @@
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+      animation: none !important;
+    }
+  }
 }

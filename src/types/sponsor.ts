@@ -346,3 +346,31 @@ export const SPONSOR_PROPOSAL_STATUS_LABELS: Record<SponsorProposalStatus, strin
   rejected: 'Ditolak Mitra',
   expired: 'Kedaluwarsa',
 }
+
+export type PartnershipContactDestination = 'whatsapp' | 'email'
+
+export interface PartnershipContactSettings {
+  id: string
+  active_destination: PartnershipContactDestination
+  whatsapp_number: string
+  whatsapp_country_code: string
+  whatsapp_default_message: string
+  email_address: string
+  email_subject: string
+  email_body: string
+  updated_at: string
+  updated_by: string | null
+  updated_by_name: string | null
+}
+
+export interface PublicPartnershipContact {
+  active_destination: PartnershipContactDestination | 'none'
+  whatsapp_number: string | null
+  whatsapp_country_code: string | null
+  whatsapp_default_message: string | null
+  email_address: string | null
+  email_subject: string | null
+  email_body: string | null
+  is_available: boolean
+}
+
