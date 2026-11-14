@@ -218,6 +218,7 @@ export const router = createBrowserRouter([
       { path: 'profil-desa/pariwisata', element: withSuspense(<VillageTourismPage />) },
       { path: 'profil-desa/budaya', element: withSuspense(<VillageCulturePage />) },
       { path: 'profil-desa/potensi-desa', element: withSuspense(<VillageEconomyPage />) },
+      { path: 'profil-desa/potensi', element: <Navigate to="/profil-desa/potensi-desa" replace /> },
       { path: 'profil-desa/galeri', element: withSuspense(<VillageGalleryPage />) },
     ],
   },
