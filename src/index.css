@@ -46,6 +46,21 @@
   }
 }
 
+/* Explicit brand forest utility classes to ensure high-contrast button styling */
+.bg-forest {
+  background-color: #1E3A27 !important;
+}
+.bg-forest:hover,
+.hover\:bg-forest\/90:hover {
+  background-color: #162D1E !important;
+}
+.text-forest {
+  color: #1E3A27 !important;
+}
+.border-forest {
+  border-color: #1E3A27 !important;
+}
+
 /* Custom scrollbar matching Notion/clean workspace */
 ::-webkit-scrollbar {
   width: 6px;

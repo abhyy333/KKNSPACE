@@ -518,35 +518,7 @@ export const AgendaPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* AI Agenda Assistant Trigger */}
-          <Button
-            size="sm"
-            type="button"
-            onClick={() => setAiModalOpen(true)}
-            className="text-xs gap-1.5 bg-forest hover:bg-forest/90 text-white shadow-xs font-semibold"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
-            <span>AI Agenda Assistant</span>
-          </Button>
-
-          <Link to="/timeline-kkn" target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="text-xs gap-1.5">
-              <Milestone className="h-3.5 w-3.5 text-forest" />
-              <span>Roadmap KKN</span>
-            </Button>
-          </Link>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="text-xs gap-1.5"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Segarkan</span>
-          </Button>
-
+          {/* Primary: Tambah Agenda Manual */}
           <Button
             size="sm"
             variant="default"
@@ -555,10 +527,45 @@ export const AgendaPage: React.FC = () => {
               setEditingEvent(null)
               setModalOpen(true)
             }}
-            className="text-xs gap-1.5"
+            className="h-9 px-3.5 text-xs gap-1.5 bg-forest hover:bg-forest/90 text-white font-semibold shadow-xs"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
             <span>Tambah Agenda Manual</span>
+          </Button>
+
+          {/* Secondary: AI Agenda Assistant */}
+          <Button
+            size="sm"
+            type="button"
+            onClick={() => setAiModalOpen(true)}
+            className="h-9 px-3 text-xs gap-1.5 bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 font-semibold shadow-2xs"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-emerald-700" />
+            <span>AI Agenda Assistant</span>
+          </Button>
+
+          {/* Tertiary: Roadmap KKN */}
+          <Link to="/timeline-kkn" target="_blank" rel="noopener noreferrer">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-3 text-xs gap-1.5 border-warm-300 bg-white text-charcoal hover:bg-warm-100 hover:text-charcoal shadow-2xs"
+            >
+              <Milestone className="h-3.5 w-3.5 text-forest" />
+              <span>Roadmap KKN</span>
+            </Button>
+          </Link>
+
+          {/* Tertiary: Segarkan */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="h-9 px-3 text-xs gap-1.5 border-warm-300 bg-white text-charcoal hover:bg-warm-100 hover:text-charcoal shadow-2xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Segarkan</span>
           </Button>
         </div>
       </div>
@@ -887,375 +894,386 @@ export const AgendaPage: React.FC = () => {
         title={editingEvent ? 'Edit Agenda Kegiatan' : 'Tambah Agenda Kegiatan'}
         description="Lengkapi informasi agenda kegiatan posko, pembagian tugas divisi, dan rincian tahapan lapangan."
         maxWidthClass="max-w-2xl"
+        scrollableContent={false}
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          {formError && (
-            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{formError}</span>
-            </div>
-          )}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+            {formError && (
+              <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{formError}</span>
+              </div>
+            )}
 
-          {/* AI Assistance Header Banner inside form */}
-          <div className="flex items-center justify-between rounded-lg border border-sage-200 bg-sage-50/70 p-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-forest" />
-              <div>
-                <p className="text-xs font-semibold text-forest">Gunakan AI Agenda Assistant</p>
-                <p className="text-[11px] text-charcoal-muted">
-                  Bantu susun judul, deskripsi operasional, sasaran, dan checklist tahapan secara otomatis.
-                </p>
+            {/* AI Assistance Header Banner inside form */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50/90 p-3 sm:p-3.5 shadow-2xs">
+              <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-forest">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-emerald-950">Gunakan AI Agenda Assistant</p>
+                  <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                    Bantu susun judul, deskripsi operasional, sasaran, dan checklist tahapan secara otomatis.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setAiModalOpen(true)
+                }}
+                className="shrink-0 h-8 px-3 text-xs bg-forest hover:bg-forest/90 text-white font-semibold gap-1.5 shadow-xs"
+              >
+                <Sparkles className="h-3 w-3 text-amber-300" />
+                <span>Buka Asisten</span>
+              </Button>
+            </div>
+
+            {/* Title */}
+            <div className="space-y-1.5">
+              <label htmlFor="event-title" className="text-xs font-medium text-charcoal block">
+                Judul Kegiatan <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="event-title"
+                placeholder="Misal: Sosialisasi Pencegahan Stunting Balita Dusun Krajan"
+                {...register('title')}
+              />
+              {errors.title && (
+                <p className="text-[11px] text-red-600">{errors.title.message}</p>
+              )}
+            </div>
+
+            {/* Category & Division */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-category" className="text-xs font-medium text-charcoal block">
+                  Kategori Kegiatan <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="event-category"
+                  {...register('category')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
+                >
+                  {AGENDA_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-division" className="text-xs font-medium text-charcoal block">
+                  Divisi Penanggung Jawab <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="event-division"
+                  {...register('responsibleDivision')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
+                >
+                  {AGENDA_DIVISIONS.map((div) => (
+                    <option key={div} value={div}>
+                      {div}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => {
-                setAiModalOpen(true)
-              }}
-              className="text-xs bg-forest hover:bg-forest/90 text-white gap-1"
-            >
-              <Sparkles className="h-3 w-3 text-amber-300" />
-              <span>Buka Asisten</span>
-            </Button>
-          </div>
 
-          {/* Title */}
-          <div className="space-y-1.5">
-            <label htmlFor="event-title" className="text-xs font-medium text-charcoal block">
-              Judul Kegiatan <span className="text-red-500">*</span>
-            </label>
-            <Input
-              id="event-title"
-              placeholder="Misal: Sosialisasi Pencegahan Stunting Balita Dusun Krajan"
-              {...register('title')}
-            />
-            {errors.title && (
-              <p className="text-[11px] text-red-600">{errors.title.message}</p>
-            )}
-          </div>
-
-          {/* Category & Division */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="event-category" className="text-xs font-medium text-charcoal block">
-                Kategori Kegiatan <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="event-category"
-                {...register('category')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                {AGENDA_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-division" className="text-xs font-medium text-charcoal block">
-                Divisi Penanggung Jawab <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="event-division"
-                {...register('responsibleDivision')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                {AGENDA_DIVISIONS.map((div) => (
-                  <option key={div} value={div}>
-                    {div}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* PIC & Location */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="event-pic" className="text-xs font-medium text-charcoal block">
-                Penanggung Jawab (PIC)
-              </label>
-              <select
-                id="event-pic"
-                {...register('picId')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                <option value="">Pilih Anggota Tim</option>
-                {members.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.full_name} ({m.role || 'Anggota'})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-location" className="text-xs font-medium text-charcoal block">
-                Lokasi Kegiatan
-              </label>
-              <Input
-                id="event-location"
-                placeholder="Misal: Kantor Desa Pringgasela Selatan"
-                {...register('location')}
-              />
-            </div>
-          </div>
-
-          {/* Date & Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="event-date" className="text-xs font-medium text-charcoal block">
-                Tanggal <span className="text-red-500">*</span>
-              </label>
-              <Input id="event-date" type="date" {...register('eventDate')} />
-              {errors.eventDate && (
-                <p className="text-[11px] text-red-600">{errors.eventDate.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-start" className="text-xs font-medium text-charcoal block">
-                Jam Mulai <span className="text-red-500">*</span>
-              </label>
-              <Input id="event-start" type="time" {...register('startTime')} />
-              {errors.startTime && (
-                <p className="text-[11px] text-red-600">{errors.startTime.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-end" className="text-xs font-medium text-charcoal block">
-                Jam Selesai <span className="text-red-500">*</span>
-              </label>
-              <Input id="event-end" type="time" {...register('endTime')} />
-              {errors.endTime && (
-                <p className="text-[11px] text-red-600">{errors.endTime.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-1.5">
-            <label htmlFor="event-desc" className="text-xs font-medium text-charcoal block">
-              Deskripsi Operasional Kegiatan
-            </label>
-            <textarea
-              id="event-desc"
-              rows={3}
-              placeholder="Rincian latar belakang, tujuan, dan metode pelaksanaan kegiatan..."
-              className="flex w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal placeholder:text-charcoal-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
-              {...register('description')}
-            />
-            {errors.description && (
-              <p className="text-[11px] text-red-600">{errors.description.message}</p>
-            )}
-          </div>
-
-          {/* Target Audience & Target Output */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label htmlFor="event-audience" className="text-xs font-medium text-charcoal block">
-                Target Sasaran Warga
-              </label>
-              <Input
-                id="event-audience"
-                placeholder="Misal: Kader posyandu dan ibu balita"
-                {...register('targetAudience')}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-output" className="text-xs font-medium text-charcoal block">
-                Target Capaian (Output Terukur)
-              </label>
-              <Input
-                id="event-output"
-                placeholder="Misal: Peningkatan pemahaman gizi dan data balita"
-                {...register('targetOutput')}
-              />
-            </div>
-          </div>
-
-          {/* Logistics & Equipment Needed */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-charcoal block">
-              Kebutuhan Perlengkapan / Logistik
-            </label>
-            <div className="flex flex-wrap gap-1.5 min-h-[28px]">
-              {formEquipment.map((eq, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 rounded-full bg-warm-100 px-2.5 py-0.5 text-xs text-charcoal"
+            {/* PIC & Location */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-pic" className="text-xs font-medium text-charcoal block">
+                  Penanggung Jawab (PIC)
+                </label>
+                <select
+                  id="event-pic"
+                  {...register('picId')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
                 >
-                  <span>{eq}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeEquipTag(i)}
-                    className="text-charcoal-muted hover:text-red-600"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+                  <option value="">Pilih Anggota Tim</option>
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.full_name} ({m.role || 'Anggota'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-location" className="text-xs font-medium text-charcoal block">
+                  Lokasi Kegiatan
+                </label>
+                <Input
+                  id="event-location"
+                  placeholder="Misal: Kantor Desa Pringgasela Selatan"
+                  {...register('location')}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Input
-                value={newEquipInput}
-                onChange={(e) => setNewEquipInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addEquipTag()
-                  }
-                }}
-                placeholder="Tambah perlengkapan, misal: Proyektor, ATK..."
-                className="h-8 text-xs"
+
+            {/* Date & Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-date" className="text-xs font-medium text-charcoal block">
+                  Tanggal <span className="text-red-500">*</span>
+                </label>
+                <Input id="event-date" type="date" {...register('eventDate')} />
+                {errors.eventDate && (
+                  <p className="text-[11px] text-red-600">{errors.eventDate.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-start" className="text-xs font-medium text-charcoal block">
+                  Jam Mulai <span className="text-red-500">*</span>
+                </label>
+                <Input id="event-start" type="time" {...register('startTime')} />
+                {errors.startTime && (
+                  <p className="text-[11px] text-red-600">{errors.startTime.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-end" className="text-xs font-medium text-charcoal block">
+                  Jam Selesai <span className="text-red-500">*</span>
+                </label>
+                <Input id="event-end" type="time" {...register('endTime')} />
+                {errors.endTime && (
+                  <p className="text-[11px] text-red-600">{errors.endTime.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <label htmlFor="event-desc" className="text-xs font-medium text-charcoal block">
+                Deskripsi Operasional Kegiatan
+              </label>
+              <textarea
+                id="event-desc"
+                rows={3}
+                placeholder="Rincian latar belakang, tujuan, dan metode pelaksanaan kegiatan..."
+                className="flex w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal placeholder:text-charcoal-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
+                {...register('description')}
               />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={addEquipTag}
-                className="h-8 px-3 text-xs"
-              >
-                Tambah
-              </Button>
+              {errors.description && (
+                <p className="text-[11px] text-red-600">{errors.description.message}</p>
+              )}
             </div>
-          </div>
 
-          {/* Integration Links (Program Kerja & Timeline) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-warm-200">
-            <div className="space-y-1.5">
-              <label htmlFor="event-prog" className="text-xs font-medium text-charcoal block">
-                Tautkan Program Kerja (Opsional)
+            {/* Target Audience & Target Output */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-audience" className="text-xs font-medium text-charcoal block">
+                  Target Sasaran Warga
+                </label>
+                <Input
+                  id="event-audience"
+                  placeholder="Misal: Kader posyandu dan ibu balita"
+                  {...register('targetAudience')}
+                />
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-output" className="text-xs font-medium text-charcoal block">
+                  Target Capaian (Output Terukur)
+                </label>
+                <Input
+                  id="event-output"
+                  placeholder="Misal: Peningkatan pemahaman gizi dan data balita"
+                  {...register('targetOutput')}
+                />
+              </div>
+            </div>
+
+            {/* Logistics & Equipment Needed */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-charcoal block">
+                Kebutuhan Perlengkapan / Logistik
               </label>
-              <select
-                id="event-prog"
-                {...register('relatedProgramId')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                <option value="">Tidak ditautkan</option>
-                {workPrograms.map((wp: any) => (
-                  <option key={wp.id} value={wp.id}>
-                    {wp.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="event-stage" className="text-xs font-medium text-charcoal block">
-                Tautkan Tahapan Roadmap (Opsional)
-              </label>
-              <select
-                id="event-stage"
-                {...register('relatedTimelineStageId')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                <option value="">Tidak ditautkan</option>
-                {timelineStages.map((st: any) => (
-                  <option key={st.id} value={st.id}>
-                    Tahap {st.stage_number}: {st.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Publication status (only if admin or ketua/sekretaris) */}
-          {isLeaderOrAdmin && (
-            <div className="space-y-1.5 pt-1 border-t border-warm-200">
-              <label htmlFor="event-pub" className="text-xs font-medium text-charcoal block">
-                Status Publikasi Agenda
-              </label>
-              <select
-                id="event-pub"
-                {...register('publicationStatus')}
-                className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
-              >
-                <option value="internal">Internal Tim KKN (Hanya terlihat anggota)</option>
-                <option value="published">Publik (Tampil di portal & kalender publik)</option>
-                <option value="draft">Draf Rancangan</option>
-                <option value="archived">Arsip</option>
-              </select>
-            </div>
-          )}
-
-          {/* Steps Checklist in Form */}
-          <div className="space-y-2.5 pt-2 border-t border-warm-200">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-charcoal flex items-center gap-1.5">
-                <ListOrdered className="h-4 w-4 text-forest" />
-                <span>Rancangan Tahapan Pelaksanaan ({formSteps.length} Langkah):</span>
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={addFormStep}
-                className="h-7 px-2 text-xs text-forest gap-1"
-              >
-                <Plus className="h-3 w-3" />
-                <span>Tambah Langkah</span>
-              </Button>
-            </div>
-
-            {formSteps.length === 0 ? (
-              <p className="text-[11px] text-charcoal-muted italic">
-                Belum ada rincian tahapan. Klik tombol Tambah Langkah atau gunakan AI Assistant untuk menyusun tahapan otomatis.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {formSteps.map((st, i) => (
-                  <div
+              <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                {formEquipment.map((eq, i) => (
+                  <span
                     key={i}
-                    className="flex items-start gap-2 rounded-lg border border-warm-200 bg-warm-50/70 p-2.5 text-xs"
+                    className="inline-flex items-center gap-1 rounded-full bg-warm-100 px-2.5 py-0.5 text-xs text-charcoal"
                   >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-forest text-[10px] font-bold text-white">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 space-y-1">
-                      <Input
-                        value={st.title}
-                        onChange={(e) => updateFormStepField(i, 'title', e.target.value)}
-                        placeholder={`Judul tahapan ${i + 1}...`}
-                        className="h-7 text-xs bg-white font-medium"
-                      />
-                      <textarea
-                        value={st.description || ''}
-                        onChange={(e) => updateFormStepField(i, 'description', e.target.value)}
-                        placeholder="Deskripsi langkah kegiatan (opsional)..."
-                        rows={1}
-                        className="w-full rounded border border-warm-300 bg-white px-2 py-1 text-[11px] text-charcoal focus:border-forest focus:outline-none"
-                      />
-                    </div>
+                    <span>{eq}</span>
                     <button
                       type="button"
-                      onClick={() => removeFormStep(i)}
-                      className="p-1 text-charcoal-muted hover:text-red-600 transition-colors"
-                      title="Hapus langkah"
+                      onClick={() => removeEquipTag(i)}
+                      className="text-charcoal-muted hover:text-red-600"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      ×
                     </button>
-                  </div>
+                  </span>
                 ))}
               </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newEquipInput}
+                  onChange={(e) => setNewEquipInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addEquipTag()
+                    }
+                  }}
+                  placeholder="Tambah perlengkapan, misal: Proyektor, ATK..."
+                  className="h-8 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addEquipTag}
+                  className="h-8 px-3 text-xs shrink-0"
+                >
+                  Tambah
+                </Button>
+              </div>
+            </div>
+
+            {/* Integration Links (Program Kerja & Timeline) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0 pt-1 border-t border-warm-200">
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-prog" className="text-xs font-medium text-charcoal block">
+                  Tautkan Program Kerja (Opsional)
+                </label>
+                <select
+                  id="event-prog"
+                  {...register('relatedProgramId')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
+                >
+                  <option value="">Tidak ditautkan</option>
+                  {workPrograms.map((wp: any) => (
+                    <option key={wp.id} value={wp.id}>
+                      {wp.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5 min-w-0">
+                <label htmlFor="event-stage" className="text-xs font-medium text-charcoal block">
+                  Tautkan Tahapan Roadmap (Opsional)
+                </label>
+                <select
+                  id="event-stage"
+                  {...register('relatedTimelineStageId')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
+                >
+                  <option value="">Tidak ditautkan</option>
+                  {timelineStages.map((st: any) => (
+                    <option key={st.id} value={st.id}>
+                      Tahap {st.stage_number}: {st.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Publication status (only if admin or ketua/sekretaris) */}
+            {isLeaderOrAdmin && (
+              <div className="space-y-1.5 pt-1 border-t border-warm-200">
+                <label htmlFor="event-pub" className="text-xs font-medium text-charcoal block">
+                  Status Publikasi Agenda
+                </label>
+                <select
+                  id="event-pub"
+                  {...register('publicationStatus')}
+                  className="w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus:border-forest focus:outline-none"
+                >
+                  <option value="internal">Internal Tim KKN (Hanya terlihat anggota)</option>
+                  <option value="published">Publik (Tampil di portal & kalender publik)</option>
+                  <option value="draft">Draf Rancangan</option>
+                  <option value="archived">Arsip</option>
+                </select>
+              </div>
             )}
+
+            {/* Steps Checklist in Form */}
+            <div className="space-y-2.5 pt-2 border-t border-warm-200">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-charcoal flex items-center gap-1.5">
+                  <ListOrdered className="h-4 w-4 text-forest" />
+                  <span>Rancangan Tahapan Pelaksanaan ({formSteps.length} Langkah):</span>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={addFormStep}
+                  className="h-7 px-2 text-xs text-forest gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Tambah Langkah</span>
+                </Button>
+              </div>
+
+              {formSteps.length === 0 ? (
+                <p className="text-[11px] text-charcoal-muted italic">
+                  Belum ada rincian tahapan. Klik tombol Tambah Langkah atau gunakan AI Assistant untuk menyusun tahapan otomatis.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {formSteps.map((st, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-2 rounded-lg border border-warm-200 bg-warm-50/70 p-2.5 text-xs"
+                    >
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-forest text-[10px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 space-y-1 min-w-0">
+                        <Input
+                          value={st.title}
+                          onChange={(e) => updateFormStepField(i, 'title', e.target.value)}
+                          placeholder={`Judul tahapan ${i + 1}...`}
+                          className="h-7 text-xs bg-white font-medium"
+                        />
+                        <textarea
+                          value={st.description || ''}
+                          onChange={(e) => updateFormStepField(i, 'description', e.target.value)}
+                          placeholder="Deskripsi langkah kegiatan (opsional)..."
+                          rows={1}
+                          className="w-full rounded border border-warm-300 bg-white px-2 py-1 text-[11px] text-charcoal focus:border-forest focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFormStep(i)}
+                        className="p-1 text-charcoal-muted hover:text-red-600 transition-colors shrink-0"
+                        title="Hapus langkah"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-warm-200">
-            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal}>
+          {/* Form Actions Footer */}
+          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleCloseModal}
+              className="h-9 px-3.5 text-xs text-charcoal hover:bg-warm-100"
+            >
               Batal
             </Button>
             <Button
               type="submit"
               size="sm"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="gap-1.5 bg-forest hover:bg-forest/90 text-white"
+              className="h-9 px-4 text-xs gap-1.5 bg-forest hover:bg-forest/90 text-white font-semibold shadow-xs"
             >
               {(createMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

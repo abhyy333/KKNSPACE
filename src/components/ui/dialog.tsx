@@ -4,14 +4,24 @@ import { Button } from './button'
 import { cn } from '@/lib/utils'
 
 let modalCount = 0
+let scrollYPosition = 0
 
 function lockBodyScroll() {
   if (typeof document === 'undefined') return
   if (modalCount === 0) {
+    scrollYPosition = window.scrollY || window.pageYOffset || 0
     const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
+
     document.body.dataset.originalOverflow = document.body.style.overflow || ''
+    document.body.dataset.originalPosition = document.body.style.position || ''
+    document.body.dataset.originalTop = document.body.style.top || ''
+    document.body.dataset.originalWidth = document.body.style.width || ''
     document.body.dataset.originalPaddingRight = document.body.style.paddingRight || ''
+
     document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollYPosition}px`
+    document.body.style.width = '100%'
     if (scrollBarWidth > 0) {
       document.body.style.paddingRight = `${scrollBarWidth}px`
     }
@@ -23,10 +33,25 @@ function unlockBodyScroll() {
   if (typeof document === 'undefined') return
   modalCount = Math.max(0, modalCount - 1)
   if (modalCount === 0) {
-    document.body.style.overflow = document.body.dataset.originalOverflow || ''
-    document.body.style.paddingRight = document.body.dataset.originalPaddingRight || ''
+    const originalOverflow = document.body.dataset.originalOverflow || ''
+    const originalPosition = document.body.dataset.originalPosition || ''
+    const originalTop = document.body.dataset.originalTop || ''
+    const originalWidth = document.body.dataset.originalWidth || ''
+    const originalPaddingRight = document.body.dataset.originalPaddingRight || ''
+
+    document.body.style.overflow = originalOverflow
+    document.body.style.position = originalPosition
+    document.body.style.top = originalTop
+    document.body.style.width = originalWidth
+    document.body.style.paddingRight = originalPaddingRight
+
     delete document.body.dataset.originalOverflow
+    delete document.body.dataset.originalPosition
+    delete document.body.dataset.originalTop
+    delete document.body.dataset.originalWidth
     delete document.body.dataset.originalPaddingRight
+
+    window.scrollTo(0, scrollYPosition)
   }
 }
 
@@ -81,11 +106,12 @@ export const Modal: React.FC<ModalProps> = ({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-hidden overscroll-none">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-charcoal/40 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-charcoal/50 backdrop-blur-xs transition-opacity"
         onClick={onClose}
+        onTouchMove={(e) => e.preventDefault()}
       />
 
       {/* Dialog surface */}
@@ -93,23 +119,27 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative z-10 w-full flex flex-col rounded-xl border border-warm-300 bg-white shadow-xl overflow-hidden modal-surface-adaptive min-h-0",
+          "relative z-10 w-full flex flex-col rounded-xl border border-warm-300 bg-white shadow-2xl overflow-hidden max-h-[88dvh] sm:max-h-[85vh] min-h-0 box-border",
           maxWidthClass,
           containerClassName
         )}
       >
         {title && (
-          <div className="flex shrink-0 items-start justify-between border-b border-warm-200 px-5 py-3.5 sm:px-6 sm:py-4 bg-warm-50/90">
-            <div className="space-y-1 pr-4">
-              <h3 className="text-sm sm:text-base font-serif font-semibold text-charcoal">{title}</h3>
+          <div className="flex shrink-0 items-start justify-between border-b border-warm-200 px-4 py-3 sm:px-6 sm:py-3.5 bg-warm-50/95">
+            <div className="space-y-0.5 pr-3 min-w-0">
+              <h3 className="text-sm sm:text-base font-serif font-semibold text-charcoal truncate sm:whitespace-normal">
+                {title}
+              </h3>
               {description && (
-                <p className="text-xs text-charcoal-muted leading-relaxed">{description}</p>
+                <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-2 sm:line-clamp-none">
+                  {description}
+                </p>
               )}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-1.5 text-charcoal-muted hover:bg-warm-200/70 hover:text-charcoal transition-colors"
+              className="rounded-md p-1.5 text-charcoal-muted hover:bg-warm-200 hover:text-charcoal transition-colors shrink-0"
               aria-label="Tutup dialog"
             >
               <X className="h-4 w-4" />
@@ -118,7 +148,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {scrollableContent ? (
-          <div className={cn("flex-1 min-h-0 overflow-y-auto modal-body-scroll p-5 sm:p-6", contentClassName)}>
+          <div className={cn("flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6", contentClassName)}>
             {children}
           </div>
         ) : (
@@ -126,7 +156,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {footer && (
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-warm-200 bg-warm-50/90 px-5 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="flex shrink-0 items-center justify-end gap-2 border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {footer}
           </div>
         )}
@@ -160,7 +190,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 }) => {
   return (
     <Modal open={open} onClose={isLoading ? () => {} : onClose} title={title} maxWidthClass="max-w-md">
-      <div className="space-y-5">
+      <div className="space-y-4">
         <p className="text-xs text-charcoal leading-relaxed">{description}</p>
         <div className="flex items-center justify-end gap-2 pt-2">
           <Button

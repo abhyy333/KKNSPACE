@@ -206,8 +206,10 @@ export const AiAgendaAssistantModal: React.FC<AiAgendaAssistantModalProps> = ({
       title="AI Agenda Assistant — Co-Pilot KKN"
       description="Susun rencana agenda operasional, tahapan checklist, dan kebutuhan logistik kegiatan secara cerdas dan kontekstual."
       maxWidthClass="max-w-3xl"
+      scrollableContent={false}
     >
-      <div className="space-y-5 max-h-[78vh] overflow-y-auto pr-1">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
         {/* Ideation Input Section */}
         <div className="space-y-2.5 rounded-xl border border-sage-200 bg-sage-50/50 p-4">
           <div className="flex items-center justify-between">
@@ -584,25 +586,32 @@ export const AiAgendaAssistantModal: React.FC<AiAgendaAssistantModalProps> = ({
             )}
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Modal Actions */}
-      <div className="flex justify-between items-center pt-4 border-t border-warm-200 mt-4">
-        <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs">
-          Tutup
-        </Button>
-
-        {generatedResult && (
+        {/* Modal Actions Sticky Footer */}
+        <div className="flex shrink-0 items-center justify-between border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             type="button"
+            variant="ghost"
             size="sm"
-            onClick={handleApply}
-            className="bg-forest hover:bg-forest/90 text-white text-xs gap-1.5 shadow-xs"
+            onClick={onClose}
+            className="h-9 px-3.5 text-xs text-charcoal hover:bg-warm-100"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>Terapkan ke Formulir Agenda</span>
+            Tutup
           </Button>
-        )}
+
+          {generatedResult && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleApply}
+              className="h-9 px-4 bg-forest hover:bg-forest/90 text-white text-xs font-semibold gap-1.5 shadow-xs"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Terapkan ke Formulir Agenda</span>
+            </Button>
+          )}
+        </div>
       </div>
     </Modal>
   )

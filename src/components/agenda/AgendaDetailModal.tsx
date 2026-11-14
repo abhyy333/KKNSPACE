@@ -217,6 +217,7 @@ export const AgendaDetailModal: React.FC<AgendaDetailModalProps> = ({
       title="Detail Agenda & Realisasi Kegiatan"
       description="Pantau tahapan realisasi, pembagian tugas divisi, logistik, dan riwayat aktivitas posko."
       maxWidthClass="max-w-3xl"
+      scrollableContent={false}
     >
       {isLoading || !agenda ? (
         <div className="py-12 flex flex-col items-center justify-center space-y-3">
@@ -224,8 +225,9 @@ export const AgendaDetailModal: React.FC<AgendaDetailModalProps> = ({
           <p className="text-xs text-charcoal-muted">Memuat rincian agenda...</p>
         </div>
       ) : (
-        <div className="space-y-5 max-h-[78vh] overflow-y-auto pr-1">
-          {/* Header & Badges */}
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5">
+            {/* Header & Badges */}
           <div className="border-b border-warm-200 pb-4 space-y-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <Badge variant="outline" className="border-forest text-forest bg-forest/5 text-xs font-semibold">
@@ -780,78 +782,77 @@ export const AgendaDetailModal: React.FC<AgendaDetailModalProps> = ({
             </div>
           )}
         </div>
-      )}
 
-      {/* Footer Actions */}
-      {agenda && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-4 border-t border-warm-200 mt-4">
-          {/* Status Execution Dropdown / Toggle */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-charcoal-muted">Status:</span>
-            <select
-              value={agenda.execution_status || 'not_started'}
-              disabled={!canEditAgenda || executionMutation.isPending}
-              onChange={(e) =>
-                executionMutation.mutate(e.target.value as AgendaExecutionStatus)
-              }
-              className="rounded-md border border-warm-300 bg-white px-2 py-1 text-xs text-charcoal focus:border-forest focus:outline-none"
-            >
-              <option value="not_started">Belum Dimulai</option>
-              <option value="in_progress">Sedang Berjalan</option>
-              <option value="completed">Selesai</option>
-              <option value="postponed">Ditunda</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 justify-end">
-            {/* Leadership Publication Toggle */}
-            {isLeaderOrAdmin && (
-              <>
-                {agenda.publication_status === 'published' ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={publicationMutation.isPending}
-                    onClick={() => publicationMutation.mutate('internal')}
-                    className="text-xs text-charcoal"
-                  >
-                    Jadikan Internal
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={publicationMutation.isPending}
-                    onClick={() => publicationMutation.mutate('published')}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Publikasikan ke Portal
-                  </Button>
-                )}
-              </>
-            )}
-
-            {canEditAgenda && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  onClose()
-                  onEdit(agenda)
-                }}
-                className="text-xs gap-1"
+        {/* Sticky Modal Footer Actions */}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {/* Status Execution Dropdown / Toggle */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-charcoal-muted">Status:</span>
+              <select
+                value={agenda.execution_status || 'not_started'}
+                disabled={!canEditAgenda || executionMutation.isPending}
+                onChange={(e) =>
+                  executionMutation.mutate(e.target.value as AgendaExecutionStatus)
+                }
+                className="rounded-md border border-warm-300 bg-white px-2 py-1 text-xs text-charcoal focus:border-forest focus:outline-none"
               >
-                <Edit3 className="h-3.5 w-3.5" />
-                <span>Edit Agenda</span>
-              </Button>
-            )}
+                <option value="not_started">Belum Dimulai</option>
+                <option value="in_progress">Sedang Berjalan</option>
+                <option value="completed">Selesai</option>
+                <option value="postponed">Ditunda</option>
+              </select>
+            </div>
 
-            <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs">
-              Tutup
-            </Button>
+            <div className="flex items-center gap-2 justify-end flex-wrap">
+              {/* Leadership Publication Toggle */}
+              {isLeaderOrAdmin && (
+                <>
+                  {agenda.publication_status === 'published' ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={publicationMutation.isPending}
+                      onClick={() => publicationMutation.mutate('internal')}
+                      className="text-xs text-charcoal"
+                    >
+                      Jadikan Internal
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={publicationMutation.isPending}
+                      onClick={() => publicationMutation.mutate('published')}
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                    >
+                      <Globe className="h-3.5 w-3.5" />
+                      Publikasikan ke Portal
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {canEditAgenda && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onClose()
+                    onEdit(agenda)
+                  }}
+                  className="text-xs gap-1"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  <span>Edit Agenda</span>
+                </Button>
+              )}
+
+              <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-xs">
+                Tutup
+              </Button>
+            </div>
           </div>
         </div>
       )}
