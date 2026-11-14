@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom'
 import {
   fetchPublicTimelineBundle,
   formatStageDateRange,
-  formatIndonesianDate,
   type PublicTimelineBundle,
 } from '@/services/timelineApi'
 import {
@@ -24,8 +23,6 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
-  Flag,
   LayoutGrid,
   List,
   Target,
@@ -53,7 +50,6 @@ export const TimelineKknPage: React.FC = () => {
 
   const settings = data?.settings
   const stages = data?.stages || []
-  const currentStage = data?.currentStage
   const progress = data?.progress || {
     percentage: 0,
     currentDay: 0,
@@ -63,11 +59,8 @@ export const TimelineKknPage: React.FC = () => {
     remainingDays: 0,
   }
 
-  // Today formatted
-  const todayFormatted = data?.todayFormatted || formatIndonesianDate(new Date().toISOString().slice(0, 10))
-
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-charcoal pb-32">
+    <div className="min-h-screen bg-[#FAF8F5] text-charcoal pb-16">
       {/* ========================================================= */}
       {/* 1. HERO SECTION: Full-width Landscape + Editorial Depth  */}
       {/* ========================================================= */}
@@ -583,71 +576,6 @@ export const TimelineKknPage: React.FC = () => {
           </div>
         </Modal>
       )}
-
-      {/* ========================================================= */}
-      {/* 4. BOTTOM INFORMATION BAR: Fixed & Responsive Reference   */}
-      {/* ========================================================= */}
-      <aside aria-label="Informasi Pelaksanaan KKN" className="fixed bottom-3 inset-x-3 sm:inset-x-6 max-w-5xl mx-auto z-40 animate-fade-in-up">
-        <div className="rounded-2xl bg-[#FAF8F5]/95 backdrop-blur-md border border-warm-300 shadow-xl p-3 sm:p-4 text-xs text-charcoal">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6">
-            {/* 3 Metric Items matching reference image */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-6 flex-1 text-center sm:text-left">
-              {/* 1. Tanggal Hari Ini */}
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-warm-200/80 text-charcoal flex items-center justify-center shrink-0">
-                  <Calendar className="h-4 w-4 text-[#1C3B29]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] text-charcoal-muted block font-medium">Tanggal Hari Ini</span>
-                  <strong className="text-xs sm:text-sm font-semibold truncate block">
-                    {todayFormatted}
-                  </strong>
-                </div>
-              </div>
-
-              {/* 2. Tahap Saat Ini */}
-              <div className="flex items-center gap-2 sm:gap-2.5 border-l border-warm-200 pl-2 sm:pl-6">
-                <div className="w-8 h-8 rounded-lg bg-warm-200/80 text-charcoal flex items-center justify-center shrink-0">
-                  <Flag className="h-4 w-4 text-[#1C3B29]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] text-charcoal-muted block font-medium">Tahap Saat Ini</span>
-                  <strong className="text-xs sm:text-sm font-semibold text-[#1C3B29] truncate block">
-                    {currentStage?.title || 'Pelaksanaan'}
-                  </strong>
-                </div>
-              </div>
-
-              {/* 3. Sisa Waktu */}
-              <div className="flex items-center gap-2 sm:gap-2.5 border-l border-warm-200 pl-2 sm:pl-6">
-                <div className="w-8 h-8 rounded-lg bg-warm-200/80 text-charcoal flex items-center justify-center shrink-0">
-                  <Clock className="h-4 w-4 text-[#1C3B29]" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] text-charcoal-muted block font-medium">Sisa Waktu</span>
-                  <strong className="text-xs sm:text-sm font-semibold text-[#1C3B29] truncate block">
-                    {progress.remainingDays > 0 ? `${progress.remainingDays} hari lagi` : 'Selesai'}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Action CTA Button matching reference */}
-            <div className="shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-warm-200">
-              <Link to="/workspace/agenda" className="w-full sm:w-auto block">
-                <Button
-                  size="sm"
-                  className="w-full sm:w-auto bg-[#1C3B29] hover:bg-[#132A1D] text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-subtle gap-1.5 transition-all"
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>Lihat Kalender Kegiatan</span>
-                  <ArrowRight className="h-3 w-3" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </aside>
     </div>
   )
 }
