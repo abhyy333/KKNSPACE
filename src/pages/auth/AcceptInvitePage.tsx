@@ -14,7 +14,6 @@ import {
   Loader2,
   UserCheck,
   User,
-  Sparkles,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { adminApi, EdgeFunctionError } from '@/services/adminApi'
@@ -560,8 +559,7 @@ export const AcceptInvitePage: React.FC = () => {
 
               {/* Information Guidance */}
               <div className="p-3 bg-sage-50/60 rounded-lg border border-sage-200 text-xs text-sage-900 space-y-1">
-                <div className="flex items-center gap-1.5 font-semibold text-sage-800 text-[11px]">
-                  <Sparkles className="h-3.5 w-3.5" />
+                <div className="font-semibold text-sage-800 text-[11px]">
                   <span>Langkah Aktivasi Akun</span>
                 </div>
                 <p className="text-[11px] text-sage-800/90 leading-relaxed">

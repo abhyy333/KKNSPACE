@@ -24,7 +24,6 @@ import {
   Edit2,
   ListChecks,
   User,
-  Handshake,
 } from 'lucide-react'
 
 export const AgreementsManagementView: React.FC = () => {
@@ -70,8 +69,7 @@ export const AgreementsManagementView: React.FC = () => {
       <div className="rounded-2xl border border-warm-200/90 bg-white p-5 sm:p-6 shadow-2xs space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-[#B19A6B]">
-              <Handshake className="h-4 w-4" />
+            <div className="text-xs font-mono font-semibold uppercase tracking-wider text-[#B19A6B]">
               <span>Sponsorship Agreements &amp; Snapshots</span>
             </div>
             <h3 className="text-lg font-serif font-bold text-charcoal">

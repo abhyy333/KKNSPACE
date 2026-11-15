@@ -8,7 +8,7 @@ import {
   SPONSOR_CONTRIBUTION_LABELS,
   type PublicSponsor,
 } from '@/types/sponsor'
-import { ArrowRight, Globe, ExternalLink, Sparkles } from 'lucide-react'
+import { ArrowRight, Globe, ExternalLink } from 'lucide-react'
 
 export const HomeSponsorsSection: React.FC = () => {
   const { data: sponsors = [], isLoading } = useQuery({
@@ -75,9 +75,6 @@ export const HomeSponsorsSection: React.FC = () => {
       ) : sponsors.length === 0 ? (
         /* Empty State */
         <div className="rounded-3xl border border-warm-300 bg-white p-8 sm:p-14 text-center shadow-2xs space-y-4 max-w-3xl mx-auto">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-warm-100 text-[#19382B] mb-1">
-            <Sparkles className="h-5 w-5 text-[#B19A6B]" />
-          </div>
           <h3 className="text-lg sm:text-xl font-serif font-medium text-charcoal">
             Perjalanan pengabdian ini terbuka untuk kolaborasi.
           </h3>

@@ -154,12 +154,9 @@ export const PartnershipContactSettingsView: React.FC = () => {
       {/* Header & Permission Callout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-forest" />
-            <h2 className="text-lg font-serif font-bold text-charcoal">
-              Partnership Contact Settings
-            </h2>
-          </div>
+          <h2 className="text-lg font-serif font-bold text-charcoal">
+            Partnership Contact Settings
+          </h2>
           <p className="text-xs text-charcoal-muted mt-1 leading-relaxed max-w-2xl">
             Kelola saluran tujuan tombol publik <strong>&ldquo;Konsultasikan Paket&rdquo;</strong> di portal sponsor.
             Anda dapat beralih antara WhatsApp dan Email kapan saja tanpa kehilangan konfigurasi yang telah disimpan.
@@ -467,7 +464,6 @@ export const PartnershipContactSettingsView: React.FC = () => {
         <CardContent className="p-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center gap-2 justify-center md:justify-start">
-              <span className="w-1.5 h-1.5 rounded-full bg-forest" />
               <span className="text-xs font-semibold text-charcoal">Status Siar Publik:</span>
               <Badge className="bg-forest text-white text-[10px]">
                 {activeDestination === 'whatsapp' ? 'WhatsApp Terhubung' : 'Email Terhubung'}

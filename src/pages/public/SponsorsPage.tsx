@@ -19,13 +19,11 @@ import {
   ExternalLink,
   Globe,
   Share2,
-  Sparkles,
   CheckCircle2,
   ShieldCheck,
   Mail,
   MessageCircle,
   ArrowRight,
-  Handshake,
 } from 'lucide-react'
 
 interface CategoryConfig {
@@ -163,9 +161,6 @@ export const SponsorsPage: React.FC = () => {
         ) : sponsors.length === 0 ? (
           /* Empty State */
           <div className="rounded-3xl border border-warm-300 bg-white p-10 sm:p-16 text-center shadow-2xs space-y-4 max-w-2xl mx-auto">
-            <div className="w-12 h-12 rounded-full bg-warm-100 text-[#19382B] flex items-center justify-center mx-auto mb-2">
-              <Sparkles className="h-5 w-5 text-[#B19A6B]" />
-            </div>
             <h2 className="text-xl sm:text-2xl font-serif font-medium text-[#252A26]">
               Perjalanan pengabdian ini terbuka untuk kolaborasi.
             </h2>
@@ -419,8 +414,7 @@ export const SponsorsPage: React.FC = () => {
         {/* ========================================================= */}
         <section className="pt-10 border-t border-warm-300/80 space-y-10">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-warm-100 border border-warm-200 text-[11px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold">
-              <Handshake className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-warm-100 border border-warm-200 text-[11px] font-mono tracking-widest text-[#B19A6B] uppercase font-semibold">
               <span>OPPORTUNITIES · SPONSORSHIP TIERS</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-serif font-medium text-[#252A26] tracking-tight">
@@ -467,8 +461,8 @@ export const SponsorsPage: React.FC = () => {
                         {pkg.badge_label}
                       </span>
                       {isDiamond && (
-                        <span className="text-[10px] font-mono tracking-wider text-[#B19A6B] flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" /> Utama
+                        <span className="text-[10px] font-mono tracking-wider text-[#B19A6B] font-semibold uppercase">
+                          Utama
                         </span>
                       )}
                     </div>

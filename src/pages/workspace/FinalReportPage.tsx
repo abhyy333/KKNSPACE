@@ -15,12 +15,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   Printer,
-  Award,
   Users,
   Wallet,
   Package,
   ClipboardList,
-  Sparkles,
   ArrowLeft,
 } from 'lucide-react'
 
@@ -264,8 +262,7 @@ export const FinalReportPage: React.FC = () => {
           {/* 4. Realisasi Program Kerja */}
           <div className="space-y-4">
             <div className="border-b border-warm-200 pb-2 flex items-center justify-between">
-              <h4 className="font-serif font-semibold text-base text-charcoal flex items-center gap-2">
-                <Award className="h-4 w-4 text-sage-800" />
+              <h4 className="font-serif font-semibold text-base text-charcoal">
                 <span>II. Realisasi &amp; Pencapaian Program Kerja</span>
               </h4>
               <span className="text-xs text-charcoal-muted">{programs.length} Program Terdaftar</span>
@@ -378,8 +375,7 @@ export const FinalReportPage: React.FC = () => {
           {/* 8. Dokumentasi Kegiatan Utama */}
           <div className="space-y-4">
             <div className="border-b border-warm-200 pb-2 flex items-center justify-between">
-              <h4 className="font-serif font-semibold text-base text-charcoal flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-sage-800" />
+              <h4 className="font-serif font-semibold text-base text-charcoal">
                 <span>VI. Arsip Dokumentasi Kegiatan Utama</span>
               </h4>
               <span className="text-xs text-charcoal-muted">Dokumentasi Terpublikasi</span>

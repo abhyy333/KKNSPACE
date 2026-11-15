@@ -7,7 +7,6 @@ import {
   Image as ImageIcon,
   Calendar,
   MapPin,
-  Sparkles,
   Megaphone,
   Award,
 } from 'lucide-react'
@@ -249,8 +248,7 @@ export const HomePage: React.FC = () => {
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-warm-300 pb-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-              <Sparkles className="h-3.5 w-3.5" />
+            <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
               <span>Program Kerja Prioritas</span>
             </div>
             <h2 className="text-xl font-serif font-semibold text-charcoal mt-1">

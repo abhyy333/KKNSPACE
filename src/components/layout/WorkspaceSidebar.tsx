@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import { WORKSPACE_NAV } from '@/config/navigation'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Shield, Sparkles } from 'lucide-react'
+import { ArrowLeft, Shield } from 'lucide-react'
 
 interface WorkspaceSidebarProps {
   isOpen: boolean
@@ -72,7 +72,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         {/* User Role Tag */}
         <div className="px-4 py-3 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-charcoal-muted min-w-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0" />
             <span className="shrink-0">Peran:</span>
             <span
               className="font-medium text-sage-800 bg-sage-100 px-2 py-0.5 rounded text-[11px] truncate"
@@ -155,8 +154,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>Halaman Publik Desa</span>
           </NavLink>
-          <div className="flex items-center gap-2 px-2 text-[10px] text-charcoal-light">
-            <Sparkles className="h-3 w-3 text-sage-500" />
+          <div className="px-2 text-[10px] text-charcoal-light">
             <span>KKN Kolaborasi 2026</span>
           </div>
         </div>

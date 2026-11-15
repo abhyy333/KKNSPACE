@@ -45,7 +45,6 @@ import {
   Megaphone,
   Plus,
   RefreshCw,
-  Sparkles,
   Trash2,
   Users,
 } from 'lucide-react'
@@ -870,7 +869,7 @@ export const OverviewPage: React.FC = () => {
 
           {/* B. Aktivitas Terbaru Kelompok */}
           <Card>
-            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+            <CardHeader className="pb-3">
               <div>
                 <CardTitle className="text-base font-serif">
                   Aktivitas Terbaru
@@ -879,7 +878,6 @@ export const OverviewPage: React.FC = () => {
                   Pembaruan terkini dari program kerja, tugas tim, dan kegiatan posko
                 </CardDescription>
               </div>
-              <Sparkles className="h-4 w-4 text-sage-600" />
             </CardHeader>
             <CardContent>
               {!data.recentActivities || data.recentActivities.length === 0 ? (

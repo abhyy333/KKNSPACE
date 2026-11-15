@@ -10,7 +10,7 @@ import {
   SPONSORSHIP_TIER_COLORS,
   type SponsorshipPackage,
 } from '@/types/sponsor'
-import { Edit3, CheckCircle2, Eye, EyeOff, Layers } from 'lucide-react'
+import { Edit3, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 
 export const PackageManagementView: React.FC = () => {
   const queryClient = useQueryClient()
@@ -26,8 +26,7 @@ export const PackageManagementView: React.FC = () => {
     <div className="space-y-6">
       {/* Header Info */}
       <div className="rounded-2xl border border-warm-200/90 bg-white p-5 sm:p-6 shadow-2xs space-y-2">
-        <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase tracking-wider text-[#B19A6B]">
-          <Layers className="h-4 w-4" />
+        <div className="text-xs font-mono font-semibold uppercase tracking-wider text-[#B19A6B]">
           <span>Sponsorship Packages &amp; Tiers</span>
         </div>
         <h3 className="text-lg font-serif font-bold text-charcoal">

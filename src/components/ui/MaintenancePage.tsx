@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Home,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react'
 import { Button } from './button'
 import type { MaintenanceConfig } from '@/types/maintenance'
@@ -144,14 +143,11 @@ export const MaintenancePage: React.FC<MaintenancePageProps> = ({
 
         {/* Operation Info Grid */}
         <div className="bg-warm-50/80 border border-warm-200/80 rounded-2xl p-4 sm:p-5 text-left space-y-3 text-xs sm:text-sm">
-          <div className="flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-sage-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-medium text-charcoal block">Aktivitas Pemeliharaan:</span>
-              <span className="text-charcoal-muted leading-normal block mt-0.5">
-                {workDescription}
-              </span>
-            </div>
+          <div>
+            <span className="font-medium text-charcoal block">Aktivitas Pemeliharaan:</span>
+            <span className="text-charcoal-muted leading-normal block mt-0.5">
+              {workDescription}
+            </span>
           </div>
 
           {startTime && (

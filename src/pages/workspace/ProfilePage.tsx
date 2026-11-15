@@ -16,7 +16,6 @@ import {
   Save,
   Shield,
   Trash2,
-  UserCog,
   Users,
   KeyRound,
   Lock,
@@ -311,8 +310,7 @@ export const ProfilePage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-            <UserCog className="h-3.5 w-3.5" />
+          <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
             <span>Identitas Mandiri Anggota</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">

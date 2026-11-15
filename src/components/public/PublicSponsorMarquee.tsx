@@ -88,8 +88,7 @@ export const PublicSponsorMarquee: React.FC = () => {
         className="w-full border-b border-warm-200/90 bg-[#FAF9F6] text-charcoal py-1 px-4 sm:px-6 relative z-30"
       >
         <div className="mx-auto max-w-7xl flex items-center justify-center gap-3">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-charcoal-muted">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#B19A6B]" />
+          <div className="flex items-center text-[11px] font-mono uppercase tracking-widest text-charcoal-muted">
             <span>Official Partner:</span>
           </div>
           {renderSponsorItem(single, 'single')}
@@ -106,8 +105,7 @@ export const PublicSponsorMarquee: React.FC = () => {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 flex items-center">
         {/* Left Anchor Label */}
-        <div className="hidden sm:flex items-center gap-2 pr-4 border-r border-warm-300/80 shrink-0 select-none z-10 bg-[#FAF9F6]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#B19A6B]" />
+        <div className="hidden sm:flex items-center pr-4 border-r border-warm-300/80 shrink-0 select-none z-10 bg-[#FAF9F6]">
           <span className="text-[10px] sm:text-[11px] font-mono font-semibold uppercase tracking-widest text-charcoal-muted whitespace-nowrap">
             Partners &amp; Sponsors
           </span>

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Compass, Map, ChevronRight, Award } from 'lucide-react'
+import { MapPin, Compass, Map, ChevronRight } from 'lucide-react'
 
 interface VillageHeroProps {
   title?: string
@@ -55,12 +55,10 @@ export const VillageHero: React.FC<VillageHeroProps> = ({
 
         {/* Badges / Accolades */}
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2 text-xs text-warm-200">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/30 border border-white/10">
-            <Award className="h-4 w-4 text-amber-400" />
+          <div className="px-3 py-1 rounded-lg bg-black/30 border border-white/10 font-medium">
             <span>Top 10 Desa Budaya Unggulan Nasional (2022)</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/30 border border-white/10">
-            <span className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
+          <div className="px-3 py-1 rounded-lg bg-black/30 border border-white/10 font-medium">
             <span>Desa Wisata Rintisan Kemenpar (#63548)</span>
           </div>
         </div>

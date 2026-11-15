@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import {
-  Map,
-} from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { VillageSubnav } from '@/components/village/VillageSubnav'
@@ -47,8 +44,7 @@ export const VillageTerritoryPage: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
         {/* Title Header */}
         <div className="border-b border-warm-300 pb-5 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-            <Map className="h-4 w-4" />
+          <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
             <span>Interactive Geographic Explorer</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-charcoal">

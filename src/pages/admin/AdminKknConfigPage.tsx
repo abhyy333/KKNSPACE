@@ -12,10 +12,6 @@ import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   Save,
   RefreshCw,
-  GraduationCap,
-  MapPin,
-  Calendar,
-  Phone,
 } from 'lucide-react'
 
 export const AdminKknConfigPage: React.FC = () => {
@@ -189,8 +185,7 @@ export const AdminKknConfigPage: React.FC = () => {
           {/* Section A: Identitas Kelompok */}
           <Card className="bg-white">
             <CardHeader className="p-5 pb-3 border-b border-warm-200">
-              <CardTitle className="text-sm font-serif font-semibold flex items-center gap-2 text-charcoal">
-                <GraduationCap className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-sm font-serif font-semibold text-charcoal">
                 <span>A. Identitas Kelompok KKN</span>
               </CardTitle>
               <CardDescription className="text-xs">
@@ -267,8 +262,7 @@ export const AdminKknConfigPage: React.FC = () => {
           {/* Section B: Lokasi Penempatan Posko */}
           <Card className="bg-white">
             <CardHeader className="p-5 pb-3 border-b border-warm-200">
-              <CardTitle className="text-sm font-serif font-semibold flex items-center gap-2 text-charcoal">
-                <MapPin className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-sm font-serif font-semibold text-charcoal">
                 <span>B. Lokasi Penempatan Wilayah &amp; Posko</span>
               </CardTitle>
               <CardDescription className="text-xs">
@@ -352,8 +346,7 @@ export const AdminKknConfigPage: React.FC = () => {
           {/* Section C: Periode KKN */}
           <Card className="bg-white">
             <CardHeader className="p-5 pb-3 border-b border-warm-200">
-              <CardTitle className="text-sm font-serif font-semibold flex items-center gap-2 text-charcoal">
-                <Calendar className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-sm font-serif font-semibold text-charcoal">
                 <span>C. Periode Waktu KKN</span>
               </CardTitle>
               <CardDescription className="text-xs">
@@ -415,8 +408,7 @@ export const AdminKknConfigPage: React.FC = () => {
           {/* Section D: Pembimbing & Posko */}
           <Card className="bg-white">
             <CardHeader className="p-5 pb-3 border-b border-warm-200">
-              <CardTitle className="text-sm font-serif font-semibold flex items-center gap-2 text-charcoal">
-                <Phone className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-sm font-serif font-semibold text-charcoal">
                 <span>D. Dosen Pembimbing (DPL) &amp; Informasi Posko</span>
               </CardTitle>
               <CardDescription className="text-xs">

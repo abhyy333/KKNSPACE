@@ -157,8 +157,7 @@ export const SponsorPreviewModal: React.FC<SponsorPreviewModalProps> = ({
               Pratinjau Logo Strip di Footer Halaman Publik
             </span>
             <div className="rounded-2xl border border-warm-200/90 bg-white p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#B19A6B]" />
+              <div className="flex items-center">
                 <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-charcoal">
                   Official Partners &amp; Sponsors
                 </span>

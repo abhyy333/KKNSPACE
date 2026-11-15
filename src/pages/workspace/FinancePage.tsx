@@ -14,7 +14,6 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
-  CalendarRange,
   ShieldCheck,
   Download,
 } from 'lucide-react'
@@ -416,8 +415,7 @@ export const FinancePage: React.FC = () => {
         <CardContent className="p-5 sm:p-6 space-y-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-warm-200 pb-4">
             <div>
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-sage-700 uppercase tracking-wider">
-                <CalendarRange className="h-3.5 w-3.5" />
+              <div className="text-xs font-semibold text-sage-700 uppercase tracking-wider">
                 <span>Rekap Periode & Kategori</span>
               </div>
               <h2 className="text-base font-serif font-semibold text-charcoal mt-1">

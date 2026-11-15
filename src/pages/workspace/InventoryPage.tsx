@@ -58,7 +58,6 @@ import {
   Printer,
   FileCheck,
   ArrowRight,
-  Handshake,
   Download,
   Camera,
   Image as ImageIcon,
@@ -786,8 +785,7 @@ export const InventoryPage: React.FC = () => {
           <CardHeader className="p-4 sm:p-5 border-b border-warm-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <CardTitle className="text-base font-serif font-semibold text-charcoal flex items-center gap-2">
-                  <Handshake className="h-4 w-4 text-purple-700" />
+                <CardTitle className="text-base font-serif font-semibold text-charcoal">
                   <span>Sistem Serah Terima &amp; Perpindahan Pemegang Barang</span>
                 </CardTitle>
                 <CardDescription className="text-xs text-charcoal-muted mt-1">

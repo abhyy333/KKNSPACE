@@ -20,7 +20,6 @@ import {
   AlertTriangle,
   Clock,
   ArrowRight,
-  Layers,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -273,8 +272,7 @@ export const PoskoOperationsSummaryCard: React.FC<PoskoOperationsSummaryCardProp
       <CardHeader className="pb-3 border-b border-warm-200">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-sm font-serif font-semibold text-charcoal flex items-center gap-2">
-              <Layers className="h-4 w-4 text-sage-700" />
+            <CardTitle className="text-sm font-serif font-semibold text-charcoal">
               <span>Ringkasan Operasional Posko</span>
             </CardTitle>
             <CardDescription className="text-[11px] text-charcoal-muted mt-0.5">

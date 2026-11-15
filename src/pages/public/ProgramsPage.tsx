@@ -58,8 +58,7 @@ export const ProgramsPage: React.FC = () => {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <div className="border-b border-warm-300 pb-5">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-          <Award className="h-3.5 w-3.5" />
+        <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
           <span>Transparansi Publik</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-charcoal mt-1">

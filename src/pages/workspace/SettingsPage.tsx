@@ -10,13 +10,9 @@ import { fetchGroupSettings } from '@/services/dashboardApi'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import {
   AlertCircle,
-  Calendar,
-  MapPin,
   RefreshCw,
   Shield,
-  GraduationCap,
   ExternalLink,
-  Phone,
   Compass,
   ArrowRight,
 } from 'lucide-react'
@@ -131,8 +127,7 @@ export const SettingsPage: React.FC = () => {
             {/* 1. Identitas Kelompok */}
             <Card className="bg-white">
               <CardHeader className="p-5 pb-3">
-                <CardTitle className="text-base font-serif flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-sage-700" />
+                <CardTitle className="text-base font-serif">
                   <span>A. Identitas Kelompok KKN</span>
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -170,8 +165,7 @@ export const SettingsPage: React.FC = () => {
             {/* 2. Lokasi Penempatan Posko */}
             <Card className="bg-white">
               <CardHeader className="p-5 pb-3">
-                <CardTitle className="text-base font-serif flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-sage-700" />
+                <CardTitle className="text-base font-serif">
                   <span>B. Lokasi Penempatan &amp; Posko</span>
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -229,8 +223,7 @@ export const SettingsPage: React.FC = () => {
             {/* 3. Periode Waktu KKN */}
             <Card className="bg-white">
               <CardHeader className="p-5 pb-3">
-                <CardTitle className="text-base font-serif flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-sage-700" />
+                <CardTitle className="text-base font-serif">
                   <span>C. Periode Waktu Pelaksanaan KKN</span>
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -259,8 +252,7 @@ export const SettingsPage: React.FC = () => {
             {/* 4. Dosen Pembimbing & Kontak Posko */}
             <Card className="bg-white">
               <CardHeader className="p-5 pb-3">
-                <CardTitle className="text-base font-serif flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-sage-700" />
+                <CardTitle className="text-base font-serif">
                   <span>D. Pembimbing Lapangan &amp; Kontak Posko</span>
                 </CardTitle>
                 <CardDescription className="text-xs">

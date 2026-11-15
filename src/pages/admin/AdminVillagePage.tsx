@@ -6,7 +6,7 @@ import {
   AlertCircle,
   FileText,
   Compass,
-  Sparkles,
+  Landmark,
   Image as ImageIcon,
   BookOpen,
   Layers,
@@ -153,7 +153,7 @@ export const AdminVillagePage: React.FC = () => {
           { id: 'geodata', label: 'Data Peta & GeoJSON', icon: Layers },
           { id: 'dusuns', label: '7 Dusun', icon: Map },
           { id: 'destinations', label: 'Destinasi Wisata', icon: Compass },
-          { id: 'culture', label: 'Adat & Budaya', icon: Sparkles },
+          { id: 'culture', label: 'Adat & Budaya', icon: Landmark },
           { id: 'gallery', label: 'Galeri Visual', icon: ImageIcon },
           { id: 'references', label: 'Sumber Referensi', icon: BookOpen },
         ].map((tab) => {

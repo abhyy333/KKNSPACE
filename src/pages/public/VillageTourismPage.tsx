@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  Compass,
   MapPin,
   CheckCircle2,
   ChevronRight,
@@ -67,8 +66,7 @@ export const VillageTourismPage: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
         {/* Header Section */}
         <div className="border-b border-warm-300 pb-5 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
-            <Compass className="h-4 w-4" />
+          <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
             <span>Jejaring Desa Wisata #63548</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-charcoal">

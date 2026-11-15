@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   MapPin,
-  Sparkles,
-  Landmark,
   ArrowRight,
   Users,
   ExternalLink,
@@ -239,8 +237,7 @@ export const VillageProfilePage: React.FC = () => {
             {/* Tata Kelola Desa */}
             <Card className="border-warm-300 bg-white shadow-sm">
               <CardHeader className="pb-3 border-b border-warm-200">
-                <CardTitle className="text-sm font-serif font-bold text-charcoal flex items-center gap-2">
-                  <Landmark className="h-4 w-4 text-sage-600" />
+                <CardTitle className="text-sm font-serif font-bold text-charcoal">
                   <span>Tata Kelola Administrasi</span>
                 </CardTitle>
               </CardHeader>
@@ -298,8 +295,7 @@ export const VillageProfilePage: React.FC = () => {
             {/* Posko KKN Hubungan Komunitas */}
             <Card className="border-warm-300 bg-sage-50/80 shadow-sm border-l-4 border-l-sage-600">
               <CardContent className="p-5 space-y-3">
-                <div className="flex items-center gap-2 text-sage-900 text-xs font-bold">
-                  <Sparkles className="h-4 w-4 text-sage-600" />
+                <div className="text-sage-900 text-xs font-bold">
                   <span>Kemitraan KKN SPACE</span>
                 </div>
                 <p className="text-xs text-charcoal leading-relaxed">

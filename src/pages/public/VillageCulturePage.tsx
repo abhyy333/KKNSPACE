@@ -2,7 +2,6 @@ import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  Sparkles,
   Award,
   ChevronRight,
 } from 'lucide-react'
@@ -24,8 +23,7 @@ export const VillageCulturePage: React.FC = () => {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-8 space-y-12">
         {/* Header Section */}
         <div className="border-b border-warm-300 pb-5 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-700">
-            <Sparkles className="h-4 w-4" />
+          <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
             <span>Adat, Kriya & Tradisi Takbenda</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-charcoal">
