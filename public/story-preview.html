@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KKN SPACE — Story Video Preview (9:16)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: #0b0f17;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+
+    /* Ambient Glow Background */
+    .ambient-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(6, 78, 59, 0.05) 50%, transparent 70%);
+      filter: blur(80px);
+      z-index: 0;
+      pointer-events: none;
+      animation: pulseGlow 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(1) translate(-20px, -20px); opacity: 0.6; }
+      100% { transform: scale(1.2) translate(30px, 30px); opacity: 0.9; }
+    }
+
+    /* Container */
+    .app-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* Controls Header */
+    .top-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 13px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: blinkDot 1.5s infinite;
+    }
+
+    @keyframes blinkDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 50px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* Phone Device Mockup Frame (9:16 standard) */
+    .device-canvas {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 710px;
+      border-radius: 44px;
+      overflow: hidden;
+      background: #022c22;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8),
+                  0 0 0 10px #1e293b,
+                  0 0 0 12px #334155;
+      position: relative;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .device-canvas.frameless {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      border-radius: 20px;
+    }
+
+    /* Phone Dynamic Island / Notch */
+    .phone-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 24px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+    }
+
+    .island-lens {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #111e2e;
+      border: 1px solid #1e293b;
+    }
+
+    /* Instagram Story Progress Bars */
+    .story-progress-bar {
+      position: absolute;
+      top: 40px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      gap: 5px;
+      z-index: 90;
+    }
+
+    .progress-segment {
+      flex: 1;
+      height: 2.5px;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #ffffff;
+      border-radius: 3px;
+      transition: width 0.05s linear;
+    }
+
+    /* Story User Header */
+    .story-header {
+      position: absolute;
+      top: 50px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 90;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #047857;
+      border: 2px solid #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+
+    .verified-icon {
+      color: #38bdf8;
+      width: 13px;
+      height: 13px;
+    }
+
+    .user-time {
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Scene Stage */
+    .scene-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 90px 24px 60px 24px;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(0.96) translateY(12px);
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+    }
+
+    /* Scene 1: The Problem / Chaos */
+    .scene-1 {
+      background: linear-gradient(180deg, #091219 0%, #151b26 50%, #0c121e 100%);
+      text-align: center;
+    }
+
+    .tag-bubble {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+      animation: floatBadge 3s ease-in-out infinite;
+    }
+
+    @keyframes floatBadge {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .title-hook {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      color: #ffffff;
+    }
+
+    .highlight-red {
+      color: #f87171;
+      text-decoration: underline wavy #ef4444 2px;
+      text-underline-offset: 4px;
+    }
+
+    /* Chat Chaos Cards */
+    .chaos-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .chat-bubble {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: popChat 0.5s ease-out backwards;
+    }
+
+    .chat-bubble:nth-child(1) {
+      animation-delay: 0.2s;
+      border-left: 3px solid #ef4444;
+      transform: rotate(-1.5deg);
+    }
+    .chat-bubble:nth-child(2) {
+      animation-delay: 0.5s;
+      border-left: 3px solid #f59e0b;
+      transform: rotate(1.5deg);
+    }
+    .chat-bubble:nth-child(3) {
+      animation-delay: 0.8s;
+      border-left: 3px solid #3b82f6;
+      transform: rotate(-0.5deg);
+    }
+
+    @keyframes popChat {
+      0% { opacity: 0; transform: translateY(15px) scale(0.9); }
+      100% { opacity: 1; }
+    }
+
+    .chat-author {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 2px;
+    }
+
+    /* Scene 2: The Solution / KKN SPACE */
+    .scene-2 {
+      background: radial-gradient(circle at 50% 20%, #064e3b 0%, #022c22 45%, #051410 100%);
+      text-align: center;
+    }
+
+    .solution-tag {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      color: #6ee7b7;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 99px;
+      margin-bottom: 14px;
+    }
+
+    .logo-hero {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
+      margin-bottom: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo-hero img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+    }
+
+    .brand-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      background: linear-gradient(180deg, #ffffff 30%, #a7f3d0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .brand-tagline {
+      font-size: 13px;
+      color: #a7f3d0;
+      max-width: 280px;
+      line-height: 1.4;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    /* Mockup Browser Window */
+    .mockup-window {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    .window-header {
+      background: rgba(2, 44, 34, 0.9);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .window-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+
+    .window-url {
+      font-size: 10px;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 10px;
+      border-radius: 4px;
+      margin-left: 6px;
+      flex: 1;
+      text-align: left;
+    }
+
+    .window-body {
+      padding: 14px;
+      text-align: left;
+    }
+
+    .preview-pill {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .preview-heading {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .preview-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    /* Scene 3: Key Features Cards */
+    .scene-3 {
+      background: linear-gradient(180deg, #022c22 0%, #061c16 60%, #03140f 100%);
+      padding-top: 80px;
+    }
+
+    .features-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-card.highlight {
+      border-color: rgba(52, 211, 153, 0.4);
+      background: rgba(6, 78, 59, 0.35);
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2);
+      transform: scale(1.02);
+    }
+
+    .feature-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .icon-emerald { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .icon-amber { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .icon-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .icon-purple { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+
+    .feature-text {
+      flex: 1;
+    }
+
+    .feature-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .feature-subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    /* Scene 4: Call to Action */
+    .scene-4 {
+      background: radial-gradient(circle at 50% 30%, #065f46 0%, #022c22 55%, #011b15 100%);
+      text-align: center;
+    }
+
+    .final-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6ee7b7;
+      margin-bottom: 20px;
+    }
+
+    .final-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    .final-desc {
+      font-size: 13px;
+      color: #a7f3d0;
+      max-width: 290px;
+      line-height: 1.45;
+      margin-bottom: 28px;
+    }
+
+    /* Instagram Sticker Link Mockup */
+    .ig-link-sticker {
+      background: #ffffff;
+      color: #064e3b;
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.2);
+      transform: rotate(-2deg);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      animation: wiggleSticker 3s ease-in-out infinite;
+    }
+
+    @keyframes wiggleSticker {
+      0%, 100% { transform: rotate(-2deg) scale(1); }
+      50% { transform: rotate(1deg) scale(1.04); }
+    }
+
+    .ig-link-sticker span {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Story Bottom Bar */
+    .story-footer {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 90;
+    }
+
+    .reply-pill {
+      flex: 1;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 99px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .action-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Bottom Control Bar Outside Phone */
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+      padding: 8px;
+    }
+
+    .ctrl-btn {
+      background: #1e293b;
+      color: #ffffff;
+      border: 1px solid #334155;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .ctrl-btn:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .ctrl-btn.active {
+      background: #10b981;
+      border-color: #059669;
+      color: #064e3b;
+      font-weight: 700;
+    }
+
+    /* Instructions Section */
+    .record-guide {
+      width: 100%;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .record-guide strong {
+      color: #34d399;
+    }
+
+    .guide-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .step-num {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <div class="app-wrapper">
+    <!-- Top Meta Controls -->
+    <div class="top-controls">
+      <div class="badge-pill">
+        <span class="pulse-dot"></span>
+        <span>IG STORY PREVIEW (9:16)</span>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button id="toggleAudioBtn" class="btn-action">
+          <span id="audioIcon">🔇</span>
+          <span id="audioLabel">Beat Audio: OFF</span>
+        </button>
+        <button id="toggleFrameBtn" class="btn-action">
+          <span>📱</span>
+          <span id="frameLabel">Frame: ON</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Phone Canvas (9:16) -->
+    <div id="deviceCanvas" class="device-canvas">
+      <!-- Phone Notch / Island -->
+      <div id="phoneIsland" class="phone-island">
+        <div class="island-lens"></div>
+      </div>
+
+      <!-- Instagram Story Progress Bars (4 segments, 4 seconds each = 16s) -->
+      <div class="story-progress-bar">
+        <div class="progress-segment"><div class="progress-fill" id="fill-0"></div></div>
+        <div class="progress-segment"><div class="progress-fill" id="fill-1"></div></div>
+        <div class="progress-segment"><div class="progress-fill" id="fill-2"></div></div>
+        <div class="progress-segment"><div class="progress-fill" id="fill-3"></div></div>
+      </div>
+
+      <!-- Story User Header -->
+      <div class="story-header">
+        <div class="user-info">
+          <div class="user-avatar">
+            <img src="/brand/logo.png" alt="Logo KKN" onerror="this.src='/favicon.png'">
+          </div>
+          <div class="user-meta">
+            <span class="user-name">
+              kknspace.id
+              <svg class="verified-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+            </span>
+            <span class="user-time">KKN Pringgasela Sel. • 2 jam</span>
+          </div>
+        </div>
+        <div style="color: rgba(255,255,255,0.8); font-size: 18px; cursor: pointer;">✕</div>
+      </div>
+
+      <!-- Scenes Container -->
+      <div class="scene-stage">
+        
+        <!-- SCENE 0: The Hook & Chaos (0s - 4s) -->
+        <div class="scene scene-1 active" id="scene-0">
+          <div class="tag-bubble">🔴 POV: KKN 2026</div>
+          <h2 class="title-hook">
+            Capek koordinasi KKN masih pake <span class="highlight-red">Excel & WA</span> yang tenggelam?
+          </h2>
+          <div class="chaos-container">
+            <div class="chat-bubble">
+              <div class="chat-author">Bendahara KKN:</div>
+              <div>"Guys, tolong nota belanja proker kemarin siapa yang simpan ya? Kas posko minus nih 😭"</div>
+            </div>
+            <div class="chat-bubble">
+              <div class="chat-author">Sie Perlengkapan:</div>
+              <div>"Kamera sama speaker posko dipinjam kelompok mana? Di lemari ga ada!"</div>
+            </div>
+            <div class="chat-bubble">
+              <div class="chat-author">Ketua Kelompok:</div>
+              <div>"Warga nanya jadwal sosialisasi besok, posternya belum dishare..."</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 1: The Solution (4s - 8s) -->
+        <div class="scene scene-2" id="scene-1">
+          <div class="solution-tag">✨ SOLUSI KKN MODERN</div>
+          <div class="logo-hero">
+            <img src="/brand/logo.png" alt="KKN SPACE" onerror="this.src='/favicon.png'">
+          </div>
+          <h1 class="brand-title">KKN SPACE</h1>
+          <p class="brand-tagline">
+            Platform Terpadu: Website Publik Desa & Workspace Kolaborasi Mahasiswa.
+          </p>
+          <div class="mockup-window">
+            <div class="window-header">
+              <div class="window-dot dot-red"></div>
+              <div class="window-dot dot-yellow"></div>
+              <div class="window-dot dot-green"></div>
+              <div class="window-url">kknspace.id/workspace</div>
+            </div>
+            <div class="window-body">
+              <div class="preview-pill">ALL-IN-ONE SYSTEM</div>
+              <div class="preview-heading">Desa Pringgasela Selatan</div>
+              <div class="preview-desc">Semua proker, aset inventaris posko, dan laporan keuangan tercatat transparan dalam satu layar.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 2: Core Features (8s - 12s) -->
+        <div class="scene scene-3" id="scene-2">
+          <div class="solution-tag" style="align-self: center; margin-bottom: 12px;">🛠️ FITUR LENGKAP POSKO</div>
+          <div class="features-grid">
+            <div class="feature-card highlight" id="f-card-1">
+              <div class="feature-icon-box icon-emerald">📦</div>
+              <div class="feature-text">
+                <div class="feature-title">Inventaris & Logistik Posko</div>
+                <div class="feature-subtitle">Tracking barang pribadi & aset kelompok real-time.</div>
+              </div>
+            </div>
+            <div class="feature-card" id="f-card-2">
+              <div class="feature-icon-box icon-amber">💰</div>
+              <div class="feature-text">
+                <div class="feature-title">Transparansi Keuangan Kas</div>
+                <div class="feature-subtitle">Rekap kas masuk, keluar, dan nota bukti sah.</div>
+              </div>
+            </div>
+            <div class="feature-card" id="f-card-3">
+              <div class="feature-icon-box icon-blue">🎯</div>
+              <div class="feature-text">
+                <div class="feature-title">Proker & Jadwal Harian</div>
+                <div class="feature-subtitle">Timeline tugas terstruktur tanpa miss-komunikasi.</div>
+              </div>
+            </div>
+            <div class="feature-card" id="f-card-4">
+              <div class="feature-icon-box icon-purple">🏛️</div>
+              <div class="feature-text">
+                <div class="feature-title">Portal Publik Profil Desa</div>
+                <div class="feature-subtitle">Etalase digital potensi desa & dokumentasi abadi.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCENE 3: CTA & Closing (12s - 16s) -->
+        <div class="scene scene-4" id="scene-3">
+          <div class="final-badge">🚀 KKN LEBIH PROFESIONAL</div>
+          <h2 class="final-title">
+            KKN Lebih Terstruktur, <br><span style="color: #34d399;">Minim Drama.</span>
+          </h2>
+          <p class="final-desc">
+            Bikin kelompok KKN kamu selangkah lebih maju dengan sistem digital terpadu.
+          </p>
+
+          <div class="ig-link-sticker" onclick="window.open('/workspace', '_blank')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span>COBA SEKARANG ➔</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Story Footer Bar -->
+      <div class="story-footer">
+        <div class="reply-pill">Kirim pesan...</div>
+        <div class="action-icon">🤍</div>
+        <div class="action-icon">✈️</div>
+      </div>
+    </div>
+
+    <!-- Playback Controls -->
+    <div class="playback-controls">
+      <button id="prevBtn" class="ctrl-btn">⏮️ Prev</button>
+      <button id="playPauseBtn" class="ctrl-btn active">⏸️ Pause</button>
+      <button id="nextBtn" class="ctrl-btn">Next ⏭️</button>
+      <button id="restartBtn" class="ctrl-btn">🔄 Ulangi</button>
+    </div>
+
+    <!-- Screen Recording Guide -->
+    <div class="record-guide">
+      <strong>🎥 Cara Rekam Jadi Video IG Story:</strong>
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div>Nyalakan <strong>Screen Recording</strong> bawaan HP atau PC (resolusi 1080p).</div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div>Klik tombol <strong>"Frame: OFF"</strong> di pojok kanan atas jika ingin merekam layarnya saja secara pas tanpa bezel HP.</div>
+      </div>
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div>Klik <strong>"Ulangi"</strong>, biarkan animasi berjalan otomatis selama 16 detik. Selesai! Kamu bisa langsung upload ke IG Story atau edit di CapCut.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const TOTAL_SCENES = 4;
+    const SCENE_DURATION = 4000; // 4 seconds per scene
+    let currentScene = 0;
+    let sceneStartTime = Date.now();
+    let isPlaying = true;
+    let animFrameId = null;
+    let audioContext = null;
+    let isAudioPlaying = false;
+    let audioTimer = null;
+
+    // Elements
+    const scenes = [
+      document.getElementById('scene-0'),
+      document.getElementById('scene-1'),
+      document.getElementById('scene-2'),
+      document.getElementById('scene-3')
+    ];
+    const fills = [
+      document.getElementById('fill-0'),
+      document.getElementById('fill-1'),
+      document.getElementById('fill-2'),
+      document.getElementById('fill-3')
+    ];
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const toggleFrameBtn = document.getElementById('toggleFrameBtn');
+    const frameLabel = document.getElementById('frameLabel');
+    const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+    const audioIcon = document.getElementById('audioIcon');
+    const audioLabel = document.getElementById('audioLabel');
+    const deviceCanvas = document.getElementById('deviceCanvas');
+    const phoneIsland = document.getElementById('phoneIsland');
+
+    // Switch Scene
+    function goToScene(index) {
+      if (index < 0) index = 0;
+      if (index >= TOTAL_SCENES) index = TOTAL_SCENES - 1;
+
+      currentScene = index;
+      sceneStartTime = Date.now();
+
+      // Update active scene classes
+      scenes.forEach((s, idx) => {
+        if (idx === currentScene) {
+          s.classList.add('active');
+        } else {
+          s.classList.remove('active');
+        }
+      });
+
+      // Update progress fills
+      fills.forEach((f, idx) => {
+        if (idx < currentScene) {
+          f.style.width = '100%';
+        } else if (idx > currentScene) {
+          f.style.width = '0%';
+        }
+      });
+
+      // Subtle dynamic feature highlight in scene 2
+      if (currentScene === 2) {
+        animateFeatureCards();
+      }
+    }
+
+    function animateFeatureCards() {
+      const cards = [
+        document.getElementById('f-card-1'),
+        document.getElementById('f-card-2'),
+        document.getElementById('f-card-3'),
+        document.getElementById('f-card-4')
+      ];
+      cards.forEach((c, idx) => {
+        setTimeout(() => {
+          cards.forEach(x => x.classList.remove('highlight'));
+          c.classList.add('highlight');
+        }, idx * 900);
+      });
+    }
+
+    // Main animation loop
+    function loop() {
+      if (!isPlaying) return;
+
+      const elapsed = Date.now() - sceneStartTime;
+      const progress = Math.min(elapsed / SCENE_DURATION, 1);
+
+      if (fills[currentScene]) {
+        fills[currentScene].style.width = (progress * 100) + '%';
+      }
+
+      if (progress >= 1) {
+        if (currentScene < TOTAL_SCENES - 1) {
+          goToScene(currentScene + 1);
+        } else {
+          // Finished all scenes, loop back cleanly
+          setTimeout(() => {
+            goToScene(0);
+          }, 400);
+        }
+      }
+
+      animFrameId = requestAnimationFrame(loop);
+    }
+
+    // Playback buttons
+    playPauseBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        sceneStartTime = Date.now() - (parseFloat(fills[currentScene].style.width || 0) / 100) * SCENE_DURATION;
+        playPauseBtn.innerHTML = '⏸️ Pause';
+        playPauseBtn.classList.add('active');
+        loop();
+      } else {
+        cancelAnimationFrame(animFrameId);
+        playPauseBtn.innerHTML = '▶️ Play';
+        playPauseBtn.classList.remove('active');
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      goToScene(0);
+      if (!isPlaying) {
+        isPlaying = true;
+        playPauseBtn.innerHTML = '⏸️ Pause';
+        playPauseBtn.classList.add('active');
+        loop();
+      }
+    });
+
+    prevBtn.addEventListener('click', () => {
+      goToScene(currentScene - 1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      goToScene(currentScene + 1);
+    });
+
+    // Toggle device frame
+    toggleFrameBtn.addEventListener('click', () => {
+      const isFrameless = deviceCanvas.classList.toggle('frameless');
+      if (isFrameless) {
+        phoneIsland.style.display = 'none';
+        frameLabel.textContent = 'Frame: OFF';
+      } else {
+        phoneIsland.style.display = 'flex';
+        frameLabel.textContent = 'Frame: ON';
+      }
+    });
+
+    // Tap on phone to navigate (Instagram behavior)
+    deviceCanvas.addEventListener('click', (e) => {
+      // Ignore if clicking links
+      if (e.target.closest('.ig-link-sticker') || e.target.closest('.user-info')) return;
+      const rect = deviceCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < rect.width / 3) {
+        goToScene(currentScene - 1);
+      } else {
+        goToScene(currentScene + 1);
+      }
+    });
+
+    // Synthesizer Audio Beat Generator (Web Audio API)
+    function playBeep(freq, type, duration, vol = 0.1) {
+      if (!audioContext) return;
+      try {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+        gain.gain.setValueAtTime(vol, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start();
+        osc.stop(audioContext.currentTime + duration);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function startLoFiBeat() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
+      // Simple melodic ambient chord progression
+      const chords = [
+        [261.63, 329.63, 392.00], // C
+        [220.00, 261.63, 329.63], // Am
+        [174.61, 220.00, 261.63], // F
+        [196.00, 246.94, 293.66]  // G
+      ];
+      let step = 0;
+
+      audioTimer = setInterval(() => {
+        if (!isAudioPlaying) return;
+        const currentChord = chords[step % chords.length];
+        // Kick / Bass
+        playBeep(90, 'sine', 0.2, 0.25);
+        // Soft chime chord
+        currentChord.forEach((note, i) => {
+          setTimeout(() => {
+            playBeep(note * 2, 'triangle', 0.6, 0.08);
+          }, i * 60);
+        });
+        step++;
+      }, 500); // 120 bpm
+    }
+
+    toggleAudioBtn.addEventListener('click', () => {
+      isAudioPlaying = !isAudioPlaying;
+      if (isAudioPlaying) {
+        audioIcon.textContent = '🔊';
+        audioLabel.textContent = 'Beat Audio: ON';
+        startLoFiBeat();
+      } else {
+        audioIcon.textContent = '🔇';
+        audioLabel.textContent = 'Beat Audio: OFF';
+        if (audioTimer) clearInterval(audioTimer);
+      }
+    });
+
+    // Initialize
+    goToScene(0);
+    loop();
+  </script>
+</body>
+</html>
