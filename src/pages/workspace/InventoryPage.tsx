@@ -5,7 +5,8 @@ import {
   fetchInventoryItems,
   createInventoryItem,
   updateInventoryItem,
-  deleteInventoryItem,
+  archiveInventoryItem,
+  restoreInventoryItem,
   fetchInventoryHandovers,
   createInventoryHandover,
   acceptInventoryHandover,
@@ -51,7 +52,6 @@ import {
   Search,
   ArrowRightLeft,
   Edit2,
-  Trash2,
   MapPin,
   User,
   QrCode,
@@ -64,6 +64,8 @@ import {
   Eye,
   Upload,
   X,
+  Archive,
+  RotateCcw,
 } from 'lucide-react'
 
 // -------------------------------------------------------------
@@ -165,16 +167,18 @@ export const InventoryPage: React.FC = () => {
     membership?.role === 'bendahara'
 
   // Main Tabs
-  type MainTab = 'all' | 'group' | 'personal' | 'borrowed' | 'handovers' | 'reconciliation' | 'loans' | 'movements'
+  type MainTab = 'all' | 'group' | 'personal' | 'borrowed' | 'archived' | 'handovers' | 'reconciliation' | 'loans' | 'movements'
   const [activeTab, setActiveTab] = useState<MainTab>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedLocation, setSelectedLocation] = useState<string>('all')
+  const [archivalReason, setArchivalReason] = useState('')
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
+  const [itemToRestore, setItemToRestore] = useState<InventoryItem | null>(null)
   const [qrItem, setQrItem] = useState<InventoryItem | null>(null)
   const [handoverItem, setHandoverItem] = useState<InventoryItem | null>(null)
   const [reconcilingItem, setReconcilingItem] = useState<InventoryItem | null>(null)
@@ -197,6 +201,20 @@ export const InventoryPage: React.FC = () => {
         current_location: selectedLocation === 'all' ? undefined : selectedLocation,
         search: searchTerm,
       }),
+  })
+
+  // Archived items query
+  const {
+    data: archivedItems = [],
+    isLoading: isLoadingArchivedItems,
+  } = useQuery({
+    queryKey: ['inventory-items-archived', searchTerm],
+    queryFn: () =>
+      fetchInventoryItems({
+        is_archived: true,
+        search: searchTerm,
+      }),
+    enabled: activeTab === 'archived',
   })
 
   const itemPhotoFileIds = useMemo(() => {
@@ -271,14 +289,29 @@ export const InventoryPage: React.FC = () => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: deleteInventoryItem,
+    mutationFn: (vars: { id: string; reason?: string }) => archiveInventoryItem(vars.id, vars.reason),
     onSuccess: () => {
-      toast({ title: 'Barang Berhasil Dihapus', variant: 'success' })
+      toast({ title: 'Barang Berhasil Diarsipkan', description: 'Data barang dan riwayat mutasi tetap tersimpan aman.', variant: 'success' })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-items-archived'] })
       setItemToDelete(null)
+      setArchivalReason('')
     },
     onError: (err: any) => {
-      toast({ title: 'Gagal Menghapus Barang', description: err.message, variant: 'error' })
+      toast({ title: 'Gagal Mengarsipkan Barang', description: err.message, variant: 'error' })
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => restoreInventoryItem(id),
+    onSuccess: () => {
+      toast({ title: 'Barang Berhasil Dipulihkan', description: 'Barang kembali aktif di katalog inventaris.', variant: 'success' })
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-items-archived'] })
+      setItemToRestore(null)
+    },
+    onError: (err: any) => {
+      toast({ title: 'Gagal Memulihkan Barang', description: err.message, variant: 'error' })
     },
   })
 
@@ -452,6 +485,15 @@ export const InventoryPage: React.FC = () => {
           </button>
 
           <button
+            onClick={() => setActiveTab('archived')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              activeTab === 'archived' ? 'bg-stone-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
+            }`}
+          >
+            Arsip Barang
+          </button>
+
+          <button
             onClick={() => setActiveTab('handovers')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
               activeTab === 'handovers' ? 'bg-purple-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
@@ -489,7 +531,7 @@ export const InventoryPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        {(activeTab === 'all' || activeTab === 'group' || activeTab === 'personal' || activeTab === 'borrowed' || activeTab === 'reconciliation') && (
+        {(activeTab === 'all' || activeTab === 'group' || activeTab === 'personal' || activeTab === 'borrowed' || activeTab === 'reconciliation' || activeTab === 'archived') && (
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
@@ -501,27 +543,31 @@ export const InventoryPage: React.FC = () => {
               />
             </div>
 
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
-            >
-              <option value="all">Semua Kategori</option>
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            {activeTab !== 'archived' && (
+              <>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+                >
+                  <option value="all">Semua Kategori</option>
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
 
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
-            >
-              <option value="all">Semua Lokasi</option>
-              {LOCATION_OPTIONS.map((l) => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+                >
+                  <option value="all">Semua Lokasi</option>
+                  {LOCATION_OPTIONS.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -581,7 +627,8 @@ export const InventoryPage: React.FC = () => {
                     const statusMeta = STATUS_META[item.item_status] || STATUS_META.stored
                     const conditionMeta = CONDITION_BADGES[item.condition] || CONDITION_BADGES.good
                     const isTracked = item.tracking_model === 'tracked'
-                    const isOwner = user?.id && item.owner_member_id === user.id
+                    const isOwner = Boolean(user?.id && item.owner_member_id === user.id)
+                    const canArchiveItem = canManage || (isOwner && item.ownership_type !== 'GROUP_OWNED')
 
                     return (
                       <Card
@@ -755,15 +802,18 @@ export const InventoryPage: React.FC = () => {
                                 </Button>
                               )}
 
-                              {canManage && (
+                              {canArchiveItem && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => setItemToDelete(item)}
-                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  title="Hapus Barang"
+                                  onClick={() => {
+                                    setItemToDelete(item)
+                                    setArchivalReason('')
+                                  }}
+                                  className="h-7 w-7 p-0 text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                                  title="Arsipkan Barang"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Archive className="h-3.5 w-3.5" />
                                 </Button>
                               )}
                             </div>
@@ -775,6 +825,127 @@ export const InventoryPage: React.FC = () => {
                 </div>
               )
             })()
+          )}
+        </div>
+      )}
+
+      {/* TAB ARSIP: BARANG DIARSIPKAN */}
+      {activeTab === 'archived' && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-warm-300 bg-stone-50/70 p-4">
+            <div className="flex items-start gap-3">
+              <Archive className="h-5 w-5 text-stone-700 mt-0.5 shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold text-charcoal">Arsip Barang &amp; Logistik</h3>
+                <p className="text-xs text-charcoal-muted mt-0.5">
+                  Barang yang diarsipkan tidak muncul di daftar aktif posko, namun seluruh riwayat mutasi, peminjaman, dan serah terima tetap tersimpan utuh di sistem. Pemilik sah atau Admin dapat mengaktifkan kembali barang ini sewaktu-waktu.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {isLoadingArchivedItems ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Skeleton className="h-44 w-full" />
+              <Skeleton className="h-44 w-full" />
+            </div>
+          ) : archivedItems.length === 0 ? (
+            <Card className="border-dashed border-warm-300 bg-white">
+              <CardContent className="p-12 text-center space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
+                  <Archive className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-charcoal">Belum Ada Barang yang Diarsipkan</h3>
+                  <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                    Seluruh barang posko saat ini masih berstatus aktif.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedItems.map((item) => {
+                const ownMeta = OWNERSHIP_META[item.ownership_type] || OWNERSHIP_META.GROUP_OWNED
+                const isOwner = Boolean(user?.id && item.owner_member_id === user.id)
+                const canRestore = canManage || (isOwner && item.ownership_type !== 'GROUP_OWNED')
+
+                return (
+                  <Card
+                    key={item.id}
+                    className="bg-white border-stone-300 flex flex-col justify-between opacity-90 hover:opacity-100 transition-opacity"
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-mono text-[10px] bg-stone-100 text-stone-700 font-semibold px-2 py-0.5 rounded border border-stone-200">
+                          {item.item_code || 'INV'}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${ownMeta.badgeClass}`}>
+                            {ownMeta.label}
+                          </span>
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-stone-100 text-stone-800 border-stone-300">
+                            Diarsipkan
+                          </span>
+                        </div>
+                      </div>
+
+                      <CardTitle className="text-base font-serif font-semibold text-charcoal mt-2 line-clamp-1">
+                        {item.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
+                        {item.archival_reason ? `Alasan: ${item.archival_reason}` : (item.description || 'Barang diarsipkan')}
+                      </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="p-4 pt-1 space-y-3">
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-charcoal-muted">Pemilik Sah:</span>
+                          <span className="font-semibold text-charcoal">
+                            {item.ownership_type === 'GROUP_OWNED' ? 'Aset Kelompok KKN' : (item.owner_name || 'Tidak Diketahui')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-charcoal-muted">Jumlah:</span>
+                          <span className="font-semibold text-charcoal">{item.quantity} {item.unit}</span>
+                        </div>
+                        {item.archived_at && (
+                          <div className="flex items-center justify-between text-[11px] text-charcoal-muted">
+                            <span>Waktu Arsip:</span>
+                            <span>{new Date(item.archived_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-warm-200">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setGalleryModalItem(item)}
+                          className="h-7 px-2 text-xs text-charcoal-muted hover:text-charcoal"
+                        >
+                          <Camera className="h-3.5 w-3.5 mr-1" />
+                          <span>Foto</span>
+                        </Button>
+
+                        {canRestore && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setItemToRestore(item)}
+                            className="h-7 px-2.5 text-xs text-emerald-800 border-emerald-300 hover:bg-emerald-50 gap-1"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span>Aktifkan Kembali</span>
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
           )}
         </div>
       )}
@@ -1332,20 +1503,103 @@ export const InventoryPage: React.FC = () => {
         }}
       />
 
-      {/* 9. Konfirmasi Hapus Barang */}
-      <ConfirmDialog
+      {/* 10. Modal Konfirmasi Arsip Barang */}
+      <Modal
         open={Boolean(itemToDelete)}
-        onClose={() => setItemToDelete(null)}
-        onConfirm={async () => {
-          if (itemToDelete) {
-            await deleteMutation.mutateAsync(itemToDelete.id)
+        onClose={() => {
+          if (!deleteMutation.isPending) {
+            setItemToDelete(null)
+            setArchivalReason('')
           }
         }}
-        title="Hapus Barang Inventaris?"
-        description={`Apakah Anda yakin ingin menghapus barang "${itemToDelete?.name}"? Tindakan ini tidak dapat dibatalkan.`}
-        confirmLabel="Hapus Barang"
-        variant="destructive"
-        isLoading={deleteMutation.isPending}
+        title="Arsipkan Barang Inventaris?"
+        maxWidthClass="max-w-md"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-charcoal-muted">Nama Barang:</span>
+              <span className="font-bold text-charcoal">{itemToDelete?.name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-charcoal-muted">Pemilik Sah:</span>
+              <span className="font-semibold text-charcoal">
+                {itemToDelete?.ownership_type === 'GROUP_OWNED'
+                  ? 'Aset Kelompok KKN'
+                  : itemToDelete?.owner_name || 'Tidak Diketahui'}
+              </span>
+            </div>
+            {itemToDelete?.current_holder_name && (
+              <div className="flex items-center justify-between">
+                <span className="text-charcoal-muted">Pemegang Saat Ini:</span>
+                <span className="font-medium text-charcoal">{itemToDelete.current_holder_name}</span>
+              </div>
+            )}
+          </div>
+
+          <p className="text-charcoal-muted leading-relaxed">
+            Barang ini akan dipindahkan ke arsip dan tidak muncul di daftar aktif. Seluruh riwayat mutasi, peminjaman, dan serah terima tetap tersimpan utuh di sistem untuk kebutuhan laporan dan pertanggungjawaban.
+          </p>
+
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Alasan Pengarsipan (Opsional)</label>
+            <Input
+              value={archivalReason}
+              onChange={(e) => setArchivalReason(e.target.value)}
+              placeholder="Contoh: Dibawa pulang pemilik / Barang habis / Selesai masa pakai"
+              className="text-xs"
+            />
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-warm-200">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                setItemToDelete(null)
+                setArchivalReason('')
+              }}
+              className="w-full sm:w-auto text-xs"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={deleteMutation.isPending}
+              onClick={async () => {
+                if (itemToDelete) {
+                  await deleteMutation.mutateAsync({
+                    id: itemToDelete.id,
+                    reason: archivalReason.trim() || undefined,
+                  })
+                }
+              }}
+              className="bg-amber-700 hover:bg-amber-800 text-white w-full sm:w-auto text-xs gap-1.5"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              <span>{deleteMutation.isPending ? 'Mengarsipkan...' : 'Arsipkan Barang'}</span>
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 11. Modal Konfirmasi Pulihkan Barang dari Arsip */}
+      <ConfirmDialog
+        open={Boolean(itemToRestore)}
+        onClose={() => setItemToRestore(null)}
+        onConfirm={async () => {
+          if (itemToRestore) {
+            await restoreMutation.mutateAsync(itemToRestore.id)
+          }
+        }}
+        title="Aktifkan Kembali Barang?"
+        description={`Barang "${itemToRestore?.name}" akan dipulihkan dari arsip dan kembali muncul di daftar inventaris aktif posko.`}
+        confirmLabel="Aktifkan Kembali"
+        variant="default"
+        isLoading={restoreMutation.isPending}
       />
     </div>
   )

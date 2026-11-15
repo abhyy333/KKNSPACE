@@ -549,6 +549,10 @@ export interface InventoryItem {
   reconciliation_receiver_name: string | null
   reconciliation_proof_url: string | null
   reconciliation_confirmed: boolean
+  is_archived?: boolean
+  archived_at?: string | null
+  archived_by?: string | null
+  archival_reason?: string | null
   created_by: string
   created_at: string
   updated_at: string

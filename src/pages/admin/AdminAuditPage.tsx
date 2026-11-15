@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Modal } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import {
   Activity,
@@ -16,10 +14,8 @@ import {
   Download,
   Search,
   Filter,
-  Eye,
   ChevronLeft,
   ChevronRight,
-  RotateCcw,
   Briefcase,
   CheckSquare,
   MessageSquare,
@@ -28,9 +24,13 @@ import {
   Image as ImageIcon,
   UserCheck,
   RefreshCw,
-  AlertCircle,
   Database,
   Handshake,
+  ArrowRight,
+  Archive,
+  PlusCircle,
+  Edit3,
+  Trash2,
 } from 'lucide-react'
 
 export interface AuditEventRow {
@@ -53,20 +53,30 @@ const MODULE_DEFINITIONS: Record<
   string,
   { label: string; icon: React.ComponentType<{ className?: string }>; tables: string[] }
 > = {
-  calendar: {
-    label: 'Kalender & Agenda',
-    icon: Calendar,
-    tables: ['calendar_events'],
+  inventory: {
+    label: 'Inventaris & Logistik',
+    icon: Package,
+    tables: ['inventory_items', 'inventory_loans', 'inventory_handovers', 'inventory_movements', 'inventory_photos'],
+  },
+  finance: {
+    label: 'Keuangan Posko',
+    icon: Coins,
+    tables: ['finance_transactions', 'finance_categories'],
+  },
+  work_programs: {
+    label: 'Program Kerja',
+    icon: Briefcase,
+    tables: ['work_programs'],
   },
   duty: {
     label: 'Jadwal Piket',
     icon: Clock,
     tables: ['duty_shifts', 'duty_shift_documentations'],
   },
-  work_programs: {
-    label: 'Program Kerja',
-    icon: Briefcase,
-    tables: ['work_programs'],
+  calendar: {
+    label: 'Kalender & Agenda',
+    icon: Calendar,
+    tables: ['calendar_events'],
   },
   tasks: {
     label: 'Tugas & Kegiatan',
@@ -77,31 +87,6 @@ const MODULE_DEFINITIONS: Record<
     label: 'Rapat & Notulensi',
     icon: MessageSquare,
     tables: ['meetings', 'meeting_attendees', 'meeting_decisions'],
-  },
-  finance: {
-    label: 'Keuangan Posko',
-    icon: Coins,
-    tables: ['finance_transactions', 'finance_categories'],
-  },
-  inventory: {
-    label: 'Inventaris Posko',
-    icon: Package,
-    tables: ['inventory_items'],
-  },
-  media: {
-    label: 'Media & Berkas',
-    icon: ImageIcon,
-    tables: ['media_assets', 'documents', 'file_objects'],
-  },
-  team: {
-    label: 'Anggota & Tim',
-    icon: Users,
-    tables: ['kkn_team_directory', 'memberships', 'invitations', 'profiles'],
-  },
-  surveys: {
-    label: 'Survei & Respon',
-    icon: UserCheck,
-    tables: ['surveys', 'survey_responses'],
   },
   sponsors: {
     label: 'Sponsor & Mitra',
@@ -116,7 +101,123 @@ const MODULE_DEFINITIONS: Record<
       'partnership_contact_settings',
     ],
   },
+  team: {
+    label: 'Anggota & Tim',
+    icon: Users,
+    tables: ['kkn_team_directory', 'memberships', 'invitations', 'profiles'],
+  },
+  media: {
+    label: 'Media & Berkas',
+    icon: ImageIcon,
+    tables: ['media_assets', 'documents', 'file_objects'],
+  },
+  surveys: {
+    label: 'Survei & Respon',
+    icon: UserCheck,
+    tables: ['surveys', 'survey_responses'],
+  },
 }
+
+// Friendly Indonesian field labels mapping
+const FRIENDLY_FIELD_LABELS: Record<string, string> = {
+  name: 'Nama',
+  item_code: 'Kode Barang',
+  description: 'Deskripsi',
+  category: 'Kategori',
+  quantity: 'Jumlah',
+  unit: 'Satuan',
+  condition: 'Kondisi',
+  item_status: 'Status Barang',
+  ownership_type: 'Kepemilikan',
+  owner_name: 'Nama Pemilik',
+  current_location: 'Lokasi Posko',
+  location: 'Lokasi',
+  current_holder_name: 'Pemegang Fisik',
+  responsible_person: 'Penanggung Jawab',
+  price: 'Harga / Nilai',
+  purchase_cost: 'Biaya Pembelian',
+  funding_source: 'Sumber Dana',
+  notes: 'Catatan',
+  is_archived: 'Status Arsip',
+  archival_reason: 'Alasan Pengarsipan',
+  archived_at: 'Waktu Pengarsipan',
+  title: 'Judul',
+  amount: 'Nominal (Rp)',
+  type: 'Tipe',
+  shift_date: 'Tanggal Piket',
+  shift_type: 'Waktu Shift',
+  status: 'Status',
+  full_name: 'Nama Lengkap',
+  role: 'Peran / Jabatan',
+  start_date: 'Tanggal Mulai',
+  end_date: 'Tanggal Selesai',
+  target: 'Target',
+  progress: 'Kemajuan (%)',
+  company_name: 'Nama Perusahaan/Mitra',
+  contact_person: 'Kontak Person',
+  package_name: 'Paket Sponsorship',
+}
+
+// Human-friendly value labels
+const FRIENDLY_VALUE_LABELS: Record<string, string> = {
+  good: 'Baik',
+  fair: 'Cukup',
+  damaged: 'Rusak',
+  lost: 'Hilang',
+  stored: 'Tersimpan di Posko',
+  in_use: 'Sedang Digunakan',
+  borrowed_member: 'Dipinjam Anggota',
+  borrowed_external: 'Dipinjam Pihak Luar',
+  returned: 'Sudah Dikembalikan',
+  in_return_process: 'Proses Pengembalian',
+  maintenance: 'Dalam Perbaikan',
+  disposed: 'Dihapuskan',
+  GROUP_OWNED: 'Aset Kelompok KKN',
+  PERSONAL_OWNED: 'Milik Pribadi Anggota',
+  BORROWED_EXTERNAL: 'Pinjaman Luar',
+  DONATED: 'Hibah / Donasi',
+  income: 'Pemasukan',
+  expense: 'Pengeluaran',
+  pagi: 'Shift Pagi',
+  sore: 'Shift Sore',
+  malam: 'Shift Malam',
+  completed: 'Selesai',
+  in_progress: 'Sedang Berjalan',
+  planned: 'Direncanakan',
+  cancelled: 'Dibatalkan',
+  pending: 'Menunggu',
+  true: 'Ya / Aktif',
+  false: 'Tidak / Non-Aktif',
+}
+
+// Blacklisted keys (UUIDs, internal IDs, technical timestamps, security tokens)
+const IGNORED_KEYS = new Set([
+  'id',
+  'item_id',
+  'record_id',
+  'user_id',
+  'actor_id',
+  'created_by',
+  'updated_by',
+  'archived_by',
+  'owner_member_id',
+  'current_holder_id',
+  'to_holder_id',
+  'borrower_id',
+  'approved_by',
+  'photo_file_id',
+  'receipt_proof_url',
+  'proof_url',
+  'created_at',
+  'updated_at',
+  'metadata',
+  'is_qr_printed',
+  'password',
+  'token',
+  'secret',
+  'jwt',
+  'hash',
+])
 
 function getModuleInfo(tableName: string) {
   for (const [key, def] of Object.entries(MODULE_DEFINITIONS)) {
@@ -124,287 +225,259 @@ function getModuleInfo(tableName: string) {
       return { key, label: def.label, Icon: def.icon }
     }
   }
-  return { key: 'other', label: tableName || 'Sistem', Icon: Database }
+  return { key: 'other', label: 'Sistem KKN', Icon: Database }
 }
 
-function getActionBadge(action: string) {
-  const norm = (action || '').toLowerCase()
+function formatValueFriendly(val: unknown, key: string): string {
+  if (val === null || val === undefined || val === '') return '—'
+  if (typeof val === 'boolean') {
+    if (key === 'is_archived') return val ? 'Diarsipkan' : 'Aktif'
+    return val ? 'Ya' : 'Tidak'
+  }
+  if (typeof val === 'number') {
+    if (key.includes('price') || key.includes('amount') || key.includes('cost')) {
+      return `Rp ${val.toLocaleString('id-ID')}`
+    }
+    return val.toString()
+  }
+  const str = String(val)
+  if (FRIENDLY_VALUE_LABELS[str]) {
+    return FRIENDLY_VALUE_LABELS[str]
+  }
+  return str
+}
+
+function getObjectDisplayName(ev: AuditEventRow): string {
+  const vals = ev.new_values || ev.old_values || {}
+  const candidate =
+    vals.name ||
+    vals.title ||
+    vals.full_name ||
+    vals.item_name ||
+    vals.company_name ||
+    vals.package_name
+
+  if (candidate && typeof candidate === 'string') {
+    return candidate
+  }
+
+  // Extract from description if present
+  if (ev.description) {
+    const match = ev.description.match(/:\s*(.+)$/)
+    if (match && match[1]) {
+      return match[1].trim()
+    }
+  }
+
+  const { label } = getModuleInfo(ev.table_name)
+  return `data pada ${label}`
+}
+
+function getActionHeadline(ev: AuditEventRow): { actionLabel: string; icon: React.ComponentType<{ className?: string }>; colorClass: string } {
+  const norm = (ev.action || '').toLowerCase()
+  const isArchive =
+    ev.description?.toLowerCase().includes('arsip') ||
+    (ev.new_values?.is_archived === true && ev.old_values?.is_archived === false)
+
+  if (isArchive) {
+    return {
+      actionLabel: 'mengarsipkan',
+      icon: Archive,
+      colorClass: 'text-amber-800 bg-amber-50 border-amber-200',
+    }
+  }
+
   if (norm.includes('insert') || norm.includes('create')) {
-    return (
-      <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 font-mono text-[10px] font-medium hover:bg-emerald-100">
-        Tambah
-      </Badge>
-    )
+    return {
+      actionLabel: 'menambahkan',
+      icon: PlusCircle,
+      colorClass: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+    }
   }
+
   if (norm.includes('update') || norm.includes('edit')) {
-    return (
-      <Badge className="bg-blue-50 text-blue-800 border-blue-200 font-mono text-[10px] font-medium hover:bg-blue-100">
-        Ubah
-      </Badge>
-    )
+    return {
+      actionLabel: 'memperbarui',
+      icon: Edit3,
+      colorClass: 'text-blue-800 bg-blue-50 border-blue-200',
+    }
   }
+
   if (norm.includes('delete') || norm.includes('remove')) {
-    return (
-      <Badge className="bg-rose-50 text-rose-800 border-rose-200 font-mono text-[10px] font-medium hover:bg-rose-100">
-        Hapus
-      </Badge>
-    )
+    return {
+      actionLabel: 'menghapus',
+      icon: Trash2,
+      colorClass: 'text-rose-800 bg-rose-50 border-rose-200',
+    }
   }
-  if (norm.includes('invitation_accepted')) {
-    return (
-      <Badge className="bg-teal-50 text-teal-800 border-teal-200 font-mono text-[10px] font-medium hover:bg-teal-100">
-        Terima Undangan
-      </Badge>
-    )
+
+  return {
+    actionLabel: 'mengelola',
+    icon: Activity,
+    colorClass: 'text-charcoal-muted bg-warm-100 border-warm-200',
   }
-  return (
-    <Badge variant="secondary" className="font-mono text-[10px] uppercase">
-      {action}
-    </Badge>
-  )
 }
 
 function getRoleBadge(authority: string | null) {
   const role = (authority || '').toLowerCase()
-  if (role === 'super_admin') {
+  if (role === 'super_admin' || role === 'admin') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-forest/10 text-forest border border-forest/20">
-        Super Admin
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
+        Admin
       </span>
     )
   }
-  if (role === 'anggota' || role === 'member') {
+  if (role === 'ketua') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-sage/15 text-forest border border-sage/30">
-        Anggota
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-900 border border-blue-300">
+        Ketua KKN
+      </span>
+    )
+  }
+  if (role === 'sekretaris' || role === 'bendahara') {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-900 border border-purple-300">
+        Pengurus Posko
       </span>
     )
   }
   if (role === 'dpl') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-900 border border-amber-200">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-900 border border-amber-300">
         DPL
-      </span>
-    )
-  }
-  if (role === 'coordinator') {
-    return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-900 border border-indigo-200">
-        Koordinator
       </span>
     )
   }
   if (role === 'service_role') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono text-charcoal-muted bg-warm-200/80 border border-warm-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warm-200 text-charcoal-muted border border-warm-300">
         Sistem
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warm-100 text-charcoal-muted">
-      {authority || 'User'}
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-warm-100 text-charcoal border border-warm-300">
+      Anggota
     </span>
   )
 }
 
-function generateHumanDescription(ev: AuditEventRow): string {
-  if (ev.description && ev.description.trim().length > 0) {
-    return ev.description
-  }
-
-  const { label } = getModuleInfo(ev.table_name)
-  const normAction = (ev.action || '').toLowerCase()
-
-  if (normAction.includes('insert')) {
-    return `Menambahkan entri baru pada modul ${label}`
-  }
-  if (normAction.includes('update')) {
-    return `Memperbarui data pada modul ${label}`
-  }
-  if (normAction.includes('delete')) {
-    return `Menghapus data dari modul ${label}`
-  }
-  if (normAction.includes('invitation_accepted')) {
-    return 'Menerima dan mengonfirmasi undangan keanggotaan KKN'
-  }
-  return `Aktivitas ${ev.action} pada tabel ${ev.table_name}`
-}
-
 export const AdminAuditPage: React.FC = () => {
-  // Filters state
+  // Simple clean filters state
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedUser, setSelectedUser] = useState('ALL')
+  const [selectedActionType, setSelectedActionType] = useState('ALL')
   const [selectedModule, setSelectedModule] = useState('ALL')
-  const [selectedRole, setSelectedRole] = useState('ALL')
-  const [selectedAction, setSelectedAction] = useState('ALL')
-  const [selectedStatus, setSelectedStatus] = useState('ALL')
   const [selectedDateRange, setSelectedDateRange] = useState('ALL')
 
-  // Pagination state
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 25
+  const pageSize = 15
 
-  // Selected event for detail modal
-  const [activeEvent, setActiveEvent] = useState<AuditEventRow | null>(null)
-  const [showRawJson, setShowRawJson] = useState(false)
-
-  // Fetch audit events & profiles for actor names
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
-    queryKey: ['admin-activity-logs'],
+  // Fetch audit events directly from Supabase
+  const {
+    data: allEvents = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: ['admin-audit-events-simple'],
     queryFn: async () => {
-      const [eventsRes, profilesRes] = await Promise.all([
-        supabase
-          .from('audit_events')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(500),
-        supabase.from('profiles').select('id, full_name'),
-      ])
+      const { data, error } = await supabase
+        .from('audit_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(300)
 
-      if (eventsRes.error) throw eventsRes.error
-
-      const profileMap = new Map<string, string>()
-      if (profilesRes.data) {
-        profilesRes.data.forEach((p) => {
-          if (p.id && p.full_name) profileMap.set(p.id, p.full_name)
-        })
+      if (error) {
+        throw new Error(error.message)
       }
 
-      const rows = (eventsRes.data ?? []) as AuditEventRow[]
-
-      // Enrich with profile name if snapshot is null
-      return rows.map((r) => {
-        if (!r.actor_name_snapshot && r.actor_id && profileMap.has(r.actor_id)) {
-          return {
-            ...r,
-            actor_name_snapshot: profileMap.get(r.actor_id) || null,
-          }
-        }
-        return r
-      })
+      return (data as AuditEventRow[]) || []
     },
-    retry: false,
-    staleTime: 1000 * 30, // 30s
+    staleTime: 1000 * 30,
   })
 
-  const allEvents = useMemo(() => data ?? [], [data])
-
-  // Summary statistics
-  const stats = useMemo(() => {
-    const total = allEvents.length
-    const now = new Date()
-    const todayStr = now.toISOString().split('T')[0]
-
-    let todayCount = 0
-    const uniqueActors = new Set<string>()
-    let adminCount = 0
-
+  // Distinct list of users for simple filter dropdown
+  const distinctUsers = useMemo(() => {
+    const map = new Map<string, string>()
     allEvents.forEach((ev) => {
-      if (ev.created_at && ev.created_at.startsWith(todayStr)) {
-        todayCount++
-      }
-      if (ev.actor_id) {
-        uniqueActors.add(ev.actor_id)
-      } else if (ev.actor_email) {
-        uniqueActors.add(ev.actor_email)
-      }
-
-      const role = (ev.actor_authority || '').toLowerCase()
-      if (
-        role === 'super_admin' ||
-        ['invitations', 'memberships', 'app_settings'].includes(ev.table_name)
-      ) {
-        adminCount++
+      const name = ev.actor_name_snapshot || (ev.actor_email ? ev.actor_email.split('@')[0] : null)
+      if (name && !map.has(name)) {
+        map.set(name, name)
       }
     })
+    return Array.from(map.values()).sort()
+  }, [allEvents])
 
+  // Summary stats
+  const stats = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    const todayCount = allEvents.filter((e) => e.created_at.startsWith(todayStr)).length
+    const uniqueUserCount = new Set(allEvents.map((e) => e.actor_id || e.actor_email).filter(Boolean)).size
     return {
-      total,
+      total: allEvents.length,
       today: todayCount,
-      uniqueUsers: uniqueActors.size,
-      adminActions: adminCount,
+      uniqueUsers: uniqueUserCount,
     }
   }, [allEvents])
 
   // Filtered events
   const filteredEvents = useMemo(() => {
     return allEvents.filter((ev) => {
-      // Search text
+      const actorName = (ev.actor_name_snapshot || ev.actor_email || '').toLowerCase()
+      const objectName = getObjectDisplayName(ev).toLowerCase()
+      const desc = (ev.description || '').toLowerCase()
+
+      // 1. Search Query
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim()
-        const desc = (ev.description || generateHumanDescription(ev)).toLowerCase()
-        const actorName = (ev.actor_name_snapshot || '').toLowerCase()
-        const email = (ev.actor_email || '').toLowerCase()
-        const recId = (ev.record_id || '').toLowerCase()
-        const tbl = (ev.table_name || '').toLowerCase()
-        const matches =
-          desc.includes(query) ||
-          actorName.includes(query) ||
-          email.includes(query) ||
-          recId.includes(query) ||
-          tbl.includes(query)
+        const q = searchQuery.toLowerCase().trim()
+        const matches = actorName.includes(q) || objectName.includes(q) || desc.includes(q)
         if (!matches) return false
       }
 
-      // Module filter
+      // 2. User Filter
+      if (selectedUser !== 'ALL') {
+        const u = selectedUser.toLowerCase()
+        if (!actorName.includes(u)) return false
+      }
+
+      // 3. Action Type Filter
+      if (selectedActionType !== 'ALL') {
+        const normAction = (ev.action || '').toLowerCase()
+        const isArchive =
+          ev.description?.toLowerCase().includes('arsip') ||
+          (ev.new_values?.is_archived === true && ev.old_values?.is_archived === false)
+
+        if (selectedActionType === 'archive' && !isArchive) return false
+        if (selectedActionType === 'insert' && (!normAction.includes('insert') && !normAction.includes('create'))) return false
+        if (selectedActionType === 'update' && (!normAction.includes('update') || isArchive)) return false
+        if (selectedActionType === 'delete' && (!normAction.includes('delete') && !normAction.includes('remove'))) return false
+      }
+
+      // 4. Module Filter
       if (selectedModule !== 'ALL') {
-        const modDef = MODULE_DEFINITIONS[selectedModule]
-        if (modDef) {
-          if (!modDef.tables.includes(ev.table_name)) return false
-        } else if (ev.table_name !== selectedModule) {
-          return false
-        }
+        const info = getModuleInfo(ev.table_name)
+        if (info.key !== selectedModule) return false
       }
 
-      // Role filter
-      if (selectedRole !== 'ALL') {
-        const auth = (ev.actor_authority || '').toLowerCase()
-        if (selectedRole === 'member') {
-          if (auth !== 'member' && auth !== 'anggota') return false
-        } else if (auth !== selectedRole.toLowerCase()) {
-          return false
-        }
-      }
-
-      // Action filter
-      if (selectedAction !== 'ALL') {
-        const actionNorm = (ev.action || '').toLowerCase()
-        if (selectedAction === 'insert' && !actionNorm.includes('insert')) return false
-        if (selectedAction === 'update' && !actionNorm.includes('update')) return false
-        if (selectedAction === 'delete' && !actionNorm.includes('delete')) return false
-        if (selectedAction === 'invitation_accepted' && !actionNorm.includes('invitation_accepted'))
-          return false
-      }
-
-      // Status filter
-      if (selectedStatus !== 'ALL') {
-        const st = (ev.status || 'success').toLowerCase()
-        if (st !== selectedStatus.toLowerCase()) return false
-      }
-
-      // Date range filter
+      // 5. Date Range Filter
       if (selectedDateRange !== 'ALL') {
-        const itemDate = new Date(ev.created_at).getTime()
+        const itemTime = new Date(ev.created_at).getTime()
         const now = Date.now()
         const oneDayMs = 24 * 60 * 60 * 1000
-        if (selectedDateRange === 'today' && now - itemDate > oneDayMs) return false
-        if (selectedDateRange === '7d' && now - itemDate > 7 * oneDayMs) return false
-        if (selectedDateRange === '30d' && now - itemDate > 30 * oneDayMs) return false
+        if (selectedDateRange === 'today' && now - itemTime > oneDayMs) return false
+        if (selectedDateRange === '7d' && now - itemTime > 7 * oneDayMs) return false
+        if (selectedDateRange === '30d' && now - itemTime > 30 * oneDayMs) return false
       }
 
       return true
     })
-  }, [
-    allEvents,
-    searchQuery,
-    selectedModule,
-    selectedRole,
-    selectedAction,
-    selectedStatus,
-    selectedDateRange,
-  ])
+  }, [allEvents, searchQuery, selectedUser, selectedActionType, selectedModule, selectedDateRange])
 
-  // Pagination slice
+  // Pagination
   const totalPages = Math.ceil(filteredEvents.length / pageSize) || 1
   const paginatedEvents = useMemo(() => {
     const start = (currentPage - 1) * pageSize
@@ -413,80 +486,64 @@ export const AdminAuditPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearchQuery('')
+    setSelectedUser('ALL')
+    setSelectedActionType('ALL')
     setSelectedModule('ALL')
-    setSelectedRole('ALL')
-    setSelectedAction('ALL')
-    setSelectedStatus('ALL')
     setSelectedDateRange('ALL')
     setCurrentPage(1)
   }
 
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
+    selectedUser !== 'ALL' ||
+    selectedActionType !== 'ALL' ||
     selectedModule !== 'ALL' ||
-    selectedRole !== 'ALL' ||
-    selectedAction !== 'ALL' ||
-    selectedStatus !== 'ALL' ||
     selectedDateRange !== 'ALL'
 
-  // Export to CSV with UTF-8 BOM and sanitization
+  // Export clean CSV
   const handleExportCsv = () => {
     const rowsToExport = filteredEvents.length > 0 ? filteredEvents : allEvents
 
     const sanitizeCsvCell = (val: unknown): string => {
       if (val === null || val === undefined) return '""'
       let str = String(val).replace(/"/g, '""')
-      // Protect against CSV injection
       if (/^[=+@-]$/.test(str.charAt(0))) {
         str = "'" + str
       }
       return `"${str}"`
     }
 
-    const headers = [
-      'ID',
-      'Waktu',
-      'Pengguna',
-      'Email Pengguna',
-      'Role / Authority',
-      'Modul',
-      'Tabel Database',
-      'Aksi',
-      'Deskripsi Aktivitas',
-      'Status',
-      'Record ID',
-    ]
-
-    const csvRows = [headers.join(',')]
+    const headers = ['Waktu', 'Pengguna', 'Peran', 'Modul', 'Aksi', 'Objek', 'Deskripsi']
+    const csvLines = [headers.map(sanitizeCsvCell).join(',')]
 
     rowsToExport.forEach((ev) => {
+      const timeStr = new Date(ev.created_at).toLocaleString('id-ID')
+      const actorName = ev.actor_name_snapshot || (ev.actor_email ? ev.actor_email.split('@')[0] : 'Sistem')
       const { label } = getModuleInfo(ev.table_name)
-      const actorName = ev.actor_name_snapshot || ev.actor_email?.split('@')[0] || ev.actor_id || 'Sistem'
-      const desc = generateHumanDescription(ev)
+      const { actionLabel } = getActionHeadline(ev)
+      const objName = getObjectDisplayName(ev)
 
-      const row = [
-        sanitizeCsvCell(ev.id),
-        sanitizeCsvCell(new Date(ev.created_at).toLocaleString('id-ID')),
-        sanitizeCsvCell(actorName),
-        sanitizeCsvCell(ev.actor_email || ''),
-        sanitizeCsvCell(ev.actor_authority || ''),
-        sanitizeCsvCell(label),
-        sanitizeCsvCell(ev.table_name),
-        sanitizeCsvCell(ev.action),
-        sanitizeCsvCell(desc),
-        sanitizeCsvCell(ev.status || 'success'),
-        sanitizeCsvCell(ev.record_id || ''),
-      ]
-      csvRows.push(row.join(','))
+      csvLines.push(
+        [
+          timeStr,
+          actorName,
+          ev.actor_authority || 'Anggota',
+          label,
+          actionLabel,
+          objName,
+          ev.description || '',
+        ]
+          .map(sanitizeCsvCell)
+          .join(',')
+      )
     })
 
-    const csvContent = '\uFEFF' + csvRows.join('\r\n')
+    const csvContent = '\uFEFF' + csvLines.join('\r\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    const today = new Date().toISOString().split('T')[0]
     link.href = url
-    link.setAttribute('download', `log-aktivitas-kkn-space-${today}.csv`)
+    link.download = `log-aktivitas-kkn-${new Date().toISOString().split('T')[0]}.csv`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -494,33 +551,35 @@ export const AdminAuditPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-warm-300 pb-5">
+    <div className="space-y-6 pb-16">
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-warm-300 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
-              Log Aktivitas
-            </h1>
-            <Badge variant="outline" className="border-forest/20 text-forest bg-forest/5 text-xs">
-              Audit Trail
-            </Badge>
+            <span className="inline-flex items-center gap-1 rounded-md bg-sage-100 px-2 py-0.5 text-xs font-semibold text-sage-800">
+              <ShieldCheck className="h-3 w-3" />
+              <span>Transparansi &amp; Audit Posko</span>
+            </span>
+            <span className="text-xs text-charcoal-muted">KKN Desa Pringgasela Selatan</span>
           </div>
-          <p className="text-xs text-charcoal-muted mt-1">
-            Pantau dan telusuri aktivitas pengguna di seluruh sistem KKN SPACE secara real-time dan immutable.
+          <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
+            Riwayat Aktivitas Posko
+          </h1>
+          <p className="text-xs text-charcoal-muted mt-1 max-w-2xl">
+            Catatan kronologis seluruh perubahan data inventaris, keuangan, proker, piket, dan sistem posko secara rapi dan mudah dipahami.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={handleExportCsv}
-            disabled={isLoading || allEvents.length === 0}
+            disabled={filteredEvents.length === 0}
             className="text-xs gap-1.5 border-warm-300 hover:bg-warm-100 text-charcoal"
           >
-            <Download className="h-3.5 w-3.5 text-forest" />
-            <span>Ekspor CSV</span>
+            <Download className="h-3.5 w-3.5 text-emerald-800" />
+            <span>Ekspor Catatan</span>
           </Button>
 
           <Button
@@ -530,214 +589,155 @@ export const AdminAuditPage: React.FC = () => {
             disabled={isFetching}
             className="text-xs gap-1.5 border-warm-300 hover:bg-warm-100 text-charcoal"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-forest' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin text-emerald-800' : ''}`} />
             <span>Segarkan</span>
           </Button>
         </div>
       </div>
 
-      {/* Summary Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="border-warm-300 bg-white shadow-sm">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+      {/* 2. Summary Mini-Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className="border-warm-200 bg-white">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                Total Aktivitas
-              </p>
-              <p className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
+              <p className="text-[11px] font-medium text-charcoal-muted">Total Aktivitas Tercatat</p>
+              <p className="text-xl font-serif font-bold text-charcoal mt-0.5">
                 {isLoading ? '...' : stats.total.toLocaleString('id-ID')}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-forest/10 flex items-center justify-center text-forest">
-              <Activity className="h-5 w-5" />
+            <div className="h-9 w-9 rounded-lg bg-warm-100 flex items-center justify-center text-charcoal">
+              <Activity className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-warm-300 bg-white shadow-sm">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+        <Card className="border-warm-200 bg-white">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                Aktivitas Hari Ini
-              </p>
-              <p className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
+              <p className="text-[11px] font-medium text-charcoal-muted">Aktivitas Hari Ini</p>
+              <p className="text-xl font-serif font-bold text-emerald-900 mt-0.5">
                 {isLoading ? '...' : stats.today.toLocaleString('id-ID')}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-sage/15 flex items-center justify-center text-forest">
-              <Clock className="h-5 w-5" />
+            <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-800">
+              <Clock className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-warm-300 bg-white shadow-sm">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
+        <Card className="border-warm-200 bg-white">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                Pengguna Aktif
-              </p>
-              <p className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
+              <p className="text-[11px] font-medium text-charcoal-muted">Pengguna Aktif Terlibat</p>
+              <p className="text-xl font-serif font-bold text-blue-900 mt-0.5">
                 {isLoading ? '...' : stats.uniqueUsers}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700">
-              <Users className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-warm-300 bg-white shadow-sm">
-          <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                Aksi Administrasi
-              </p>
-              <p className="text-xl sm:text-2xl font-serif font-semibold text-charcoal mt-1">
-                {isLoading ? '...' : stats.adminActions}
-              </p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-700">
-              <ShieldCheck className="h-5 w-5" />
+            <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800">
+              <Users className="h-4 w-4" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filter Toolbar */}
-      <Card className="border-warm-300 bg-white shadow-sm">
-        <CardContent className="p-4 sm:p-5 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3">
+      {/* 3. Simple Filters */}
+      <Card className="border-warm-200 bg-white">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="text-xs font-semibold text-charcoal flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5 text-charcoal-muted" />
+              <span>Filter Aktivitas</span>
+            </span>
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="text-xs text-emerald-800 hover:underline self-start sm:self-auto font-medium"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
             {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-charcoal-muted" />
+            <div className="relative lg:col-span-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
               <Input
-                type="text"
-                placeholder="Cari aktivitas, nama pengguna, email, atau record ID..."
+                placeholder="Cari nama barang/orang..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="pl-9 text-xs border-warm-300 focus-visible:ring-forest bg-warm-50/50"
+                className="pl-8 text-xs h-8"
               />
             </div>
 
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetFilters}
-                className="text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1.5 self-end sm:self-auto shrink-0"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span>Reset Filter</span>
-              </Button>
-            )}
-          </div>
-
-          {/* Facet Dropdowns */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-            {/* Module Filter */}
+            {/* Filter: Pengguna */}
             <div>
-              <label className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block mb-1">
-                Modul
-              </label>
+              <select
+                value={selectedUser}
+                onChange={(e) => {
+                  setSelectedUser(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+              >
+                <option value="ALL">Semua Pengguna</option>
+                {distinctUsers.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter: Jenis Aktivitas */}
+            <div>
+              <select
+                value={selectedActionType}
+                onChange={(e) => {
+                  setSelectedActionType(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="w-full text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+              >
+                <option value="ALL">Semua Jenis Aksi</option>
+                <option value="insert">Tambah Data Baru</option>
+                <option value="update">Perubahan Data</option>
+                <option value="archive">Pengarsipan Barang</option>
+                <option value="delete">Penghapusan Data</option>
+              </select>
+            </div>
+
+            {/* Filter: Modul */}
+            <div>
               <select
                 value={selectedModule}
                 onChange={(e) => {
                   setSelectedModule(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="w-full text-xs rounded-md border border-warm-300 bg-white px-2.5 py-1.5 text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                className="w-full text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
               >
-                <option value="ALL">Semua Modul</option>
-                <option value="calendar">Kalender & Agenda</option>
-                <option value="duty">Jadwal Piket Posko</option>
-                <option value="work_programs">Program Kerja</option>
-                <option value="tasks">Tugas & Rundown</option>
-                <option value="meetings">Rapat & Notulensi</option>
-                <option value="finance">Keuangan Posko</option>
-                <option value="inventory">Inventaris Posko</option>
-                <option value="media">Media & Dokumen</option>
-                <option value="team">Anggota & Tim</option>
-                <option value="surveys">Survei & Respon</option>
+                <option value="ALL">Semua Modul Posko</option>
+                {Object.entries(MODULE_DEFINITIONS).map(([key, def]) => (
+                  <option key={key} value={key}>
+                    {def.label}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Role Filter */}
+            {/* Filter: Rentang Tanggal */}
             <div>
-              <label className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block mb-1">
-                Role Pengguna
-              </label>
-              <select
-                value={selectedRole}
-                onChange={(e) => {
-                  setSelectedRole(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full text-xs rounded-md border border-warm-300 bg-white px-2.5 py-1.5 text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              >
-                <option value="ALL">Semua Role</option>
-                <option value="super_admin">Super Admin</option>
-                <option value="member">Anggota (Member)</option>
-                <option value="dpl">DPL</option>
-                <option value="coordinator">Koordinator Desa</option>
-                <option value="service_role">Sistem (Service Role)</option>
-              </select>
-            </div>
-
-            {/* Action Filter */}
-            <div>
-              <label className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block mb-1">
-                Jenis Aksi
-              </label>
-              <select
-                value={selectedAction}
-                onChange={(e) => {
-                  setSelectedAction(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full text-xs rounded-md border border-warm-300 bg-white px-2.5 py-1.5 text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              >
-                <option value="ALL">Semua Aksi</option>
-                <option value="insert">Tambah (INSERT)</option>
-                <option value="update">Ubah (UPDATE)</option>
-                <option value="delete">Hapus (DELETE)</option>
-                <option value="invitation_accepted">Terima Undangan</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block mb-1">
-                Status Eksekusi
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => {
-                  setSelectedStatus(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full text-xs rounded-md border border-warm-300 bg-white px-2.5 py-1.5 text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="success">Berhasil (Success)</option>
-                <option value="failed">Gagal (Failed)</option>
-              </select>
-            </div>
-
-            {/* Date Range Filter */}
-            <div>
-              <label className="text-[10px] font-semibold text-charcoal-muted uppercase tracking-wider block mb-1">
-                Rentang Waktu
-              </label>
               <select
                 value={selectedDateRange}
                 onChange={(e) => {
                   setSelectedDateRange(e.target.value)
                   setCurrentPage(1)
                 }}
-                className="w-full text-xs rounded-md border border-warm-300 bg-white px-2.5 py-1.5 text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                className="w-full text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
               >
                 <option value="ALL">Semua Waktu</option>
                 <option value="today">Hari Ini</option>
@@ -749,474 +749,232 @@ export const AdminAuditPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Error State */}
+      {/* 4. Activity List / Feed */}
       {isError && (
-        <Card className="border-red-200 bg-red-50/60">
-          <CardContent className="p-6 flex items-center justify-between gap-4 text-xs text-red-800">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Gagal memuat log audit</p>
-                <p className="text-[11px] text-red-700 mt-0.5">
-                  {(error as Error)?.message || 'Terjadi kesalahan saat membaca tabel audit_events.'}
-                </p>
-              </div>
+        <Card className="border-red-200 bg-red-50/70 p-4">
+          <p className="text-xs text-red-800 font-semibold">Gagal memuat log aktivitas</p>
+          <p className="text-xs text-red-700 mt-0.5">{(error as Error)?.message}</p>
+        </Card>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-28 w-full" />
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        <Card className="border-dashed border-warm-300 bg-white">
+          <CardContent className="p-12 text-center space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
+              <Activity className="h-6 w-6" />
             </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="text-xs bg-white">
-              Coba Lagi
-            </Button>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-charcoal">Tidak Ada Aktivitas Ditemukan</h3>
+              <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                {hasActiveFilters
+                  ? 'Tidak ada aktivitas yang sesuai dengan filter yang Anda pilih.'
+                  : 'Belum ada aktivitas yang dicatat di posko.'}
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={handleResetFilters} className="text-xs">
+                Reset Filter
+              </Button>
+            )}
           </CardContent>
         </Card>
-      )}
+      ) : (
+        <div className="space-y-3">
+          {paginatedEvents.map((ev) => {
+            const { label: moduleLabel, Icon: ModIcon } = getModuleInfo(ev.table_name)
+            const actorName =
+              ev.actor_name_snapshot ||
+              (ev.actor_email ? ev.actor_email.split('@')[0] : 'Sistem Posko')
+            const objName = getObjectDisplayName(ev)
+            const { actionLabel, icon: ActionIcon, colorClass } = getActionHeadline(ev)
 
-      {/* Main Activity Table */}
-      {!isError && (
-        <Card className="overflow-hidden border-warm-300 shadow-sm">
-          {isLoading ? (
-            <CardContent className="p-6 space-y-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-12 w-full bg-warm-200/60" />
-              ))}
-            </CardContent>
-          ) : filteredEvents.length === 0 ? (
-            <CardContent className="p-12 text-center space-y-3">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-200 text-charcoal">
-                <Filter className="h-6 w-6 text-charcoal-muted" />
-              </div>
-              <h3 className="text-sm font-semibold text-charcoal">Tidak Ada Aktivitas Ditemukan</h3>
-              <p className="text-xs text-charcoal-muted max-w-md mx-auto">
-                {hasActiveFilters
-                  ? 'Tidak ada aktivitas yang sesuai dengan kombinasi filter atau pencarian Anda.'
-                  : 'Belum ada aktivitas pengguna yang tercatat dalam log audit sistem.'}
-              </p>
-              {hasActiveFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetFilters}
-                  className="text-xs border-warm-300"
-                >
-                  Reset Semua Filter
-                </Button>
-              )}
-            </CardContent>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-warm-300 bg-warm-100/70 text-[11px] font-semibold uppercase tracking-wider text-charcoal-muted">
-                      <th className="px-4 py-3.5 whitespace-nowrap">Waktu</th>
-                      <th className="px-4 py-3.5 whitespace-nowrap">Pengguna</th>
-                      <th className="px-4 py-3.5 whitespace-nowrap">Role</th>
-                      <th className="px-4 py-3.5 whitespace-nowrap">Modul</th>
-                      <th className="px-4 py-3.5 whitespace-nowrap">Aksi</th>
-                      <th className="px-4 py-3.5">Deskripsi</th>
-                      <th className="px-4 py-3.5 whitespace-nowrap">Status</th>
-                      <th className="px-4 py-3.5 text-right whitespace-nowrap">Detail</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-warm-200 bg-white">
-                    {paginatedEvents.map((ev) => {
-                      const { label, Icon: ModIcon } = getModuleInfo(ev.table_name)
-                      const actorName =
-                        ev.actor_name_snapshot ||
-                        (ev.actor_email ? ev.actor_email.split('@')[0] : null) ||
-                        (ev.actor_id ? `ID: ${ev.actor_id.slice(0, 8)}...` : 'Sistem')
+            // Calculate changed fields
+            const changedFields: Array<{
+              key: string
+              label: string
+              oldVal: string
+              newVal: string
+            }> = []
 
-                      const userInitials = (
-                        ev.actor_name_snapshot
-                          ? ev.actor_name_snapshot
-                              .split(' ')
-                              .map((w) => w[0])
-                              .slice(0, 2)
-                              .join('')
-                          : actorName.slice(0, 2)
-                      ).toUpperCase()
+            if (ev.old_values && ev.new_values) {
+              const allKeys = Array.from(
+                new Set([...Object.keys(ev.old_values), ...Object.keys(ev.new_values)])
+              )
+              for (const k of allKeys) {
+                if (IGNORED_KEYS.has(k) || k.endsWith('_id')) continue
+                const oldRaw = ev.old_values[k]
+                const newRaw = ev.new_values[k]
+                if (JSON.stringify(oldRaw) !== JSON.stringify(newRaw)) {
+                  changedFields.push({
+                    key: k,
+                    label: FRIENDLY_FIELD_LABELS[k] || k.replace(/_/g, ' '),
+                    oldVal: formatValueFriendly(oldRaw, k),
+                    newVal: formatValueFriendly(newRaw, k),
+                  })
+                }
+              }
+            }
 
-                      const desc = generateHumanDescription(ev)
-                      const isSuccess = (ev.status || 'success').toLowerCase() === 'success'
+            // Key initial values for INSERT
+            const initialFields: Array<{ label: string; val: string }> = []
+            if (!ev.old_values && ev.new_values) {
+              for (const [k, v] of Object.entries(ev.new_values)) {
+                if (IGNORED_KEYS.has(k) || k.endsWith('_id') || v === null || v === '') continue
+                initialFields.push({
+                  label: FRIENDLY_FIELD_LABELS[k] || k.replace(/_/g, ' '),
+                  val: formatValueFriendly(v, k),
+                })
+              }
+            }
 
-                      return (
-                        <tr key={ev.id} className="hover:bg-warm-50/80 transition-colors">
-                          {/* Waktu */}
-                          <td className="px-4 py-3 text-[11px] text-charcoal-muted whitespace-nowrap">
-                            <div className="font-mono text-charcoal font-medium">
-                              {new Date(ev.created_at).toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                            </div>
-                            <div className="text-[10px] text-charcoal-muted font-mono">
-                              {new Date(ev.created_at).toLocaleTimeString('id-ID', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                              })}
-                            </div>
-                          </td>
+            const formattedTime = new Date(ev.created_at).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }) + ' WIB'
 
-                          {/* Pengguna */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2.5">
-                              <div className="h-7 w-7 rounded-full bg-forest/10 border border-forest/20 text-forest font-semibold text-[10px] flex items-center justify-center shrink-0">
-                                {userInitials}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-medium text-charcoal truncate max-w-[150px]">
-                                  {actorName}
-                                </p>
-                                {ev.actor_email && (
-                                  <p className="text-[10px] text-charcoal-muted font-mono truncate max-w-[150px]">
-                                    {ev.actor_email}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
+            return (
+              <Card
+                key={ev.id}
+                className="bg-white border-warm-200 hover:border-warm-300 transition-shadow shadow-xs"
+              >
+                <CardContent className="p-4 sm:p-5 space-y-3">
+                  {/* Top Bar: User + Role + Module Badge */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 border-b border-warm-100 pb-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-charcoal text-sm">{actorName}</span>
+                      {getRoleBadge(ev.actor_authority)}
+                      <span className="text-[11px] text-charcoal-muted">&bull;</span>
+                      <span className="text-[11px] text-charcoal-muted flex items-center gap-1">
+                        <ModIcon className="h-3 w-3 text-sage-800" />
+                        <span>{moduleLabel}</span>
+                      </span>
+                    </div>
 
-                          {/* Role */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {getRoleBadge(ev.actor_authority)}
-                          </td>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${colorClass}`}>
+                        <ActionIcon className="h-3 w-3" />
+                        <span className="capitalize">{actionLabel}</span>
+                      </span>
+                      <span className="text-[11px] text-charcoal-muted">{formattedTime}</span>
+                    </div>
+                  </div>
 
-                          {/* Modul */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-warm-100 text-charcoal text-[11px] border border-warm-200">
-                              <ModIcon className="h-3 w-3 text-forest shrink-0" />
-                              <span className="font-medium">{label}</span>
-                            </div>
-                          </td>
+                  {/* Main Action Line */}
+                  <div className="text-xs text-charcoal">
+                    <span>Melakukan </span>
+                    <strong className="text-charcoal font-semibold">{actionLabel}</strong>
+                    <span> pada </span>
+                    <strong className="text-emerald-900 font-semibold">{objName}</strong>
+                    {ev.description && ev.description !== objName && (
+                      <p className="text-xs text-charcoal-muted mt-0.5">{ev.description}</p>
+                    )}
+                  </div>
 
-                          {/* Aksi */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {getActionBadge(ev.action)}
-                          </td>
-
-                          {/* Deskripsi */}
-                          <td className="px-4 py-3 text-xs text-charcoal max-w-sm">
-                            <p className="line-clamp-2 leading-relaxed" title={desc}>
-                              {desc}
-                            </p>
-                            {ev.record_id && (
-                              <span className="text-[10px] font-mono text-charcoal-muted/80">
-                                Ref: {ev.record_id.slice(0, 8)}...
+                  {/* Changed Fields / Perubahan */}
+                  {changedFields.length > 0 && (
+                    <div className="rounded-md bg-warm-50/80 border border-warm-200 p-3 space-y-1.5 text-xs">
+                      <p className="font-semibold text-charcoal text-[11px] uppercase tracking-wide">
+                        Perubahan Data:
+                      </p>
+                      <ul className="space-y-1">
+                        {changedFields.map((field) => (
+                          <li
+                            key={field.key}
+                            className="flex flex-col sm:flex-row sm:items-center gap-1 text-charcoal"
+                          >
+                            <span className="text-charcoal-muted min-w-[140px] capitalize">
+                              &bull; {field.label}:
+                            </span>
+                            <div className="flex items-center gap-1.5 font-medium flex-wrap">
+                              <span className="text-rose-800 line-through bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+                                {field.oldVal}
                               </span>
-                            )}
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {isSuccess ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                                Berhasil
+                              <ArrowRight className="h-3 w-3 text-charcoal-muted shrink-0" />
+                              <span className="text-emerald-800 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                {field.newVal}
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200/60">
-                                <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
-                                Gagal
-                              </span>
-                            )}
-                          </td>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-                          {/* Detail Button */}
-                          <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setActiveEvent(ev)
-                                setShowRawJson(false)
-                              }}
-                              className="h-8 px-2 text-xs text-forest hover:text-forest-dark hover:bg-forest/5 gap-1"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Detail</span>
-                            </Button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                  {/* Initial Data for INSERT */}
+                  {initialFields.length > 0 && changedFields.length === 0 && (
+                    <div className="rounded-md bg-warm-50/80 border border-warm-200 p-3 space-y-1.5 text-xs">
+                      <p className="font-semibold text-charcoal text-[11px] uppercase tracking-wide">
+                        Detail Data Baru:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {initialFields.slice(0, 6).map((field, idx) => (
+                          <div key={idx} className="text-[11px]">
+                            <span className="text-charcoal-muted block capitalize">{field.label}:</span>
+                            <span className="font-semibold text-charcoal">{field.val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
 
-              {/* Table Footer with Pagination */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3.5 border-t border-warm-300 bg-warm-50/60 text-xs text-charcoal-muted">
-                <div>
-                  Menampilkan{' '}
-                  <span className="font-semibold text-charcoal">
-                    {filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
-                  </span>{' '}
-                  -{' '}
-                  <span className="font-semibold text-charcoal">
-                    {Math.min(currentPage * pageSize, filteredEvents.length)}
-                  </span>{' '}
-                  dari <span className="font-semibold text-charcoal">{filteredEvents.length}</span> aktivitas
-                  {hasActiveFilters && ` (difilter dari total ${allEvents.length})`}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="h-8 text-xs border-warm-300 gap-1 bg-white hover:bg-warm-100 disabled:opacity-50"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    <span>Sebelumnya</span>
-                  </Button>
-
-                  <span className="text-xs px-2 font-mono">
-                    Halaman {currentPage} / {totalPages}
-                  </span>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="h-8 text-xs border-warm-300 gap-1 bg-white hover:bg-warm-100 disabled:opacity-50"
-                  >
-                    <span>Selanjutnya</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </Card>
-      )}
-
-      {/* Detail & Diff Modal */}
-      {activeEvent && (
-        <Modal
-          open={!!activeEvent}
-          onClose={() => setActiveEvent(null)}
-          title={`Detail Aktivitas #${activeEvent.id}`}
-          description={`Dicatat pada ${new Date(activeEvent.created_at).toLocaleString('id-ID')}`}
-          maxWidthClass="max-w-3xl"
-        >
-          <div className="space-y-5 text-xs text-charcoal">
-            {/* Metadata Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-warm-50 rounded-lg border border-warm-300">
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-charcoal-muted tracking-wider">
-                  Pengguna / Actor
-                </p>
-                <p className="font-semibold text-charcoal mt-0.5">
-                  {activeEvent.actor_name_snapshot || activeEvent.actor_email || 'Sistem Otomatis'}
-                </p>
-                <p className="text-[11px] font-mono text-charcoal-muted">
-                  {activeEvent.actor_email || 'No email'} &bull;{' '}
-                  {activeEvent.actor_id ? `${activeEvent.actor_id.slice(0, 10)}...` : 'Service Role'}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-charcoal-muted tracking-wider">
-                  Role / Otoritas
-                </p>
-                <div className="mt-1">{getRoleBadge(activeEvent.actor_authority)}</div>
-              </div>
-
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-charcoal-muted tracking-wider">
-                  Modul &amp; Tabel Target
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="font-semibold text-charcoal">
-                    {getModuleInfo(activeEvent.table_name).label}
-                  </span>
-                  <span className="text-[11px] font-mono text-charcoal-muted">
-                    ({activeEvent.table_name})
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-charcoal-muted tracking-wider">
-                  Jenis Aksi &amp; Status
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  {getActionBadge(activeEvent.action)}
-                  <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    {activeEvent.status || 'success'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="sm:col-span-2 border-t border-warm-200 pt-2.5">
-                <p className="text-[10px] uppercase font-semibold text-charcoal-muted tracking-wider">
-                  Deskripsi Lengkap
-                </p>
-                <p className="text-xs text-charcoal mt-0.5 font-medium">
-                  {generateHumanDescription(activeEvent)}
-                </p>
-                {activeEvent.record_id && (
-                  <p className="text-[10px] font-mono text-charcoal-muted mt-1">
-                    Record ID: {activeEvent.record_id}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Before vs After Diff Section */}
+          {/* 5. Pagination */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-warm-200 text-xs text-charcoal-muted">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold text-charcoal uppercase tracking-wider">
-                  Perubahan Data (State Diff)
-                </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowRawJson(!showRawJson)}
-                  className="h-6 text-[10px] font-mono text-forest hover:bg-forest/5"
-                >
-                  {showRawJson ? 'Tampilkan Tabel Perbandingan' : 'Lihat Raw JSON'}
-                </Button>
-              </div>
-
-              {showRawJson ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-mono">
-                  <div className="p-3 bg-warm-100 rounded border border-warm-300 overflow-x-auto max-h-60">
-                    <p className="text-[10px] font-semibold text-charcoal-muted mb-1 uppercase font-sans">
-                      Old Values (Sebelumnya)
-                    </p>
-                    <pre className="text-charcoal whitespace-pre-wrap">
-                      {activeEvent.old_values
-                        ? JSON.stringify(activeEvent.old_values, null, 2)
-                        : 'null'}
-                    </pre>
-                  </div>
-                  <div className="p-3 bg-warm-100 rounded border border-warm-300 overflow-x-auto max-h-60">
-                    <p className="text-[10px] font-semibold text-charcoal-muted mb-1 uppercase font-sans">
-                      New Values (Sesudahnya)
-                    </p>
-                    <pre className="text-charcoal whitespace-pre-wrap">
-                      {activeEvent.new_values
-                        ? JSON.stringify(activeEvent.new_values, null, 2)
-                        : 'null'}
-                    </pre>
-                  </div>
-                </div>
-              ) : (
-                <DiffComparisonView
-                  oldValues={activeEvent.old_values}
-                  newValues={activeEvent.new_values}
-                  action={activeEvent.action}
-                />
-              )}
+              Menampilkan{' '}
+              <span className="font-semibold text-charcoal">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{' '}
+              -{' '}
+              <span className="font-semibold text-charcoal">
+                {Math.min(currentPage * pageSize, filteredEvents.length)}
+              </span>{' '}
+              dari <span className="font-semibold text-charcoal">{filteredEvents.length}</span> aktivitas
+              {hasActiveFilters && ` (difilter dari total ${allEvents.length})`}
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex justify-end pt-3 border-t border-warm-300">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setActiveEvent(null)}
-                className="text-xs border-warm-300"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="h-8 text-xs border-warm-300 gap-1 bg-white hover:bg-warm-100 disabled:opacity-50"
               >
-                Tutup
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span>Sebelumnya</span>
+              </Button>
+
+              <span className="text-xs px-2 font-mono">
+                Halaman {currentPage} / {totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="h-8 text-xs border-warm-300 gap-1 bg-white hover:bg-warm-100 disabled:opacity-50"
+              >
+                <span>Selanjutnya</span>
+                <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
-        </Modal>
+        </div>
       )}
-    </div>
-  )
-}
-
-/**
- * Component to present readable side-by-side or stacked diffs
- */
-function DiffComparisonView({
-  oldValues,
-  newValues,
-  action,
-}: {
-  oldValues: Record<string, unknown> | null
-  newValues: Record<string, unknown> | null
-  action: string
-}) {
-  const SENSITIVE_KEYS = ['password', 'token', 'secret', 'jwt', 'hash', 'key']
-
-  const isSensitive = (key: string) => {
-    const k = key.toLowerCase()
-    return SENSITIVE_KEYS.some((s) => k.includes(s))
-  }
-
-  const formatVal = (val: unknown, key: string): string => {
-    if (val === null || val === undefined) return '—'
-    if (isSensitive(key)) return '••••••••'
-    if (typeof val === 'object') return JSON.stringify(val)
-    if (typeof val === 'boolean') return val ? 'true' : 'false'
-    return String(val)
-  }
-
-  // Collect all keys
-  const allKeys = Array.from(
-    new Set([...Object.keys(oldValues || {}), ...Object.keys(newValues || {})])
-  ).sort()
-
-  if (allKeys.length === 0) {
-    return (
-      <div className="p-4 text-center bg-warm-50 rounded border border-warm-300 text-charcoal-muted text-xs">
-        Tidak ada data snapshot lama atau baru yang tersimpan untuk aksi ini.
-      </div>
-    )
-  }
-
-  // Filter modified keys if action is update
-  const isUpdate = (action || '').toLowerCase().includes('update')
-
-  return (
-    <div className="border border-warm-300 rounded-md overflow-hidden bg-white max-h-72 overflow-y-auto">
-      <table className="w-full text-left text-xs border-collapse">
-        <thead>
-          <tr className="bg-warm-100/70 border-b border-warm-300 text-[10px] font-semibold uppercase text-charcoal-muted">
-            <th className="px-3 py-2 w-1/4">Field / Kolom</th>
-            <th className="px-3 py-2 w-3/8">Nilai Lama (Sebelum)</th>
-            <th className="px-3 py-2 w-3/8">Nilai Baru (Sesudah)</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-warm-200">
-          {allKeys.map((key) => {
-            const oldVal = oldValues ? oldValues[key] : undefined
-            const newVal = newValues ? newValues[key] : undefined
-            const changed = isUpdate && JSON.stringify(oldVal) !== JSON.stringify(newVal)
-
-            return (
-              <tr
-                key={key}
-                className={
-                  changed
-                    ? 'bg-amber-50/50 hover:bg-amber-50'
-                    : 'hover:bg-warm-50/50'
-                }
-              >
-                <td className="px-3 py-2 font-mono text-[11px] font-medium text-charcoal">
-                  <div className="flex items-center gap-1.5">
-                    {changed && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                    )}
-                    <span>{key}</span>
-                  </div>
-                </td>
-                <td className="px-3 py-2 font-mono text-[11px] text-charcoal-muted break-all max-w-xs">
-                  {formatVal(oldVal, key)}
-                </td>
-                <td className="px-3 py-2 font-mono text-[11px] text-charcoal break-all max-w-xs font-medium">
-                  {formatVal(newVal, key)}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
     </div>
   )
 }

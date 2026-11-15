@@ -135,11 +135,21 @@ export async function fetchInventoryItems(options?: {
   reconciliation_status?: InventoryReconciliationStatus | 'all'
   owner_member_id?: string
   search?: string
+  is_archived?: boolean | 'all'
 }): Promise<InventoryItem[]> {
   let query = supabase
     .from('inventory_items')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (options?.is_archived === 'all') {
+    // don't filter
+  } else if (typeof options?.is_archived === 'boolean') {
+    query = query.eq('is_archived', options.is_archived)
+  } else {
+    // Default: only fetch active, non-archived items
+    query = query.eq('is_archived', false)
+  }
 
   if (options?.category && options.category !== 'all') {
     query = query.eq('category', options.category)
@@ -445,15 +455,30 @@ export async function updateInventoryItem(
   return data as InventoryItem
 }
 
-export async function deleteInventoryItem(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('inventory_items')
-    .delete()
-    .eq('id', id)
+export async function archiveInventoryItem(id: string, reason?: string): Promise<void> {
+  const { error } = await supabase.rpc('archive_inventory_item', {
+    p_item_id: id,
+    p_reason: reason || null,
+  })
 
   if (error) {
-    throw new Error(`Gagal menghapus inventaris: ${error.message}`)
+    throw new Error(`Gagal mengarsipkan barang: ${error.message}`)
   }
+}
+
+export async function restoreInventoryItem(id: string): Promise<void> {
+  const { error } = await supabase.rpc('restore_inventory_item', {
+    p_item_id: id,
+  })
+
+  if (error) {
+    throw new Error(`Gagal memulihkan barang: ${error.message}`)
+  }
+}
+
+export async function deleteInventoryItem(id: string, reason?: string): Promise<void> {
+  // Gracefully archive to preserve movements, loans, and audit trails
+  return archiveInventoryItem(id, reason)
 }
 
 // -------------------------------------------------------------
