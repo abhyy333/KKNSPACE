@@ -512,9 +512,21 @@ export async function restoreInventoryItem(id: string): Promise<void> {
   }
 }
 
-export async function deleteInventoryItem(id: string, reason?: string): Promise<void> {
-  // Gracefully archive to preserve movements, loans, and audit trails
-  return archiveInventoryItem(id, reason)
+export async function deletePersonalInventoryItem(id: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_personal_inventory_item', {
+    p_item_id: id,
+  })
+
+  if (error) {
+    if (error.message.includes('Akses ditolak')) {
+      throw new Error(error.message)
+    }
+    throw new Error(`Gagal menghapus barang pribadi: ${error.message}`)
+  }
+}
+
+export async function deleteInventoryItem(id: string, _reason?: string): Promise<void> {
+  return deletePersonalInventoryItem(id)
 }
 
 // -------------------------------------------------------------
@@ -883,6 +895,7 @@ export async function fetchInventoryMovements(itemId?: string): Promise<
 
   return movementsData.map((m: any) => ({
     ...m,
+    item: m.item || (m.item_name ? { name: m.item_name, item_code: m.item_code } : undefined),
     user: {
       full_name:
         (m.user_id && profileMap[m.user_id]) ||

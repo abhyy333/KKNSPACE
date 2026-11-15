@@ -615,7 +615,9 @@ export interface InventoryLoan {
 
 export interface InventoryMovement {
   id: string
-  item_id: string
+  item_id: string | null
+  item_name?: string | null
+  item_code?: string | null
   movement_type: InventoryMovementType
   quantity: number
   user_id: string

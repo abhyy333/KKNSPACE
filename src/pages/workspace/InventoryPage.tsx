@@ -7,6 +7,7 @@ import {
   updateInventoryItem,
   archiveInventoryItem,
   restoreInventoryItem,
+  deletePersonalInventoryItem,
   adjustInventoryStock,
   fetchInventoryMovements,
   fetchInventorySignedPhotoUrls,
@@ -50,6 +51,7 @@ import {
   CheckCircle2,
   Clock,
   ChevronDown,
+  Trash2,
 } from 'lucide-react'
 
 // -------------------------------------------------------------
@@ -156,6 +158,8 @@ function formatActivitySentence(m: {
   switch (m.movement_type) {
     case 'in':
       return `${actor} menambahkan barang ${itemName} ke dalam inventaris posko.`
+    case 'deleted':
+      return `${actor} menghapus barang pribadi ${itemName} dari inventaris posko.`
     case 'archived':
       return `${actor} mengarsipkan barang ${itemName}${m.notes ? ` (${m.notes})` : ''}.`
     case 'restored':
@@ -214,7 +218,8 @@ export const InventoryPage: React.FC = () => {
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
-  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
+  const [itemToArchive, setItemToArchive] = useState<InventoryItem | null>(null)
+  const [itemToHardDelete, setItemToHardDelete] = useState<InventoryItem | null>(null)
   const [itemToRestore, setItemToRestore] = useState<InventoryItem | null>(null)
   const [qrItem, setQrItem] = useState<InventoryItem | null>(null)
   const [stockAdjustmentItem, setStockAdjustmentItem] = useState<InventoryItem | null>(null)
@@ -304,22 +309,43 @@ export const InventoryPage: React.FC = () => {
     },
   })
 
-  const deleteMutation = useMutation({
+  const archiveMutation = useMutation({
     mutationFn: (vars: { id: string; reason?: string }) => archiveInventoryItem(vars.id, vars.reason),
     onSuccess: () => {
       toast({
         title: 'Barang Berhasil Diarsipkan',
-        description: 'Barang dipindahkan ke arsip. Riwayat mutasi dan audit tersimpan aman.',
+        description: 'Barang dipindahkan ke arsip. Riwayat aktivitas dan audit tersimpan aman.',
         variant: 'success',
       })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-items-archived'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
-      setItemToDelete(null)
+      setItemToArchive(null)
       setArchivalReason('')
     },
     onError: (err: any) => {
       toast({ title: 'Gagal Mengarsipkan Barang', description: err.message, variant: 'error' })
+    },
+  })
+
+  const hardDeleteMutation = useMutation({
+    mutationFn: (id: string) => deletePersonalInventoryItem(id),
+    onSuccess: () => {
+      toast({
+        title: 'Barang Pribadi Berhasil Dihapus',
+        description: `Barang "${itemToHardDelete?.name || 'tersebut'}" telah dihapus secara permanen dari sistem posko.`,
+        variant: 'success',
+      })
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
+      setItemToHardDelete(null)
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Gagal Menghapus Barang',
+        description: err.message || 'Terjadi kesalahan saat menghapus barang.',
+        variant: 'error',
+      })
     },
   })
 
@@ -356,6 +382,12 @@ export const InventoryPage: React.FC = () => {
       return Boolean(user?.id && item.owner_member_id === user.id)
     }
     return isLeaderOrAdmin
+  }
+
+  const canHardDeletePersonalItem = (item: InventoryItem) => {
+    if (item.ownership_type !== 'PERSONAL_OWNED') return false
+    if (isSuperAdmin) return true
+    return Boolean(user?.id && item.owner_member_id === user.id)
   }
 
   const canRestoreItemRecord = (item: InventoryItem) => {
@@ -807,13 +839,24 @@ export const InventoryPage: React.FC = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                              setItemToDelete(item)
+                              setItemToArchive(item)
                               setArchivalReason('')
                             }}
-                            className="h-7 px-2 text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1"
-                            title="Hapus / Arsipkan Barang"
+                            className="h-7 px-2 text-xs text-amber-700 hover:text-amber-800 hover:bg-amber-50 gap-1"
+                            title="Arsipkan Barang (Dapat diaktifkan kembali dari tab Arsip)"
                           >
                             <Archive className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Arsip</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setItemToHardDelete(item)}
+                            className="h-7 px-2 text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1"
+                            title="Hapus Barang Pribadi Secara Permanen"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Hapus</span>
                           </Button>
                         </div>
@@ -1054,13 +1097,25 @@ export const InventoryPage: React.FC = () => {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => {
-                                    setItemToDelete(item)
+                                    setItemToArchive(item)
                                     setArchivalReason('')
                                   }}
                                   className="h-7 w-7 p-0 text-amber-700 hover:text-amber-800 hover:bg-amber-50"
                                   title="Arsipkan Barang"
                                 >
                                   <Archive className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+
+                              {canHardDeletePersonalItem(item) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setItemToHardDelete(item)}
+                                  className="h-7 w-7 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                  title="Hapus Barang Pribadi"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
                             </div>
@@ -1342,10 +1397,10 @@ export const InventoryPage: React.FC = () => {
 
       {/* 6. Modal Konfirmasi Arsip Barang */}
       <Modal
-        open={Boolean(itemToDelete)}
+        open={Boolean(itemToArchive)}
         onClose={() => {
-          if (!deleteMutation.isPending) {
-            setItemToDelete(null)
+          if (!archiveMutation.isPending) {
+            setItemToArchive(null)
             setArchivalReason('')
           }
         }}
@@ -1356,22 +1411,22 @@ export const InventoryPage: React.FC = () => {
           <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-charcoal-muted">Nama Barang:</span>
-              <span className="font-bold text-charcoal">{itemToDelete?.name}</span>
+              <span className="font-bold text-charcoal">{itemToArchive?.name}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-charcoal-muted">Status Kepemilikan:</span>
               <span className="font-semibold text-charcoal">
-                {itemToDelete?.ownership_type === 'GROUP_OWNED'
+                {itemToArchive?.ownership_type === 'GROUP_OWNED'
                   ? 'Aset Kelompok KKN'
-                  : itemToDelete?.ownership_type === 'PERSONAL_OWNED'
-                  ? `Milik Pribadi (${itemToDelete.owner_name || 'Anggota'})`
-                  : itemToDelete?.owner_name || 'Pinjaman/Hibah'}
+                  : itemToArchive?.ownership_type === 'PERSONAL_OWNED'
+                  ? `Milik Pribadi (${itemToArchive.owner_name || 'Anggota'})`
+                  : itemToArchive?.owner_name || 'Pinjaman/Hibah'}
               </span>
             </div>
-            {itemToDelete?.current_location && (
+            {itemToArchive?.current_location && (
               <div className="flex items-center justify-between">
                 <span className="text-charcoal-muted">Lokasi Terkini:</span>
-                <span className="font-medium text-charcoal">{itemToDelete.current_location}</span>
+                <span className="font-medium text-charcoal">{itemToArchive.current_location}</span>
               </div>
             )}
           </div>
@@ -1395,9 +1450,9 @@ export const InventoryPage: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              disabled={deleteMutation.isPending}
+              disabled={archiveMutation.isPending}
               onClick={() => {
-                setItemToDelete(null)
+                setItemToArchive(null)
                 setArchivalReason('')
               }}
               className="w-full sm:w-auto text-xs"
@@ -1407,11 +1462,11 @@ export const InventoryPage: React.FC = () => {
             <Button
               type="button"
               size="sm"
-              disabled={deleteMutation.isPending}
+              disabled={archiveMutation.isPending}
               onClick={async () => {
-                if (itemToDelete) {
-                  await deleteMutation.mutateAsync({
-                    id: itemToDelete.id,
+                if (itemToArchive) {
+                  await archiveMutation.mutateAsync({
+                    id: itemToArchive.id,
                     reason: archivalReason.trim() || undefined,
                   })
                 }
@@ -1419,11 +1474,32 @@ export const InventoryPage: React.FC = () => {
               className="bg-amber-700 hover:bg-amber-800 text-white w-full sm:w-auto text-xs gap-1.5"
             >
               <Archive className="h-3.5 w-3.5" />
-              <span>{deleteMutation.isPending ? 'Mengarsipkan...' : 'Arsipkan Barang'}</span>
+              <span>{archiveMutation.isPending ? 'Mengarsipkan...' : 'Arsipkan Barang'}</span>
             </Button>
           </div>
         </div>
       </Modal>
+
+      {/* 6b. Modal Konfirmasi Hapus Barang Pribadi (Permanen) */}
+      <ConfirmDialog
+        open={Boolean(itemToHardDelete)}
+        onClose={() => {
+          if (!hardDeleteMutation.isPending) {
+            setItemToHardDelete(null)
+          }
+        }}
+        onConfirm={async () => {
+          if (itemToHardDelete) {
+            await hardDeleteMutation.mutateAsync(itemToHardDelete.id)
+          }
+        }}
+        title="Hapus Barang Pribadi?"
+        description={`Barang "${itemToHardDelete?.name}" akan dihapus secara permanen dari sistem inventaris posko. Tindakan ini tidak dapat dibatalkan melalui antarmuka biasa.`}
+        confirmLabel={hardDeleteMutation.isPending ? 'Menghapus...' : 'Hapus Permanen'}
+        cancelLabel="Batal"
+        variant="destructive"
+        isLoading={hardDeleteMutation.isPending}
+      />
 
       {/* 7. Modal Konfirmasi Pulihkan Barang dari Arsip */}
       <ConfirmDialog
