@@ -49,6 +49,8 @@ import {
   Users,
 } from 'lucide-react'
 import { PublicDocPhoto } from '@/components/public/PublicDocPhoto'
+import { useTranslation, useLocale } from '@/i18n'
+import { formatCurrency, formatShortDate as formatI18nShortDate } from '@/i18n/formatters'
 
 const ROLE_BADGE_LABELS: Record<KknRole, string> = {
   ketua: 'Ketua',
@@ -87,21 +89,8 @@ const ANNOUNCEMENT_STATUS_META: Record<
   archived: { label: 'Diarsipkan', variant: 'outline' },
 }
 
-const idrFormatter = new Intl.NumberFormat('id-ID', {
-  style: 'currency',
-  currency: 'IDR',
-  maximumFractionDigits: 0,
-})
-
 function formatShortDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-'
-  const parsed = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`)
-  if (Number.isNaN(parsed.getTime())) return dateStr
-  return parsed.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatI18nShortDate(dateStr)
 }
 
 function formatTimeRange(startIso: string, endIso: string): string {
@@ -221,6 +210,8 @@ export const OverviewPage: React.FC = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const { user, membership, isSuperAdmin } = useAuth()
+  const { t } = useTranslation()
+  const { locale } = useLocale()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAnnouncement, setEditingAnnouncement] =
@@ -472,7 +463,7 @@ export const OverviewPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
-              Selamat Datang di Workspace KKN
+              {t('workspace.overview.welcome')}
             </h1>
             <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
           </div>
@@ -492,7 +483,7 @@ export const OverviewPage: React.FC = () => {
             <RefreshCw
               className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`}
             />
-            <span>Segarkan</span>
+            <span>{t('common.refresh')}</span>
           </Button>
         </div>
       </div>
@@ -504,10 +495,10 @@ export const OverviewPage: React.FC = () => {
             <CardContent className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                  Program Kerja
+                  {t('workspace.overview.activePrograms')}
                 </p>
                 <h3 className="text-2xl font-serif font-semibold text-charcoal mt-1">
-                  {totalPrograms} Program
+                  {totalPrograms}
                 </h3>
                 <p className="text-xs text-charcoal-muted mt-1">
                   {totalPrograms === 0 ? (
@@ -534,10 +525,10 @@ export const OverviewPage: React.FC = () => {
             <CardContent className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                  Tugas Tim Berjalan
+                  {t('workspace.overview.pendingTasks')}
                 </p>
                 <h3 className="text-2xl font-serif font-semibold text-charcoal mt-1">
-                  {activeTasks.length} Tugas
+                  {activeTasks.length}
                 </h3>
                 <p className="text-xs text-charcoal-muted mt-1">
                   {activeTasks.length === 0 && doneTasksCount === 0 ? (
@@ -570,10 +561,10 @@ export const OverviewPage: React.FC = () => {
             <CardContent className="p-5 flex items-center justify-between">
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider">
-                  Saldo Kas Posko
+                  {t('workspace.overview.financeBalance')}
                 </p>
                 <h3 className="text-2xl font-serif font-semibold text-charcoal mt-1 truncate">
-                  {idrFormatter.format(data.finance.balance)}
+                  {formatCurrency(data.finance.balance, locale)}
                 </h3>
                 <p className="text-xs text-charcoal-muted mt-1">
                   {data.finance.transactionCount === 0

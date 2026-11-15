@@ -5,6 +5,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import type { Announcement } from '@/types/database'
 import { WorkspaceGlobalSearchModal } from '@/components/workspace/WorkspaceGlobalSearchModal'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { useTranslation, useLocale } from '@/i18n'
+import { formatShortDate } from '@/i18n/formatters'
 
 interface WorkspaceTopbarProps {
   onToggleSidebar: () => void
@@ -29,6 +32,8 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
 }) => {
   const navigate = useNavigate()
   const { signOut } = useAuth()
+  const { t } = useTranslation()
+  const { locale } = useLocale()
   const [notifOpen, setNotifOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const notifContainerRef = useRef<HTMLDivElement>(null)
@@ -94,7 +99,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
 
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-semibold text-charcoal tracking-wide uppercase shrink-0">
-            Ruang Kerja
+            {t('workspace.nav.workSpace')}
           </span>
           <span className="text-warm-400 shrink-0">/</span>
           <span className="text-xs text-charcoal-muted truncate">{poskoLabel}</span>
@@ -108,10 +113,10 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
           type="button"
           onClick={() => setSearchOpen(true)}
           className="flex items-center gap-2 rounded-lg border border-warm-200 bg-warm-50/80 px-2.5 py-1.5 text-xs text-charcoal-muted hover:border-sage-400 hover:bg-white hover:text-charcoal transition-colors"
-          title="Cari di seluruh Workspace (Ctrl+K)"
+          title={`${t('common.search')} (Ctrl+K)`}
         >
           <Search className="h-3.5 w-3.5 text-sage-700" />
-          <span className="hidden md:inline">Cari di Workspace...</span>
+          <span className="hidden md:inline">{t('common.search')}...</span>
           <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-warm-300 bg-warm-100 px-1 py-0.2 font-mono text-[9px] text-charcoal-muted">
             Ctrl+K
           </kbd>
@@ -125,6 +130,14 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
             </Button>
           </Link>
         )}
+
+        {/* Multilingual Switcher */}
+        <div className="hidden sm:block">
+          <LanguageSwitcher variant="compact" />
+        </div>
+        <div className="sm:hidden">
+          <LanguageSwitcher variant="minimal" />
+        </div>
 
         <div className="relative" ref={notifContainerRef}>
           <button
@@ -204,11 +217,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
                         </p>
                         {item.published_at && (
                           <p className="text-[10px] text-sage-700 mt-1.5">
-                            {new Date(item.published_at).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
+                            {formatShortDate(item.published_at, locale)}
                           </p>
                         )}
                       </div>
@@ -221,7 +230,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
                     onClick={() => setNotifOpen(false)}
                     className="text-[11px] font-medium text-sage-700 hover:text-sage-800 inline-flex items-center gap-1"
                   >
-                    <span>Lihat di Ringkasan Workspace</span>
+                    <span>{t('workspace.overview.title')}</span>
                     <span>&rarr;</span>
                   </Link>
                 </div>
@@ -256,7 +265,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
             variant="ghost"
             size="icon"
             onClick={handleLogout}
-            title={`Keluar (${userEmail})`}
+            title={`${t('auth.signOut')} (${userEmail})`}
             className="text-charcoal-muted hover:text-red-600 h-8 w-8"
           >
             <LogOut className="h-4 w-4" />

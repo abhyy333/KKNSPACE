@@ -27,8 +27,10 @@ import {
   PublicSectionError,
 } from '@/components/public/PublicQueryStates'
 import { HomeSponsorsSection } from '@/components/public/HomeSponsorsSection'
+import { useTranslation } from '@/i18n'
 
 export const HomePage: React.FC = () => {
+  const { t } = useTranslation()
   const {
     data: overview,
     isLoading,
@@ -68,12 +70,11 @@ export const HomePage: React.FC = () => {
               </div>
 
               <h1 className="text-3xl font-serif font-medium tracking-tight sm:text-4xl lg:text-5xl leading-tight">
-                Sinergi Membangun Kemandirian Desa Pringgasela Selatan
+                {t('publicHome.heroTitle')}
               </h1>
 
               <p className="text-sm sm:text-base text-warm-200/90 leading-relaxed font-sans max-w-2xl">
-                Portal publik transparansi program kerja mahasiswa pengabdian, publikasi inovasi sentra
-                tenun Sasak, pengumuman resmi kegiatan, serta dokumentasi pemberdayaan warga desa.
+                {t('publicHome.heroSubtitle')}
               </p>
 
               <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -83,7 +84,7 @@ export const HomePage: React.FC = () => {
                     className="bg-white text-charcoal hover:bg-warm-100 font-medium text-xs sm:text-sm gap-2 h-10 px-5 rounded-lg shadow-sm"
                   >
                     <ArrowRight className="h-4 w-4 text-sage-700" />
-                    <span>Masuk Workspace Pengurus</span>
+                    <span>{t('nav.workspace')}</span>
                   </Button>
                 </Link>
 
@@ -94,7 +95,7 @@ export const HomePage: React.FC = () => {
                     className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     <Users className="h-4 w-4" />
-                    <span>Profil Tim KKN</span>
+                    <span>{t('publicHome.meetTeam')}</span>
                   </Button>
                 </Link>
 
@@ -105,7 +106,7 @@ export const HomePage: React.FC = () => {
                     className="text-xs sm:text-sm gap-2 h-10 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     <ImageIcon className="h-4 w-4" />
-                    <span>Galeri Dokumentasi</span>
+                    <span>{t('publicHome.viewDocumentation')}</span>
                   </Button>
                 </Link>
               </div>
@@ -126,10 +127,10 @@ export const HomePage: React.FC = () => {
           <Card className="border-warm-300 bg-white shadow-subtle">
             <CardContent className="p-5">
               <span className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider block">
-                Masa Pengabdian
+                {t('publicHome.statsDays')}
               </span>
               <div className="mt-2 text-2xl font-serif font-semibold text-charcoal">
-                45 Hari
+                45 {t('common.days')}
               </div>
               <p className="mt-1 text-xs text-charcoal-muted">Periode KKN 2026</p>
             </CardContent>
@@ -139,13 +140,13 @@ export const HomePage: React.FC = () => {
             <Card className="border-warm-300 bg-white shadow-subtle group-hover:border-sage-400 transition-colors">
               <CardContent className="p-5">
                 <span className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider block">
-                  Program Terpublikasi
+                  {t('publicHome.statsPrograms')}
                 </span>
                 <div className="mt-2 text-2xl font-serif font-semibold text-charcoal">
-                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${programsCount} Program`}
+                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${programsCount}`}
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-xs text-sage-700 font-medium group-hover:underline">
-                  <span>Lihat Daftar Program</span>
+                  <span>{t('publicHome.explorePrograms')}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
               </CardContent>
@@ -156,13 +157,13 @@ export const HomePage: React.FC = () => {
             <Card className="border-warm-300 bg-white shadow-subtle group-hover:border-sage-400 transition-colors">
               <CardContent className="p-5">
                 <span className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider block">
-                  Dokumentasi Publik
+                  {t('publicHome.statsMedia')}
                 </span>
                 <div className="mt-2 text-2xl font-serif font-semibold text-charcoal">
-                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${mediaCount} Media`}
+                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${mediaCount}`}
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-xs text-sage-700 font-medium group-hover:underline">
-                  <span>Buka Galeri Publik</span>
+                  <span>{t('publicHome.viewDocumentation')}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
               </CardContent>
@@ -173,13 +174,13 @@ export const HomePage: React.FC = () => {
             <Card className="border-warm-300 bg-white shadow-subtle group-hover:border-sage-400 transition-colors">
               <CardContent className="p-5">
                 <span className="text-[11px] font-medium text-charcoal-muted uppercase tracking-wider block">
-                  Pengumuman Resmi
+                  {t('publicHome.statsAnnouncements')}
                 </span>
                 <div className="mt-2 text-2xl font-serif font-semibold text-charcoal">
-                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${announcementsCount} Info`}
+                  {isLoading ? <Skeleton className="h-8 w-24" /> : `${announcementsCount}`}
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-xs text-sage-700 font-medium group-hover:underline">
-                  <span>Baca Pengumuman</span>
+                  <span>{t('publicHome.viewAll')}</span>
                   <ArrowRight className="h-3 w-3" />
                 </div>
               </CardContent>
@@ -194,10 +195,10 @@ export const HomePage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">
               <Megaphone className="h-3.5 w-3.5" />
-              <span>Informasi Publik</span>
+              <span>{t('publicHome.announcements')}</span>
             </div>
             <h2 className="text-xl font-serif font-semibold text-charcoal mt-1">
-              Pengumuman Terbaru Posko KKN
+              {t('publicHome.announcements')}
             </h2>
           </div>
           <span className="text-xs text-charcoal-muted">

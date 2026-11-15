@@ -25,6 +25,7 @@ import {
   MessageCircle,
   ArrowRight,
 } from 'lucide-react'
+import { useTranslation } from '@/i18n'
 
 interface CategoryConfig {
   label: string
@@ -63,6 +64,7 @@ const CATEGORY_ORDER: SponsorCategory[] = [
 ]
 
 export const SponsorsPage: React.FC = () => {
+  const { t } = useTranslation()
   const { data: sponsors = [], isLoading } = useQuery({
     queryKey: ['public-sponsors'],
     queryFn: fetchPublicSponsors,
@@ -418,7 +420,7 @@ export const SponsorsPage: React.FC = () => {
               <span>OPPORTUNITIES · SPONSORSHIP TIERS</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-serif font-medium text-[#252A26] tracking-tight">
-              Peluang Kemitraan & Paket Sponsorship
+              {t('publicSponsors.exploreOpportunities')}
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed font-light">
               Kami membuka kesempatan kolaborasi strategis dengan model kontribusi fleksibel tanpa batasan nominal kaku.
@@ -610,7 +612,7 @@ export const SponsorsPage: React.FC = () => {
                       ) : (
                         <Mail className="h-4 w-4 text-[#B19A6B]" />
                       )}
-                      <span>Konsultasikan Paket / Kemitraan</span>
+                      <span>{t('publicSponsors.consultation')}</span>
                     </a>
                   ) : (
                     <span className="text-xs text-charcoal-muted italic">

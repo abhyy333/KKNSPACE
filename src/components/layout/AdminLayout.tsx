@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import { Shield, Menu, X, LogOut, Home, Briefcase, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { useTranslation } from '@/i18n'
 
 const SIDEBAR_STORAGE_KEY = 'kkn_admin_sidebar_collapsed'
 
@@ -21,6 +23,7 @@ export const AdminLayout: React.FC = () => {
   const { user, profile, membership, isSuperAdmin, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
 
   // Close mobile drawer whenever location changes
   useEffect(() => {
@@ -218,14 +221,14 @@ export const AdminLayout: React.FC = () => {
           {hasWorkspaceAccess ? (
             <Link
               to="/workspace"
-              title={collapsed ? "Buka Workspace KKN" : undefined}
+              title={collapsed ? t('workspace.nav.workSpace') : undefined}
               className={cn(
                 "flex items-center rounded-md text-xs text-sage-800 bg-sage-100/60 hover:bg-sage-100 transition-colors font-medium",
                 collapsed ? "justify-center p-2 h-9 w-full" : "gap-2 px-2 py-1.5"
               )}
             >
               <Briefcase className="h-4 w-4 shrink-0 text-sage-700" />
-              {!collapsed && <span className="truncate">Buka Workspace KKN</span>}
+              {!collapsed && <span className="truncate">{t('workspace.nav.workSpace')}</span>}
             </Link>
           ) : (
             !collapsed && (
@@ -238,14 +241,14 @@ export const AdminLayout: React.FC = () => {
 
           <Link
             to="/"
-            title={collapsed ? "Lihat Website Publik" : undefined}
+            title={collapsed ? t('nav.home') : undefined}
             className={cn(
               "flex items-center rounded-md text-xs text-charcoal-muted hover:bg-warm-100 transition-colors",
               collapsed ? "justify-center p-2 h-9 w-full" : "gap-2 px-2 py-1.5"
             )}
           >
             <Home className="h-4 w-4 shrink-0" />
-            {!collapsed && <span className="truncate">Lihat Website Publik</span>}
+            {!collapsed && <span className="truncate">{t('nav.home')}</span>}
           </Link>
         </div>
       </aside>
@@ -280,11 +283,12 @@ export const AdminLayout: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-charcoal">Sistem Pusat KKN SPACE</span>
               <span className="text-warm-400">/</span>
-              <span className="text-xs text-charcoal-muted truncate">Kelola Akses &amp; Audit</span>
+              <span className="text-xs text-charcoal-muted truncate">Admin Console</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="compact" />
             <Button
               variant="ghost"
               size="sm"
@@ -292,7 +296,7 @@ export const AdminLayout: React.FC = () => {
               className="gap-1.5 text-xs text-charcoal-muted hover:text-red-600"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Keluar</span>
+              <span className="hidden sm:inline">{t('auth.signOut')}</span>
             </Button>
           </div>
         </header>

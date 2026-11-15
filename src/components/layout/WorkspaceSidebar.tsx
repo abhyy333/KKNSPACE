@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { WORKSPACE_NAV } from '@/config/navigation'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, Shield } from 'lucide-react'
+import { useTranslation } from '@/i18n'
 
 interface WorkspaceSidebarProps {
   isOpen: boolean
@@ -23,6 +24,38 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   groupName = "KKN SPACE",
   villageName = "Desa belum diatur",
 }) => {
+  const { t } = useTranslation()
+
+  const getSectionTitle = (title: string) => {
+    switch (title) {
+      case 'Ruang Kerja': return t('workspace.nav.workSpace')
+      case 'Operasional Lapangan': return t('workspace.nav.fieldOps')
+      case 'Arsip & Administrasi': return t('workspace.nav.archiveAdmin')
+      default: return title
+    }
+  }
+
+  const getItemTitle = (href: string, fallback: string) => {
+    switch (href) {
+      case '/workspace': return t('workspace.nav.overview')
+      case '/workspace/agenda': return t('workspace.nav.agenda')
+      case '/workspace/programs': return t('workspace.nav.programs')
+      case '/workspace/tasks': return t('workspace.nav.tasks')
+      case '/workspace/meetings': return t('workspace.nav.meetings')
+      case '/workspace/finance': return t('workspace.nav.finance')
+      case '/workspace/inventory': return t('workspace.nav.inventory')
+      case '/workspace/surveys': return t('workspace.nav.surveys')
+      case '/workspace/duty': return t('workspace.nav.duty')
+      case '/workspace/sponsors': return t('workspace.nav.sponsors')
+      case '/workspace/documentation': return t('workspace.nav.documentation')
+      case '/workspace/documents': return t('workspace.nav.documents')
+      case '/workspace/members': return t('workspace.nav.members')
+      case '/workspace/profile': return t('workspace.nav.myProfile')
+      case '/workspace/settings': return t('workspace.nav.settings')
+      default: return fallback
+    }
+  }
+
   // Close drawer on Escape
   React.useEffect(() => {
     if (!isOpen) return
@@ -72,7 +105,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         {/* User Role Tag */}
         <div className="px-4 py-3 bg-warm-100/60 border-b border-warm-300 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-charcoal-muted min-w-0">
-            <span className="shrink-0">Peran:</span>
+            <span className="shrink-0">{t('common.role')}:</span>
             <span
               className="font-medium text-sage-800 bg-sage-100 px-2 py-0.5 rounded text-[11px] truncate"
               title={userRole}
@@ -98,7 +131,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             return (
               <div key={section.title} className="space-y-1">
                 <div className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-charcoal-muted uppercase">
-                  {section.title}
+                  {getSectionTitle(section.title)}
                 </div>
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
@@ -119,7 +152,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                         }
                       >
                         <Icon className="h-4 w-4 shrink-0 transition-opacity" />
-                        <span className="truncate">{item.title}</span>
+                        <span className="truncate">{getItemTitle(item.href, item.title)}</span>
                         {item.badge && (
                           <span className="ml-auto rounded-full bg-sage-200 px-1.5 py-0.2 text-[10px] text-sage-800 font-mono">
                             {item.badge}
@@ -152,7 +185,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-charcoal-muted hover:text-charcoal hover:bg-warm-200/60 transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Halaman Publik Desa</span>
+            <span>{t('nav.home')}</span>
           </NavLink>
           <div className="px-2 text-[10px] text-charcoal-light">
             <span>KKN Kolaborasi 2026</span>

@@ -5,9 +5,25 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { useTranslation } from '@/i18n'
 
 export const PublicNavbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { t } = useTranslation()
+
+  const getNavTitle = (href: string, fallback: string) => {
+    switch (href) {
+      case '/': return t('nav.home')
+      case '/tim': return t('nav.team')
+      case '/profil-desa': return t('nav.village')
+      case '/program-kerja': return t('nav.programs')
+      case '/dokumentasi': return t('nav.documentation')
+      case '/timeline-kkn': return t('nav.timeline')
+      case '/sponsors': return t('nav.sponsors')
+      default: return fallback
+    }
+  }
 
   // Close mobile navigation drawer on Escape key
   useEffect(() => {
@@ -51,26 +67,28 @@ export const PublicNavbar: React.FC = () => {
                 )
               }
             >
-              {item.title}
+              {getNavTitle(item.href, item.title)}
             </NavLink>
           ))}
         </nav>
 
-        {/* Workspace Login CTA */}
-        <div className="hidden lg:flex items-center gap-3">
+        {/* Workspace Login CTA & Language Switcher */}
+        <div className="hidden lg:flex items-center gap-2.5">
+          <LanguageSwitcher variant="compact" />
           <Link to="/workspace">
             <Button
               size="sm"
               className="bg-sage-700 hover:bg-sage-800 text-white gap-2 text-xs font-medium px-4 py-2 rounded-lg shadow-subtle shrink-0"
             >
-              <span>Masuk Workspace</span>
+              <span>{t('nav.workspace')}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </Link>
         </div>
 
-        {/* Mobile menu button */}
-        <div className="flex lg:hidden">
+        {/* Mobile menu and Language switcher */}
+        <div className="flex items-center gap-1 lg:hidden">
+          <LanguageSwitcher variant="minimal" />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -99,16 +117,20 @@ export const PublicNavbar: React.FC = () => {
                 )
               }
             >
-              {item.title}
+              {getNavTitle(item.href, item.title)}
             </NavLink>
           ))}
-          <div className="pt-2 border-t border-warm-300">
+          <div className="pt-3 border-t border-warm-300 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-medium text-charcoal-muted">Language</span>
+              <LanguageSwitcher variant="compact" />
+            </div>
             <Link
               to="/workspace"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full flex items-center justify-center gap-2 bg-sage-700 text-white py-2.5 px-4 rounded-md text-sm font-medium"
             >
-              <span>Masuk Workspace</span>
+              <span>{t('nav.workspace')}</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

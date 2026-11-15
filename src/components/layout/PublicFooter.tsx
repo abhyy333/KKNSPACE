@@ -2,8 +2,11 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Mail, Calendar, ShieldCheck } from 'lucide-react'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { useTranslation } from '@/i18n'
 
 export const PublicFooter: React.FC = () => {
+  const { t } = useTranslation()
+
   return (
     <footer className="border-t border-warm-300 bg-white text-charcoal">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -22,9 +25,7 @@ export const PublicFooter: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-charcoal-muted leading-relaxed max-w-md">
-              Portal transparansi program pengabdian masyarakat mahasiswa KKN.
-              Mendukung inovasi desa, sentra tenun Sasak tradisional, pemberdayaan ekonomi,
-              dan gotong royong warga desa.
+              {t('publicHome.heroSubtitle')}
             </p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-charcoal-muted pt-2">
               <div className="flex items-center gap-1.5">
@@ -41,37 +42,37 @@ export const PublicFooter: React.FC = () => {
           {/* Navigation Links */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-charcoal uppercase tracking-wider">
-              Tautan Publik
+              {t('common.filter')}
             </h4>
             <ul className="space-y-1.5 text-xs text-charcoal-muted">
               <li>
                 <Link to="/" className="hover:text-sage-700 transition-colors">
-                  Beranda
+                  {t('nav.home')}
                 </Link>
               </li>
               <li>
                 <Link to="/tim" className="hover:text-sage-700 transition-colors">
-                  Daftar Tim KKN
+                  {t('nav.team')}
                 </Link>
               </li>
               <li>
                 <Link to="/program-kerja" className="hover:text-sage-700 transition-colors">
-                  Program Kerja
+                  {t('nav.programs')}
                 </Link>
               </li>
               <li>
                 <Link to="/dokumentasi" className="hover:text-sage-700 transition-colors">
-                  Galeri Kegiatan
+                  {t('nav.documentation')}
                 </Link>
               </li>
               <li>
                 <Link to="/profil-desa" className="hover:text-sage-700 transition-colors">
-                  Profil Desa
+                  {t('nav.village')}
                 </Link>
               </li>
               <li>
                 <Link to="/sponsors" className="hover:text-sage-700 transition-colors">
-                  Sponsor & Mitra
+                  {t('nav.sponsors')}
                 </Link>
               </li>
             </ul>
@@ -80,10 +81,10 @@ export const PublicFooter: React.FC = () => {
           {/* Posko & Workspace Login */}
           <div className="space-y-2">
             <h4 className="text-xs font-semibold text-charcoal uppercase tracking-wider">
-              Internal Kelompok
+              {t('workspace.nav.workSpace')}
             </h4>
             <p className="text-xs text-charcoal-muted">
-              Ruang kerja khusus mahasiswa pengabdian, sekretaris, bendahara, dan dosen pembimbing lapangan.
+              {t('auth.loginSubtitle')}
             </p>
             <div className="pt-2">
               <Link
@@ -91,7 +92,7 @@ export const PublicFooter: React.FC = () => {
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-sage-700 hover:text-sage-800 underline underline-offset-4"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Masuk Workspace Pengurus</span>
+                <span>{t('nav.workspace')}</span>
               </Link>
             </div>
           </div>

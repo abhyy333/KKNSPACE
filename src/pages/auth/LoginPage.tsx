@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Lock, Mail, ArrowLeft, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { useTranslation } from '@/i18n'
 
 const loginSchema = z.object({
   email: z.string().min(1, "Alamat email wajib diisi").email("Format alamat email tidak valid"),
@@ -21,6 +23,7 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirectTarget = searchParams.get('redirect')
+  const { t } = useTranslation()
 
   const { signIn } = useAuth()
   const [serverError, setServerError] = useState<string | null>(null)
@@ -45,9 +48,9 @@ export const LoginPage: React.FC = () => {
     if (result.error) {
       const msg = result.error.message
       if (msg === "Invalid login credentials" || msg?.includes("invalid_grant")) {
-        setServerError("Email atau kata sandi tidak sesuai. Silakan periksa kembali.")
+        setServerError(t('auth.invalidCredentials'))
       } else {
-        setServerError(msg || "Gagal masuk. Silakan coba kembali beberapa saat lagi.")
+        setServerError(msg || t('auth.invalidCredentials'))
       }
       return
     }
@@ -71,34 +74,37 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-md space-y-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-xs text-charcoal-muted hover:text-charcoal transition-colors mx-auto"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Kembali ke Beranda Publik</span>
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs text-charcoal-muted hover:text-charcoal transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>{t('auth.backToPublic')}</span>
+          </Link>
+          <LanguageSwitcher variant="compact" />
+        </div>
 
         <div className="text-center space-y-2.5">
           <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
           <div>
             <h1 className="text-2xl font-serif font-semibold text-charcoal tracking-tight">
-              Masuk ke KKN SPACE
+              {t('auth.loginTitle')}
             </h1>
             <p className="text-xs font-medium text-sage-800 mt-1">
               KKN Pringgasela Selatan 2026–2027 · Universitas Mataram
             </p>
             <p className="text-[11px] text-charcoal-muted max-w-sm mx-auto mt-0.5">
-              Ruang kerja kolaboratif digital kelompok pengabdian masyarakat.
+              {t('auth.loginSubtitle')}
             </p>
           </div>
         </div>
 
         <Card className="border-warm-300 shadow-card">
           <CardHeader className="pb-4">
-            <CardTitle className="text-sm">Autentikasi Akun Posko</CardTitle>
+            <CardTitle className="text-sm">{t('auth.loginTitle')}</CardTitle>
             <CardDescription>
-              Gunakan email posko yang telah terdaftar dan diverifikasi.
+              {t('auth.loginSubtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,7 +119,7 @@ export const LoginPage: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-charcoal flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-sage-600" />
-                  <span>Alamat Email</span>
+                  <span>{t('auth.email')}</span>
                 </label>
                 <Input
                   type="email"
@@ -132,13 +138,13 @@ export const LoginPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-charcoal flex items-center gap-1.5">
                     <Lock className="h-3.5 w-3.5 text-sage-600" />
-                    <span>Kata Sandi</span>
+                    <span>{t('auth.password')}</span>
                   </label>
                   <Link
                     to="/auth/forgot-password"
                     className="text-[11px] text-sage-700 hover:underline"
                   >
-                    Lupa sandi?
+                    {t('auth.forgotPassword')}
                   </Link>
                 </div>
                 <Input
@@ -162,10 +168,10 @@ export const LoginPage: React.FC = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Memproses Autentikasi...</span>
+                    <span>{t('auth.signingIn')}</span>
                   </>
                 ) : (
-                  <span>Masuk ke Ruang Kerja</span>
+                  <span>{t('auth.signIn')}</span>
                 )}
               </Button>
             </form>
@@ -173,7 +179,7 @@ export const LoginPage: React.FC = () => {
           <CardFooter className="pt-0 flex flex-col gap-2 border-t border-warm-200 p-4 bg-warm-50/50 rounded-b-lg">
             <div className="flex items-center gap-2 text-[11px] text-charcoal-muted">
               <ShieldCheck className="h-3.5 w-3.5 text-sage-600 shrink-0" />
-              <span>Pendaftaran akun hanya dapat dilakukan melalui undangan Super Admin.</span>
+              <span>{t('auth.invitationOnlyNotice')}</span>
             </div>
           </CardFooter>
         </Card>

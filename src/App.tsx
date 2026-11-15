@@ -4,6 +4,7 @@ import { router } from './router'
 import { ErrorBoundary } from './components/ui/error-boundary'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './components/ui/toast'
+import { I18nProvider } from './i18n'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,9 +21,11 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <AuthProvider>
-            <RouterProvider router={router} />
-          </AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <RouterProvider router={router} />
+            </AuthProvider>
+          </I18nProvider>
         </ToastProvider>
       </QueryClientProvider>
     </ErrorBoundary>
