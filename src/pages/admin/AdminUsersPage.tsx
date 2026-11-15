@@ -308,14 +308,14 @@ export const AdminUsersPage: React.FC = () => {
                   className="h-9 rounded-md border border-warm-300 bg-white px-3 text-xs text-charcoal focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sage-500"
                   aria-label="Filter role"
                 >
-                  <option value="all">Semua Role</option>
-                  <option value="super_admin">Super Admin</option>
-                  <option value="ketua">Ketua</option>
-                  <option value="sekretaris">Sekretaris</option>
-                  <option value="bendahara">Bendahara</option>
-                  <option value="anggota">Anggota</option>
-                  <option value="dpl">DPL</option>
-                  <option value="none">Tanpa Role KKN</option>
+                  <option value="all">Semua Peran &amp; Hak Akses</option>
+                  <option value="super_admin">Hak Akses: Super Admin</option>
+                  <option value="ketua">Peran: Ketua KKN</option>
+                  <option value="sekretaris">Peran: Sekretaris</option>
+                  <option value="bendahara">Peran: Bendahara</option>
+                  <option value="anggota">Peran: Anggota</option>
+                  <option value="dpl">Peran: DPL</option>
+                  <option value="none">Tanpa Peran Organisasi</option>
                 </select>
 
                 <select
@@ -390,7 +390,8 @@ export const AdminUsersPage: React.FC = () => {
                     <tr className="border-b border-warm-300 bg-warm-50 text-[11px] font-semibold uppercase tracking-wider text-charcoal-muted">
                       <th className="px-4 py-3">Nama</th>
                       <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Role / Identitas</th>
+                      <th className="px-4 py-3">Peran Organisasi</th>
+                      <th className="px-4 py-3">Hak Akses Sistem</th>
                       <th className="px-4 py-3">Status Akun</th>
                       <th className="px-4 py-3">Keanggotaan</th>
                       <th className="px-4 py-3">Terakhir Login</th>
@@ -429,31 +430,39 @@ export const AdminUsersPage: React.FC = () => {
                           <td className="px-4 py-3 font-mono text-[11px] text-charcoal-muted whitespace-nowrap">
                             {u.email}
                           </td>
+                          {/* Peran Organisasi KKN */}
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              {u.is_super_admin && (
-                                <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[10px] gap-1">
-                                  <Shield className="h-2.5 w-2.5" />
-                                  Super Admin
-                                </Badge>
-                              )}
                               {u.membership_role ? (
                                 <>
-                                  <Badge variant="secondary" className="text-[10px]">
+                                  <Badge variant="secondary" className="text-[10px] font-medium">
                                     {ROLE_DISPLAY[u.membership_role] || u.membership_role}
                                   </Badge>
                                   {u.membership_division && (
-                                    <Badge variant="outline" className="text-[10px]">
+                                    <Badge variant="outline" className="text-[10px] text-charcoal-muted">
                                       Div. {u.membership_division}
                                     </Badge>
                                   )}
                                 </>
                               ) : (
-                                !u.is_super_admin && (
-                                  <span className="text-[11px] text-charcoal-light italic">Belum ditetapkan</span>
-                                )
+                                <span className="text-[11px] text-charcoal-light italic">Belum ditetapkan</span>
                               )}
                             </div>
+                          </td>
+                          {/* Hak Akses Sistem */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {u.is_super_admin ? (
+                              <Badge variant="outline" className="border-charcoal bg-charcoal text-white text-[10px] gap-1 font-semibold">
+                                <Shield className="h-2.5 w-2.5 text-amber-300" />
+                                Super Admin
+                              </Badge>
+                            ) : (u.membership_role === 'ketua' || u.membership_role === 'sekretaris' || u.membership_role === 'bendahara') ? (
+                              <Badge variant="outline" className="border-sage-300 bg-sage-50 text-sage-900 text-[10px]">
+                                Pengurus Posko
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-charcoal-muted">Anggota Standar</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             {u.is_active ? (
