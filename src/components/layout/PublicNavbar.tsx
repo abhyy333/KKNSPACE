@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/brand/BrandLogo'
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+
 import { useTranslation } from '@/i18n'
 
 export const PublicNavbar: React.FC = () => {
@@ -72,9 +72,8 @@ export const PublicNavbar: React.FC = () => {
           ))}
         </nav>
 
-        {/* Workspace Login CTA & Language Switcher */}
+        {/* Workspace Login CTA */}
         <div className="hidden lg:flex items-center gap-2.5">
-          <LanguageSwitcher variant="compact" />
           <Link to="/workspace">
             <Button
               size="sm"
@@ -86,9 +85,8 @@ export const PublicNavbar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Mobile menu and Language switcher */}
+        {/* Mobile menu button */}
         <div className="flex items-center gap-1 lg:hidden">
-          <LanguageSwitcher variant="minimal" />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -120,11 +118,7 @@ export const PublicNavbar: React.FC = () => {
               {getNavTitle(item.href, item.title)}
             </NavLink>
           ))}
-          <div className="pt-3 border-t border-warm-300 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-medium text-charcoal-muted">Language</span>
-              <LanguageSwitcher variant="compact" />
-            </div>
+          <div className="pt-3 border-t border-warm-300">
             <Link
               to="/workspace"
               onClick={() => setMobileMenuOpen(false)}

@@ -74,7 +74,7 @@ export const SponsorPreviewModal: React.FC<SponsorPreviewModalProps> = ({
             }`}
           >
             <PanelBottom className="h-3.5 w-3.5" />
-            <span>Bilah Footer</span>
+            <span>Partner Strip Atas</span>
           </button>
         </div>
 
@@ -150,27 +150,34 @@ export const SponsorPreviewModal: React.FC<SponsorPreviewModalProps> = ({
           </div>
         )}
 
-        {/* 3. Footer Strip Preview */}
+        {/* 3. Editorial Partner Strip Preview */}
         {activeTab === 'footer' && (
           <div className="space-y-2">
             <span className="text-[11px] font-mono tracking-wider text-charcoal-muted uppercase block">
-              Pratinjau Logo Strip di Footer Halaman Publik
+              Pratinjau Editorial Partner Strip di Header Publik
             </span>
-            <div className="rounded-2xl border border-warm-200/90 bg-white p-5 space-y-3">
-              <div className="flex items-center">
-                <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-charcoal">
-                  Official Partners &amp; Sponsors
+            <div className="rounded-2xl border border-warm-200/90 bg-[#FAF9F6] p-4 sm:p-5">
+              <div className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto py-1">
+                <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-widest text-charcoal/85 uppercase whitespace-nowrap shrink-0">
+                  OFFICIAL PARTNER
                 </span>
-              </div>
-              <div className="flex items-center gap-3 border-t border-warm-200/80 pt-3">
-                <div className="flex items-center gap-3 px-3.5 py-2 rounded-xl border border-warm-200/90 bg-[#FAF9F6]">
-                  <SponsorLogoThumbnail
-                    fileId={sponsor.logo_file_id}
-                    sponsorId={sponsor.id}
-                    alt={sponsor.name}
-                    containerClassName="w-8 h-6 flex items-center justify-center shrink-0 overflow-hidden"
-                  />
-                  <span className="text-xs font-serif font-medium text-charcoal">{sponsor.name}</span>
+                <div className="h-3.5 w-[1px] bg-warm-300/80 shrink-0 self-center" aria-hidden="true" />
+                <span className="text-[10px] sm:text-[11px] font-mono font-medium tracking-wider text-charcoal-muted uppercase whitespace-nowrap shrink-0">
+                  {SPONSOR_CATEGORY_LABELS[sponsor.category]?.toUpperCase() || 'SPONSOR UTAMA'}
+                </span>
+                <div className="flex items-center gap-2.5 shrink-0 pl-1">
+                  {sponsor.logo_file_id ? (
+                    <SponsorLogoThumbnail
+                      fileId={sponsor.logo_file_id}
+                      sponsorId={sponsor.id}
+                      alt={sponsor.name}
+                      containerClassName="h-7 sm:h-8 w-auto max-w-[130px] flex items-center justify-center shrink-0 bg-transparent overflow-hidden"
+                      className="max-h-7 sm:max-h-8 w-auto max-w-full object-contain"
+                    />
+                  ) : null}
+                  <span className="text-xs sm:text-[13px] font-serif font-medium text-charcoal tracking-tight whitespace-nowrap">
+                    {sponsor.name}
+                  </span>
                 </div>
               </div>
             </div>

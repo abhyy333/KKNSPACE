@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Lock, Mail, ArrowLeft, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { BrandLogo } from '@/components/brand/BrandLogo'
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslation } from '@/i18n'
 import { SeoHead } from '@/components/seo/SeoHead'
 
@@ -88,7 +87,6 @@ export const LoginPage: React.FC = () => {
             <ArrowLeft className="h-3.5 w-3.5" />
             <span>{t('auth.backToPublic')}</span>
           </Link>
-          <LanguageSwitcher variant="compact" />
         </div>
 
         <div className="text-center space-y-2.5">

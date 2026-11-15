@@ -1,4 +1,3 @@
-import type { Locale } from './types'
 
 export interface TermDefinition {
   term: string
@@ -10,7 +9,7 @@ export interface TermDefinition {
 
 export type GlossaryDictionary = Record<string, TermDefinition>
 
-export const KKN_GLOSSARY: Record<Locale, GlossaryDictionary> = {
+export const KKN_GLOSSARY: Record<string, GlossaryDictionary> = {
   'id-ID': {
     kkn: {
       term: 'Kuliah Kerja Nyata (KKN)',

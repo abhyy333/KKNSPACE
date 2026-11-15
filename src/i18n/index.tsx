@@ -15,33 +15,21 @@ import {
 } from './formatters'
 
 import idID from './locales/id-ID'
-import enUS from './locales/en-US'
-import enGB from './locales/en-GB'
-import zhCN from './locales/zh-CN'
-import ruRU from './locales/ru-RU'
 
 const DICTIONARIES: Record<Locale, any> = {
   'id-ID': idID,
-  'en-US': enUS,
-  'en-GB': enGB,
-  'zh-CN': zhCN,
-  'ru-RU': ruRU,
 }
 
 const STORAGE_KEY = 'kkn_locale'
 
 function getInitialLocale(): Locale {
-  if (typeof window === 'undefined') return DEFAULT_LOCALE
-
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) as Locale | null
-    if (saved && SUPPORTED_LOCALES.some((l) => l.code === saved)) {
-      return saved
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore localStorage errors in restricted environments
   }
-
   return DEFAULT_LOCALE
 }
 

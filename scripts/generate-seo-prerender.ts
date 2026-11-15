@@ -192,15 +192,17 @@ export function runPrerender() {
 
       // Modify HTML tags
       let html = baseHtml
-      html = html.replace(/<html lang="[^"]*"/, `<html lang="${locale.split('-')[0]}"`)
+      html = html.replace(/<html lang="[^"]*"/, `<html lang="id-ID"`)
       html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(activeTitle)}</title>`)
       html = html.replace(
         /<meta name="description" content="[^"]*" \/>/,
         `<meta name="description" content="${escapeHtml(activeDesc)}" />`
       )
+      const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`
+      const canonicalBlock = hreflangTags ? `${canonicalTag}\n    ${hreflangTags}` : canonicalTag
       html = html.replace(
         /<link rel="canonical" href="[^"]*" \/>/,
-        `<link rel="canonical" href="${canonicalUrl}" />\n    ${hreflangTags}`
+        canonicalBlock
       )
       html = html.replace(
         /<meta property="og:title" content="[^"]*" \/>/,
@@ -299,17 +301,16 @@ export function generateSitemap(distDir: string) {
     const meta = routeMeta[target.routeKey] || { changefreq: 'weekly', priority: '0.8', comment: target.canonicalPath }
     const canonicalUrl = `${SITE_URL}${target.canonicalPath === '/' ? '/' : target.canonicalPath}`
     const hreflangs = buildHreflangTags(target.canonicalPath)
-    const hreflangLinks = hreflangs
-      .map((h) => `    <xhtml:link rel="alternate" hreflang="${h.lang}" href="${h.href}" />`)
-      .join('\n')
+    const hreflangLines = hreflangs.length > 0
+      ? '\n' + hreflangs.map((h) => `    <xhtml:link rel="alternate" hreflang="${h.lang}" href="${h.href}" />`).join('\n')
+      : ''
 
     urlBlocks.push(`  <!-- ${meta.comment} -->
   <url>
     <loc>${canonicalUrl}</loc>
     <lastmod>${now}</lastmod>
     <changefreq>${meta.changefreq}</changefreq>
-    <priority>${meta.priority}</priority>
-${hreflangLinks}
+    <priority>${meta.priority}</priority>${hreflangLines}
   </url>`)
   }
 

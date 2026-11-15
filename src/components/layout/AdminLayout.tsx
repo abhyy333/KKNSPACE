@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { Shield, Menu, X, LogOut, Home, Briefcase, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+
 import { useTranslation } from '@/i18n'
 import { SeoHead } from '@/components/seo/SeoHead'
 
@@ -290,7 +290,6 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <LanguageSwitcher variant="compact" />
             <Button
               variant="ghost"
               size="sm"

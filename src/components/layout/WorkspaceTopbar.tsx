@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import type { Announcement } from '@/types/database'
 import { WorkspaceGlobalSearchModal } from '@/components/workspace/WorkspaceGlobalSearchModal'
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslation, useLocale } from '@/i18n'
 import { formatShortDate } from '@/i18n/formatters'
 
@@ -131,13 +130,6 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
           </Link>
         )}
 
-        {/* Multilingual Switcher */}
-        <div className="hidden sm:block shrink-0">
-          <LanguageSwitcher variant="compact" />
-        </div>
-        <div className="sm:hidden shrink-0">
-          <LanguageSwitcher variant="minimal" />
-        </div>
 
         <div className="relative shrink-0" ref={notifContainerRef}>
           <button

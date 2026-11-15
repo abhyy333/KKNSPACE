@@ -260,18 +260,17 @@ export const router = createBrowserRouter([
     children: publicChildrenRoutes,
   },
 
-  // International Localized Public Routes (/en-us, /en-gb, /zh-cn, /ru-ru)
-  ...SUPPORTED_LOCALE_PREFIXES.map((prefix) => ({
-    path: `/${prefix}`,
-    element: <LocalizedRouteSync />,
-    errorElement: <BrandedRouteError />,
-    children: [
-      {
-        element: <PublicLayout />,
-        children: publicChildrenRoutes,
-      },
-    ],
-  })),
+  // Legacy Localized Route Redirects to Indonesian Canonical (/en-us, /en-gb, /zh-cn, /ru-ru)
+  ...SUPPORTED_LOCALE_PREFIXES.flatMap((prefix) => [
+    {
+      path: `/${prefix}`,
+      element: <LocalizedRouteSync />,
+    },
+    {
+      path: `/${prefix}/*`,
+      element: <LocalizedRouteSync />,
+    },
+  ]),
 
   // Private Workspace (Requires Active KKN Membership & Active Profile)
   {

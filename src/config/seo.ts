@@ -25,7 +25,7 @@ export type SeoRouteKey =
   | 'villageEconomy'
   | 'villageGallery'
 
-export const SEO_DICTIONARY: Record<Locale, Record<SeoRouteKey, RouteSeoConfig>> = {
+export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>> = {
   'id-ID': {
     home: {
       title: 'KKN Universitas Mataram di Desa Pringgasela Selatan | KKN SPACE',
@@ -339,31 +339,19 @@ export const SEO_DICTIONARY: Record<Locale, Record<SeoRouteKey, RouteSeoConfig>>
 }
 
 export function getCanonicalPath(pathname: string): string {
-  // Strip any locale prefix from pathname to find canonical base
+  // Strip any legacy locale prefix from pathname to find canonical base
   const clean = pathname.replace(/^\/(en-us|en-gb|zh-cn|ru-ru)(\/|$)/, '/')
   const normalized = clean.startsWith('/') ? clean : `/${clean}`
   return normalized === '/' ? '/' : normalized.replace(/\/$/, '')
 }
 
-export function getLocalizedPath(pathname: string, locale: Locale): string {
-  const canonical = getCanonicalPath(pathname)
-  if (locale === 'id-ID') {
-    return canonical
-  }
-  const prefix = locale.toLowerCase()
-  return canonical === '/' ? `/${prefix}` : `/${prefix}${canonical}`
+export function getLocalizedPath(pathname: string, _locale?: Locale): string {
+  return getCanonicalPath(pathname)
 }
 
-export function buildHreflangTags(pathname: string): { lang: string; href: string }[] {
-  const canonical = getCanonicalPath(pathname)
-  return [
-    { lang: 'id-ID', href: `${SITE_URL}${canonical}` },
-    { lang: 'en-US', href: `${SITE_URL}/en-us${canonical === '/' ? '' : canonical}` },
-    { lang: 'en-GB', href: `${SITE_URL}/en-gb${canonical === '/' ? '' : canonical}` },
-    { lang: 'zh-CN', href: `${SITE_URL}/zh-cn${canonical === '/' ? '' : canonical}` },
-    { lang: 'ru-RU', href: `${SITE_URL}/ru-ru${canonical === '/' ? '' : canonical}` },
-    { lang: 'x-default', href: `${SITE_URL}${canonical}` },
-  ]
+export function buildHreflangTags(_pathname: string): { lang: string; href: string }[] {
+  // Indonesian-only platform; no multilingual alternate links
+  return []
 }
 
 export function generateGlobalWebsiteSchema() {
@@ -375,7 +363,7 @@ export function generateGlobalWebsiteSchema() {
     name: 'KKN SPACE — Desa Pringgasela Selatan',
     description:
       'Platform informasi dan dokumentasi kegiatan Kuliah Kerja Nyata mahasiswa Universitas Mataram di Desa Pringgasela Selatan, Lombok Timur.',
-    inLanguage: ['id-ID', 'en-US', 'en-GB', 'zh-CN', 'ru-RU'],
+    inLanguage: ['id-ID'],
     publisher: {
       '@type': 'EducationalOrganization',
       '@id': `${SITE_URL}/#organization`,
