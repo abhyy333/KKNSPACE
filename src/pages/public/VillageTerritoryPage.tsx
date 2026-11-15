@@ -10,8 +10,18 @@ import {
   fetchVillageDusuns,
   fetchVillageDestinations,
 } from '@/services/villageApi'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema, generateVillagePlaceSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const VillageTerritoryPage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].villageTerritory
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Profil Desa', url: '/profil-desa' },
+    { name: 'Peta & 7 Dusun', url: '/profil-desa/wilayah' },
+  ]
   const [searchParams] = useSearchParams()
   const initialDusun = searchParams.get('dusun')
   const [selectedDusunSlug, setSelectedDusunSlug] = useState<string | null>(initialDusun)
@@ -39,6 +49,13 @@ export const VillageTerritoryPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100/60 pb-20">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/profil-desa/wilayah"
+        keywords={seo.keywords}
+        structuredData={[generateVillagePlaceSchema(), generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <VillageSubnav />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-10">

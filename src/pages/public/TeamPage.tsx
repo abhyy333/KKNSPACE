@@ -15,6 +15,9 @@ import {
   fetchPublicTeamPhotoUrl,
   type PublicTeamMember,
 } from '@/services/publicApi'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 function getAvatarInitial(fullName: string): string {
   const initial = fullName.trim().charAt(0).toUpperCase()
@@ -60,6 +63,8 @@ const PublicMemberAvatar: React.FC<{ member: PublicTeamMember }> = ({ member }) 
 }
 
 export const TeamPage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].team
   const {
     data: members = [],
     isLoading,
@@ -74,8 +79,20 @@ export const TeamPage: React.FC = () => {
     retry: 2,
   })
 
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Tim KKN', url: '/tim' },
+  ]
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/tim"
+        keywords={seo.keywords}
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <div className="border-b border-warm-300 pb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
           <BrandLogo size="lg" className="h-14 w-14 shrink-0 drop-shadow-xs hidden sm:block mt-0.5" />

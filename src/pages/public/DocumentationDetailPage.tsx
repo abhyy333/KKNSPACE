@@ -11,6 +11,8 @@ import {
   fetchPublicDocumentationPhotoUrl,
 } from '@/services/publicApi'
 import { formatPublicDate } from '@/lib/publicFormat'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { generateBreadcrumbSchema } from '@/config/seo'
 import {
   ArrowLeft,
   Calendar,
@@ -303,8 +305,23 @@ export const DocumentationDetailPage: React.FC = () => {
       ? [doc.primary_file_id]
       : []
 
+  const pageTitle = `${doc.title || 'Dokumentasi Kegiatan KKN'} | KKN SPACE`
+  const pageDesc = doc.caption || `Dokumentasi kegiatan Kuliah Kerja Nyata Universitas Mataram di Desa Pringgasela Selatan: ${doc.title || ''}`
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Dokumentasi', url: '/dokumentasi' },
+    { name: doc.title || 'Detail Album', url: `/dokumentasi/${slug}` },
+  ]
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+      <SeoHead
+        title={pageTitle}
+        description={pageDesc}
+        canonicalPath={`/dokumentasi/${slug}`}
+        ogType="article"
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       {/* ── Breadcrumb ── */}
       <nav className="flex items-center gap-1.5 text-xs text-charcoal-muted">
         <Link to="/" className="hover:text-charcoal transition-colors">Beranda</Link>

@@ -20,8 +20,17 @@ import {
   fetchVillageCulturalHeritages,
   fetchVillageReferences,
 } from '@/services/villageApi'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema, generateVillagePlaceSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const VillageProfilePage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].villageProfile
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Profil Desa', url: '/profil-desa' },
+  ]
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['village-profile'],
     queryFn: fetchVillageProfile,
@@ -49,6 +58,13 @@ export const VillageProfilePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100/60 pb-20">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/profil-desa"
+        keywords={seo.keywords}
+        structuredData={[generateVillagePlaceSchema(), generateBreadcrumbSchema(breadcrumbs)]}
+      />
       {/* Sub Navigation Bar */}
       <VillageSubnav />
 

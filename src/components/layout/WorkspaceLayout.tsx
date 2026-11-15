@@ -8,6 +8,7 @@ import {
   fetchGroupSettings,
   fetchPublishedAnnouncementsPreview,
 } from '@/services/dashboardApi'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const ROLE_LABELS: Record<string, string> = {
   ketua: 'Ketua KKN',
@@ -48,6 +49,7 @@ export const WorkspaceLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-warm-100 text-charcoal">
+      <SeoHead noindex title="Workspace KKN" />
       {/* Sidebar Navigation */}
       <WorkspaceSidebar
         isOpen={sidebarOpen}

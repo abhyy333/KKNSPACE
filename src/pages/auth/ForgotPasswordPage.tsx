@@ -7,6 +7,7 @@ import { Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2 } from 'lucide-reac
 import { supabase } from '@/lib/supabase'
 import { env } from '@/lib/env'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -46,6 +47,11 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <SeoHead
+        title="Lupa Kata Sandi"
+        description="Pemulihan akun dan pengaturan ulang kata sandi KKN SPACE."
+        noindex
+      />
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
         <Link
           to="/auth/login"

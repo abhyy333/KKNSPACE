@@ -9,8 +9,18 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { VillageSubnav } from '@/components/village/VillageSubnav'
 import { fetchVillageCulturalHeritages } from '@/services/villageApi'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema, generateVillagePlaceSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const VillageCulturePage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].villageCulture
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Profil Desa', url: '/profil-desa' },
+    { name: 'Budaya & Tenun Sasak', url: '/profil-desa/budaya' },
+  ]
   const { data: heritages = [] } = useQuery({
     queryKey: ['village-cultural-heritages'],
     queryFn: fetchVillageCulturalHeritages,
@@ -18,6 +28,13 @@ export const VillageCulturePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100/60 pb-20">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/profil-desa/budaya"
+        keywords={seo.keywords}
+        structuredData={[generateVillagePlaceSchema(), generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <VillageSubnav />
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-8 space-y-12">

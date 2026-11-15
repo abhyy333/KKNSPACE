@@ -15,6 +15,9 @@ import {
   PublicEmptyState,
   PublicSectionError,
 } from '@/components/public/PublicQueryStates'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 type StatusFilter = 'all' | WorkProgramStatus
 
@@ -28,6 +31,13 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
 export const ProgramsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].programs
+
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Program Kerja', url: '/program-kerja' },
+  ]
 
   const {
     data: programs = [],
@@ -57,6 +67,13 @@ export const ProgramsPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/program-kerja"
+        keywords={seo.keywords}
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <div className="border-b border-warm-300 pb-5">
         <div className="text-xs font-semibold uppercase tracking-wider text-sage-700">
           <span>Transparansi Publik</span>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useRouteError, isRouteErrorResponse, Link } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useRouteError, isRouteErrorResponse } from 'react-router-dom'
 import { RefreshCw, Home, WifiOff, AlertTriangle, FileQuestion, ChevronDown } from 'lucide-react'
 import { Button } from './button'
 import { isChunkLoadError, clearChunkRetryFlag } from '@/lib/lazyWithRetry'
@@ -9,12 +9,10 @@ interface BrandedRouteErrorProps {
   resetErrorBoundary?: () => void
 }
 
-export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
-  error: propError,
+const BrandedErrorView: React.FC<BrandedRouteErrorProps & { resolvedError: unknown }> = ({
+  resolvedError: error,
   resetErrorBoundary,
 }) => {
-  const routeError = useRouteError()
-  const error = propError || routeError
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
 
@@ -48,15 +46,17 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
     icon = <FileQuestion className="w-7 h-7 text-charcoal-muted" />
   } else if (isNetworkIssue) {
     badgeText = 'KONEKSI TERPUTUS'
-    badgeColor = 'bg-red-100 text-red-800 border-red-200'
-    title = 'Koneksi Internet Mengalami Kendala'
-    description = 'Perangkat Anda tampaknya sedang tidak terhubung ke jaringan internet. Periksa koneksi Wi-Fi atau data seluler Anda.'
-    icon = <WifiOff className="w-7 h-7 text-red-600" />
+    badgeColor = 'bg-amber-100 text-amber-800 border-amber-200'
+    title = 'Koneksi Internet Terputus'
+    description =
+      'Perangkat Anda sepertinya sedang offline. Periksa koneksi internet Anda dan coba kembali.'
+    icon = <WifiOff className="w-7 h-7 text-amber-600" />
   } else if (isChunkError) {
-    badgeText = 'PEMBARUAN APLIKASI'
+    badgeText = 'VERSI DIPERBARUI'
     badgeColor = 'bg-sage-100 text-sage-800 border-sage-200'
-    title = 'Pembaruan Versi Tersedia'
-    description = 'Versi aplikasi KKN SPACE telah diperbarui di server. Silakan muat ulang halaman untuk mengunduh komponen aplikasi versi terbaru.'
+    title = 'Versi Aplikasi Telah Diperbarui'
+    description =
+      'Versi aplikasi KKN SPACE telah diperbarui di server. Silakan muat ulang halaman untuk mengunduh komponen aplikasi versi terbaru.'
     icon = <RefreshCw className="w-7 h-7 text-sage-600 animate-spin-slow" />
   }
 
@@ -67,19 +67,29 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
       ? `${error.status} ${error.statusText}`
       : 'Kendala tidak terduga'
 
+  useEffect(() => {
+    document.title = `${title} | KKN SPACE`
+    let robotsMeta = document.querySelector('meta[name="robots"]')
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta')
+      robotsMeta.setAttribute('name', 'robots')
+      document.head.appendChild(robotsMeta)
+    }
+    robotsMeta.setAttribute('content', 'noindex, nofollow, noarchive')
+  }, [title])
+
   return (
     <div className="min-h-screen bg-warm-100 flex items-center justify-center p-4 sm:p-6 text-charcoal selection:bg-sage-500/20">
       <div className="max-w-lg w-full bg-white border border-warm-300 rounded-2xl p-6 sm:p-8 shadow-card text-center space-y-6">
         
         {/* Brand Header */}
         <div className="flex flex-col items-center">
-          <Link to="/" className="inline-flex items-center gap-3 group mb-4">
+          <a href="/" className="inline-flex items-center gap-3 group mb-4">
             <img
               src="/brand/kkn-pringgasela-selatan-2026-2027.png"
               alt="Logo KKN Pringgasela Selatan"
               className="w-14 h-14 object-contain rounded-full shadow-subtle border border-warm-300 transition-transform group-hover:scale-105"
               onError={(e) => {
-                // Fallback to avoid broken image display
                 ;(e.currentTarget as HTMLElement).style.display = 'none'
               }}
             />
@@ -91,7 +101,7 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
                 Pringgasela Selatan 2026–2027
               </span>
             </div>
-          </Link>
+          </a>
 
           {/* Status Badge */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase border shadow-2xs">
@@ -101,57 +111,47 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
           </div>
         </div>
 
-        {/* Visual Icon Illustration */}
-        <div className="w-16 h-16 rounded-2xl bg-warm-100 border border-warm-200 flex items-center justify-center mx-auto shadow-inner">
+        {/* Visual Icon */}
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-warm-100 border border-warm-300 flex items-center justify-center shadow-subtle">
           {icon}
         </div>
 
-        {/* Text Content */}
+        {/* Content Heading */}
         <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal leading-snug">
+          <h1 className="text-xl sm:text-2xl font-serif font-bold text-charcoal">
             {title}
           </h1>
-          <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-charcoal-muted max-w-sm mx-auto leading-relaxed">
             {description}
           </p>
         </div>
 
-        {/* Network status pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-warm-50 border border-warm-200 text-[11px] text-charcoal-muted">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
-            }`}
-          />
-          Status Jaringan:{' '}
-          <strong className="font-medium text-charcoal">
-            {isOnline ? 'Terhubung (Online)' : 'Terputus (Offline)'}
-          </strong>
-        </div>
-
-        {/* Action Buttons */}
+        {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <Button
             onClick={handleReload}
-            className="w-full sm:w-auto bg-sage-600 hover:bg-sage-700 text-white gap-2 font-medium shadow-subtle px-5"
+            variant="default"
+            size="sm"
+            className="w-full sm:w-auto bg-sage-700 hover:bg-sage-800 text-white gap-2 text-xs py-2 px-5 shadow-sm"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-3.5 h-3.5" />
             Muat Ulang Halaman
           </Button>
 
           <Button
             asChild
             variant="outline"
-            className="w-full sm:w-auto border-warm-300 hover:bg-warm-50 text-charcoal gap-2 font-medium px-5"
+            size="sm"
+            className="w-full sm:w-auto border-warm-300 hover:bg-warm-100 text-charcoal text-xs py-2 px-5"
           >
-            <Link to="/">
+            <a href="/" className="inline-flex items-center gap-1.5">
               <Home className="w-4 h-4 text-charcoal-muted" />
               Kembali ke Beranda
-            </Link>
+            </a>
           </Button>
         </div>
 
-        {/* Diagnostics Drawer (Safe for users, detailed for tech support) */}
+        {/* Diagnostics Drawer */}
         <div className="pt-4 border-t border-warm-200 text-left">
           <button
             type="button"
@@ -178,13 +178,9 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
                   {window.location.pathname}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>Kategori:</span>
-                <span className="text-charcoal">{badgeText}</span>
-              </div>
-              <div className="pt-1.5 border-t border-warm-200 text-charcoal/80 break-words">
-                <span className="text-charcoal-muted block text-[10px] uppercase font-sans font-semibold mb-0.5">
-                  Ringkasan Masalah:
+              <div className="pt-1 border-t border-warm-200 text-[10px] break-all text-charcoal-muted/90">
+                <span className="text-amber-800 font-semibold block mb-0.5">
+                  Rincian Kesalahan:
                 </span>
                 {errorMessage}
               </div>
@@ -195,4 +191,16 @@ export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = ({
       </div>
     </div>
   )
+}
+
+function InnerRouteError(props: BrandedRouteErrorProps) {
+  const routeError = useRouteError()
+  return <BrandedErrorView {...props} resolvedError={props.error || routeError} />
+}
+
+export const BrandedRouteError: React.FC<BrandedRouteErrorProps> = (props) => {
+  if (props.error) {
+    return <BrandedErrorView {...props} resolvedError={props.error} />
+  }
+  return <InnerRouteError {...props} />
 }

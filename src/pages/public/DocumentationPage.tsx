@@ -14,6 +14,9 @@ import {
   fetchPublicDocumentationCategories,
 } from '@/services/publicApi'
 import { formatPublicDate } from '@/lib/publicFormat'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 import {
   Camera,
   Calendar,
@@ -156,6 +159,13 @@ export const DocumentationPage: React.FC = () => {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [page, setPage] = useState(0)
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].documentation
+
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Dokumentasi', url: '/dokumentasi' },
+  ]
 
   const deferredSearch = useDeferredValue(search)
 
@@ -201,6 +211,13 @@ export const DocumentationPage: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/dokumentasi"
+        keywords={seo.keywords}
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       {/* ── Page Header ── */}
       <div className="space-y-1 border-b border-warm-300 pb-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage-700">

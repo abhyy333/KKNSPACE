@@ -28,8 +28,18 @@ import {
   Target,
   FileText,
 } from 'lucide-react'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const TimelineKknPage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].timeline
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Timeline KKN', url: '/timeline-kkn' },
+  ]
+
   // View mode switcher: 'timeline' vs 'detail'
   const [viewMode, setViewMode] = useState<'timeline' | 'detail'>('timeline')
   const [selectedStage, setSelectedStage] = useState<KknTimelineStage | null>(null)
@@ -61,6 +71,13 @@ export const TimelineKknPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-charcoal pb-16">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/timeline-kkn"
+        keywords={seo.keywords}
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       {/* ========================================================= */}
       {/* 1. HERO SECTION: Full-width Landscape + Editorial Depth  */}
       {/* ========================================================= */}

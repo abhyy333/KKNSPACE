@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { ShieldAlert, Home, LogOut, Shield } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export const UnauthorizedPage: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -31,6 +32,7 @@ export const UnauthorizedPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full overflow-x-clip bg-warm-100 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+      <SeoHead title={title} description={description} noindex />
       <div className="max-w-md w-full min-w-0">
         <Card className="border-warm-300 shadow-card">
           <CardHeader className="pb-3">

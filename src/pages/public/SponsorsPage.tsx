@@ -25,7 +25,9 @@ import {
   MessageCircle,
   ArrowRight,
 } from 'lucide-react'
-import { useTranslation } from '@/i18n'
+import { useTranslation, useLocale } from '@/i18n'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema } from '@/config/seo'
 
 interface CategoryConfig {
   label: string
@@ -65,6 +67,12 @@ const CATEGORY_ORDER: SponsorCategory[] = [
 
 export const SponsorsPage: React.FC = () => {
   const { t } = useTranslation()
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].sponsors
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Sponsor & Mitra', url: '/sponsors' },
+  ]
   const { data: sponsors = [], isLoading } = useQuery({
     queryKey: ['public-sponsors'],
     queryFn: fetchPublicSponsors,
@@ -112,6 +120,13 @@ export const SponsorsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F2EA] text-[#252A26] pb-28">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/sponsors"
+        keywords={seo.keywords}
+        structuredData={[generateBreadcrumbSchema(breadcrumbs)]}
+      />
       {/* ========================================================= */}
       {/* 01. EDITORIAL HERO: Quiet Luxury × Institutional Depth     */}
       {/* ========================================================= */}

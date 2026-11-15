@@ -8,8 +8,18 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { VillageSubnav } from '@/components/village/VillageSubnav'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema, generateVillagePlaceSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const VillageHistoryPage: React.FC = () => {
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].villageHistory
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Profil Desa', url: '/profil-desa' },
+    { name: 'Sejarah Pemekaran', url: '/profil-desa/sejarah' },
+  ]
 
   const timelineSteps = [
     {
@@ -40,6 +50,13 @@ export const VillageHistoryPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100/60 pb-20">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/profil-desa/sejarah"
+        keywords={seo.keywords}
+        structuredData={[generateVillagePlaceSchema(), generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <VillageSubnav />
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 space-y-12">

@@ -6,6 +6,7 @@ import { WorkspaceGuard } from '@/components/auth/WorkspaceGuard'
 import { SuperAdminGuard } from '@/components/auth/SuperAdminGuard'
 import { BrandedRouteError } from '@/components/ui/BrandedRouteError'
 import { lazyWithRetry } from '@/lib/lazyWithRetry'
+import { LocalizedRouteSync } from '@/components/seo/LocalizedRouteSync'
 
 const RouteFallback: React.FC = () => (
   <div className="min-h-[60vh] flex flex-col items-center justify-center bg-warm-100 text-charcoal px-4">
@@ -224,36 +225,53 @@ const NotFoundPage = lazyWithRetry(() =>
   'NotFoundPage'
 )
 
+const publicChildrenRoutes = [
+  { index: true, element: withSuspense(<HomePage />) },
+  { path: 'tim', element: withSuspense(<TeamPage />) },
+  { path: 'tim-kkn', element: <Navigate to="/tim" replace /> },
+  { path: 'program-kerja', element: withSuspense(<ProgramsPage />) },
+  { path: 'dokumentasi', element: withSuspense(<DocumentationPage />) },
+  { path: 'dokumentasi/:slug', element: withSuspense(<DocumentationDetailPage />) },
+  { path: 'profil-desa', element: withSuspense(<VillageProfilePage />) },
+  { path: 'profil-desa/sejarah', element: withSuspense(<VillageHistoryPage />) },
+  { path: 'profil-desa/wilayah', element: withSuspense(<VillageTerritoryPage />) },
+  { path: 'profil-desa/pariwisata', element: withSuspense(<VillageTourismPage />) },
+  { path: 'profil-desa/budaya', element: withSuspense(<VillageCulturePage />) },
+  { path: 'profil-desa/potensi-desa', element: withSuspense(<VillageEconomyPage />) },
+  { path: 'profil-desa/potensi', element: <Navigate to="/profil-desa/potensi-desa" replace /> },
+  { path: 'profil-desa/galeri', element: withSuspense(<VillageGalleryPage />) },
+  { path: 'timeline-kkn', element: withSuspense(<TimelineKknPage />) },
+  { path: 'timeline', element: <Navigate to="/timeline-kkn" replace /> },
+  { path: 'roadmap', element: <Navigate to="/timeline-kkn" replace /> },
+  { path: 'sponsors', element: withSuspense(<SponsorsPage />) },
+  { path: 'sponsor', element: <Navigate to="/sponsors" replace /> },
+  { path: 'partners', element: <Navigate to="/sponsors" replace /> },
+  { path: 'mitra', element: <Navigate to="/sponsors" replace /> },
+]
+
+const SUPPORTED_LOCALE_PREFIXES = ['en-us', 'en-gb', 'zh-cn', 'ru-ru'] as const
+
 export const router = createBrowserRouter([
-  // Public Portal
+  // Public Portal (Canonical Default)
   {
     path: '/',
     element: <PublicLayout />,
     errorElement: <BrandedRouteError />,
-    children: [
-      { index: true, element: withSuspense(<HomePage />) },
-      { path: 'tim', element: withSuspense(<TeamPage />) },
-      { path: 'tim-kkn', element: <Navigate to="/tim" replace /> },
-      { path: 'program-kerja', element: withSuspense(<ProgramsPage />) },
-      { path: 'dokumentasi', element: withSuspense(<DocumentationPage />) },
-      { path: 'dokumentasi/:slug', element: withSuspense(<DocumentationDetailPage />) },
-      { path: 'profil-desa', element: withSuspense(<VillageProfilePage />) },
-      { path: 'profil-desa/sejarah', element: withSuspense(<VillageHistoryPage />) },
-      { path: 'profil-desa/wilayah', element: withSuspense(<VillageTerritoryPage />) },
-      { path: 'profil-desa/pariwisata', element: withSuspense(<VillageTourismPage />) },
-      { path: 'profil-desa/budaya', element: withSuspense(<VillageCulturePage />) },
-      { path: 'profil-desa/potensi-desa', element: withSuspense(<VillageEconomyPage />) },
-      { path: 'profil-desa/potensi', element: <Navigate to="/profil-desa/potensi-desa" replace /> },
-      { path: 'profil-desa/galeri', element: withSuspense(<VillageGalleryPage />) },
-      { path: 'timeline-kkn', element: withSuspense(<TimelineKknPage />) },
-      { path: 'timeline', element: <Navigate to="/timeline-kkn" replace /> },
-      { path: 'roadmap', element: <Navigate to="/timeline-kkn" replace /> },
-      { path: 'sponsors', element: withSuspense(<SponsorsPage />) },
-      { path: 'sponsor', element: <Navigate to="/sponsors" replace /> },
-      { path: 'partners', element: <Navigate to="/sponsors" replace /> },
-      { path: 'mitra', element: <Navigate to="/sponsors" replace /> },
-    ],
+    children: publicChildrenRoutes,
   },
+
+  // International Localized Public Routes (/en-us, /en-gb, /zh-cn, /ru-ru)
+  ...SUPPORTED_LOCALE_PREFIXES.map((prefix) => ({
+    path: `/${prefix}`,
+    element: <LocalizedRouteSync />,
+    errorElement: <BrandedRouteError />,
+    children: [
+      {
+        element: <PublicLayout />,
+        children: publicChildrenRoutes,
+      },
+    ],
+  })),
 
   // Private Workspace (Requires Active KKN Membership & Active Profile)
   {

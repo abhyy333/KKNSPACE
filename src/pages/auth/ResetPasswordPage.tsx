@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft, Loader2, ShieldCheck, KeyRound } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { SeoHead } from '@/components/seo/SeoHead'
 import {
   MIN_PASSWORD_LENGTH,
   PASSWORD_REQUIREMENTS_HINT,
@@ -151,6 +152,7 @@ export const ResetPasswordPage: React.FC = () => {
   if (isVerifyingSession) {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center items-center py-12 px-4">
+        <SeoHead title="Memverifikasi Tautan Pemulihan" noindex />
         <div className="max-w-md w-full bg-white border border-warm-300 rounded-xl p-8 shadow-card text-center space-y-4">
           <Loader2 className="h-8 w-8 text-sage-600 animate-spin mx-auto" />
           <h2 className="text-base font-semibold text-charcoal">
@@ -168,6 +170,7 @@ export const ResetPasswordPage: React.FC = () => {
   if (!isSessionValid && !isSuccess) {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <SeoHead title="Tautan Pemulihan Tidak Valid" noindex />
         <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
           <Link
             to="/auth/login"
@@ -248,6 +251,11 @@ export const ResetPasswordPage: React.FC = () => {
   // Form State
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <SeoHead
+        title="Atur Ulang Kata Sandi"
+        description="Pengaturan kata sandi baru untuk akun KKN SPACE."
+        noindex
+      />
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
         <div className="text-center space-y-2.5">
           <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />

@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase'
 import { adminApi, EdgeFunctionError } from '@/services/adminApi'
 import { useAuth } from '@/hooks/useAuth'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { SeoHead } from '@/components/seo/SeoHead'
 import {
   PASSWORD_REQUIREMENTS_HINT,
   validatePasswordConfirmation,
@@ -349,6 +350,7 @@ export const AcceptInvitePage: React.FC = () => {
   if (mode === 'loading') {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center items-center py-12 px-4">
+        <SeoHead title="Aktivasi Akun KKN SPACE" noindex />
         <div className="max-w-md w-full bg-white border border-warm-300 rounded-xl p-8 shadow-card text-center space-y-4">
           <Loader2 className="h-8 w-8 text-sage-600 animate-spin mx-auto" />
           <h2 className="text-base font-semibold text-charcoal">
@@ -368,6 +370,7 @@ export const AcceptInvitePage: React.FC = () => {
   if (mode === 'error') {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <SeoHead title="Aktivasi Tidak Valid" noindex />
         <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
           <Link
             to="/"
@@ -418,6 +421,7 @@ export const AcceptInvitePage: React.FC = () => {
   if (mode === 'already_accepted') {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <SeoHead title="Akun Sudah Aktif" noindex />
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <Card className="border-warm-300 shadow-card text-center">
             <CardHeader className="pb-3">
@@ -456,6 +460,7 @@ export const AcceptInvitePage: React.FC = () => {
   if (mode === 'success') {
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <SeoHead title="Aktivasi Berhasil" noindex />
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <Card className="border-warm-300 shadow-card text-center">
             <CardHeader className="pb-3">
@@ -499,6 +504,7 @@ export const AcceptInvitePage: React.FC = () => {
 
     return (
       <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <SeoHead title="Undangan Resmi KKN SPACE" noindex />
         <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
           <div className="text-center space-y-2.5">
             <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />
@@ -602,6 +608,11 @@ export const AcceptInvitePage: React.FC = () => {
   // --------------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <SeoHead
+        title="Buat Kata Sandi Pribadi"
+        description="Aktivasi akun keanggotaan dan pembuatan kata sandi KKN SPACE."
+        noindex
+      />
       <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-6">
         <div className="text-center space-y-2.5">
           <BrandLogo size="xl" className="h-16 w-16 mx-auto drop-shadow-md" />

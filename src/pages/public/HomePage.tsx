@@ -27,10 +27,14 @@ import {
   PublicSectionError,
 } from '@/components/public/PublicQueryStates'
 import { HomeSponsorsSection } from '@/components/public/HomeSponsorsSection'
-import { useTranslation } from '@/i18n'
+import { useTranslation, useLocale } from '@/i18n'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateVillagePlaceSchema } from '@/config/seo'
 
 export const HomePage: React.FC = () => {
   const { t } = useTranslation()
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].home
   const {
     data: overview,
     isLoading,
@@ -51,6 +55,13 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-12 pb-16">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/"
+        keywords={seo.keywords}
+        structuredData={generateVillagePlaceSchema()}
+      />
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-[#23382B] to-[#1E3025] px-6 py-12 text-white shadow-lg sm:px-12 sm:py-16 md:px-16">

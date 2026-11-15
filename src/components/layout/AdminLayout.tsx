@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslation } from '@/i18n'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const SIDEBAR_STORAGE_KEY = 'kkn_admin_sidebar_collapsed'
 
@@ -66,6 +67,7 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-warm-100 text-charcoal">
+      <SeoHead noindex title="Admin Console" />
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { BrandLogo } from '@/components/brand/BrandLogo'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslation } from '@/i18n'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const loginSchema = z.object({
   email: z.string().min(1, "Alamat email wajib diisi").email("Format alamat email tidak valid"),
@@ -73,6 +74,11 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <SeoHead
+        title="Masuk ke KKN SPACE"
+        description="Portal autentikasi aman anggota tim KKN dan administrator KKN SPACE."
+        noindex
+      />
       <div className="mx-auto w-full max-w-md space-y-6">
         <div className="flex items-center justify-between">
           <Link

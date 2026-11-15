@@ -10,9 +10,19 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { VillageSubnav } from '@/components/village/VillageSubnav'
 import { fetchVillageDestinations } from '@/services/villageApi'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { SEO_DICTIONARY, generateBreadcrumbSchema, generateVillagePlaceSchema } from '@/config/seo'
+import { useLocale } from '@/i18n'
 
 export const VillageTourismPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const { locale } = useLocale()
+  const seo = SEO_DICTIONARY[locale].villageTourism
+  const breadcrumbs = [
+    { name: 'Beranda', url: '/' },
+    { name: 'Profil Desa', url: '/profil-desa' },
+    { name: 'Pariwisata Alam', url: '/profil-desa/pariwisata' },
+  ]
 
   const { data: destinations = [] } = useQuery({
     queryKey: ['village-destinations', selectedCategory],
@@ -61,6 +71,13 @@ export const VillageTourismPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-warm-100/60 pb-20">
+      <SeoHead
+        title={seo.title}
+        description={seo.description}
+        canonicalPath="/profil-desa/pariwisata"
+        keywords={seo.keywords}
+        structuredData={[generateVillagePlaceSchema(), generateBreadcrumbSchema(breadcrumbs)]}
+      />
       <VillageSubnav />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-10">
