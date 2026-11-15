@@ -375,30 +375,30 @@ export const DocumentsPage: React.FC = () => {
                       <span>Unduh</span>
                     </Button>
                     {editable && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setFormError(null)
-                            setEditingDoc(doc)
-                            setModalOpen(true)
-                          }}
-                          className="h-8 px-2"
-                          title="Edit"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setDeletingDoc(doc)}
-                          className="h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          title="Hapus"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setFormError(null)
+                          setEditingDoc(doc)
+                          setModalOpen(true)
+                        }}
+                        className="h-8 px-2"
+                        title="Edit"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeletingDoc(doc)}
+                        className="h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Hapus"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     )}
                   </div>
                 </CardContent>

@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Paperclip, Trash2, AlertCircle } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Loader2, Paperclip, Trash2, AlertCircle, Store, Target } from 'lucide-react'
 import { Modal } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
+import { supabase } from '@/lib/supabase'
 import { getLocalDateKey } from '@/services/dashboardApi'
 import {
   createFinanceTransaction,
@@ -25,6 +26,7 @@ interface FinanceTransactionModalProps {
   onClose: () => void
   categories: FinanceCategory[]
   onOpenCategoryManager: () => void
+  activeBookId?: string | null
 }
 
 export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = ({
@@ -32,6 +34,7 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
   onClose,
   categories,
   onOpenCategoryManager,
+  activeBookId,
 }) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -40,6 +43,20 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
   const [fileError, setFileError] = useState<string | null>(null)
 
   const defaultDate = getLocalDateKey()
+
+  const { data: workPrograms = [] } = useQuery({
+    queryKey: ['workspace', 'work-programs-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('work_programs')
+        .select('id, title')
+        .order('title', { ascending: true })
+      if (error) return []
+      return data || []
+    },
+    enabled: open,
+    staleTime: 60_000,
+  })
 
   const {
     register,
@@ -56,6 +73,9 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
       categoryId: '',
       transactionDate: defaultDate,
       description: '',
+      spendingPurpose: '',
+      recipientOrVendor: '',
+      programId: null,
     },
   })
 
@@ -115,6 +135,9 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
       categoryId: '',
       transactionDate: getLocalDateKey(),
       description: '',
+      spendingPurpose: '',
+      recipientOrVendor: '',
+      programId: null,
     })
     clearSelectedFile()
     onClose()
@@ -126,6 +149,7 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
         input: data,
         receiptFile,
         categories,
+        activeBookId,
       }),
     onSuccess: async () => {
       await Promise.all([
@@ -281,19 +305,69 @@ export const FinanceTransactionModal: React.FC<FinanceTransactionModalProps> = (
         {/* Deskripsi */}
         <div className="space-y-1.5">
           <label htmlFor="tx-desc" className="text-xs font-medium text-charcoal block">
-            Deskripsi / Keperluan
+            Deskripsi Transaksi
           </label>
           <textarea
             id="tx-desc"
-            rows={3}
+            rows={2}
             disabled={isBusy}
-            placeholder="Contoh: Pembelian konsumsi sosialisasi Posyandu Dusun Lauk"
+            placeholder="Contoh: Pembelian konsumsi rapat koordinasi posko"
             className="flex w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal placeholder:text-charcoal-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
             {...register('description')}
           />
           {errors.description && (
             <p className="text-[11px] text-rose-600">{errors.description.message}</p>
           )}
+        </div>
+
+        {/* Keperluan & Rincian Penggunaan Dana (Analisis Pengeluaran) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label htmlFor="tx-vendor" className="text-xs font-medium text-charcoal flex items-center gap-1.5">
+              <Store className="h-3.5 w-3.5 text-sage-600" />
+              <span>Penerima / Toko / Vendor <span className="text-charcoal-muted font-normal">(Opsional)</span></span>
+            </label>
+            <Input
+              id="tx-vendor"
+              type="text"
+              placeholder="Contoh: Toko Berkah / Bu Siti"
+              disabled={isBusy}
+              {...register('recipientOrVendor')}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="tx-program" className="text-xs font-medium text-charcoal flex items-center gap-1.5">
+              <Target className="h-3.5 w-3.5 text-sage-600" />
+              <span>Program Kerja Terkait <span className="text-charcoal-muted font-normal">(Opsional)</span></span>
+            </label>
+            <select
+              id="tx-program"
+              disabled={isBusy}
+              className="flex h-10 w-full rounded-md border border-warm-300 bg-white px-3 py-2 text-xs text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
+              {...register('programId')}
+            >
+              <option value="">— Bukan bagian program spesifik —</option>
+              {workPrograms.map((prog) => (
+                <option key={prog.id} value={prog.id}>
+                  {prog.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="tx-purpose" className="text-xs font-medium text-charcoal block">
+            Tujuan / Keperluan Rinci Penggunaan Dana <span className="text-charcoal-muted font-normal">(Opsional untuk Analisis)</span>
+          </label>
+          <Input
+            id="tx-purpose"
+            type="text"
+            placeholder="Contoh: Snack dan air mineral untuk 25 peserta sosialisasi UMKM"
+            disabled={isBusy}
+            {...register('spendingPurpose')}
+          />
         </div>
 
         {/* Bukti Transaksi */}

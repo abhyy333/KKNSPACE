@@ -801,31 +801,35 @@ export const AgendaPage: React.FC = () => {
                           </Button>
 
                           {manageable && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setFormError(null)
-                                  setEditingEvent(ev)
-                                  setModalOpen(true)
-                                }}
-                                className="h-8 px-2.5 text-xs gap-1"
-                              >
-                                <Edit3 className="h-3.5 w-3.5" />
-                                <span>Edit</span>
-                              </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setFormError(null)
+                                setEditingEvent(ev)
+                                setModalOpen(true)
+                              }}
+                              className="h-8 px-2.5 text-xs gap-1"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              <span>Edit</span>
+                            </Button>
+                          )}
 
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setDeletingEvent(ev)}
-                                className="h-8 px-2.5 text-xs gap-1 text-red-600 hover:bg-red-50 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                <span>Hapus</span>
-                              </Button>
-                            </>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeletingEvent(ev)
+                              }}
+                              className="h-8 px-2.5 text-xs gap-1 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Hapus</span>
+                            </Button>
                           )}
                         </div>
                       </CardContent>

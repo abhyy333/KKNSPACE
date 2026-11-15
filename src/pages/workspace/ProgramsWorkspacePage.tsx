@@ -643,7 +643,7 @@ export const ProgramsWorkspacePage: React.FC = () => {
                           <span>{isLeadOrAdmin ? 'Edit' : 'Update Progres'}</span>
                         </Button>
                       )}
-                      {isLeadOrAdmin && (
+                      {isSuperAdmin && (
                         <Button
                           size="sm"
                           variant="ghost"

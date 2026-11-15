@@ -162,7 +162,7 @@ export const DutyDocumentationDetailModal: React.FC<DutyDocumentationDetailModal
                     <span>Edit</span>
                   </Button>
                 )}
-                {onDelete && (
+                {onDelete && isSuperAdmin && (
                   <Button
                     type="button"
                     variant="outline"

@@ -1,9 +1,10 @@
 import React from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { WORKSPACE_NAV } from '@/config/navigation'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Shield } from 'lucide-react'
+import { ArrowLeft, Shield, X } from 'lucide-react'
 import { useTranslation } from '@/i18n'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 interface WorkspaceSidebarProps {
   isOpen: boolean
@@ -87,19 +88,36 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
       >
         {/* Workspace Brand / Group Info */}
         <div className="flex h-16 items-center justify-between border-b border-warm-300 px-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sage-700 text-white font-semibold text-sm shadow-subtle">
-              {groupName.charAt(0).toUpperCase()}
-            </div>
+          <Link
+            to="/"
+            className="flex items-center gap-3 min-w-0 group"
+            title="Buka Portal Publik KKN SPACE"
+          >
+            <BrandLogo
+              size="sm"
+              className="h-9 w-9 shrink-0 object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+            />
             <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-xs font-semibold text-charcoal">
+              <span className="truncate text-xs font-semibold text-charcoal group-hover:text-sage-800 transition-colors">
                 {groupName}
               </span>
               <span className="truncate text-[11px] text-charcoal-muted">
                 {villageName}
               </span>
             </div>
-          </div>
+          </Link>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-md text-charcoal-muted hover:text-charcoal hover:bg-warm-200/60 transition-colors shrink-0"
+              title="Tutup Menu"
+              aria-label="Tutup Menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* User Role Tag */}

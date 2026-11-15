@@ -278,6 +278,7 @@ export const DutyPage: React.FC = () => {
               shift={shift}
               memberMap={memberMap}
               canManage={canManageShift(shift)}
+              canDelete={Boolean(isSuperAdmin)}
               onClick={() => setDetailShift(shift)}
               onEdit={() => {
                 setEditingShift(shift)
@@ -342,6 +343,7 @@ interface DutyDocumentationCardProps {
   shift: DutyShift
   memberMap: Map<string, WorkspaceMemberSummary>
   canManage: boolean
+  canDelete?: boolean
   onClick: () => void
   onEdit: () => void
   onDelete: () => void
@@ -351,6 +353,7 @@ const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
   shift,
   memberMap,
   canManage,
+  canDelete,
   onClick,
   onEdit,
   onDelete,
@@ -445,17 +448,19 @@ const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
             >
               <Edit3 className="h-3.5 w-3.5" />
             </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete()
-              }}
-              className="p-1.5 rounded-md text-charcoal-muted hover:text-rose-600 hover:bg-rose-50 transition-colors"
-              title="Hapus dokumentasi"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete()
+                }}
+                className="p-1.5 rounded-md text-charcoal-muted hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                title="Hapus dokumentasi"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         )}
       </div>

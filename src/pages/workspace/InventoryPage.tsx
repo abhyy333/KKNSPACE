@@ -384,10 +384,8 @@ export const InventoryPage: React.FC = () => {
     return isLeaderOrAdmin
   }
 
-  const canHardDeletePersonalItem = (item: InventoryItem) => {
-    if (item.ownership_type !== 'PERSONAL_OWNED') return false
-    if (isSuperAdmin) return true
-    return Boolean(user?.id && item.owner_member_id === user.id)
+  const canHardDeletePersonalItem = (_item?: InventoryItem) => {
+    return Boolean(isSuperAdmin)
   }
 
   const canRestoreItemRecord = (item: InventoryItem) => {
@@ -849,16 +847,18 @@ export const InventoryPage: React.FC = () => {
                             <span className="hidden sm:inline">Arsip</span>
                           </Button>
 
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setItemToHardDelete(item)}
-                            className="h-7 px-2 text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1"
-                            title="Hapus Barang Pribadi Secara Permanen"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Hapus</span>
-                          </Button>
+                          {isSuperAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setItemToHardDelete(item)}
+                              className="h-7 px-2 text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1"
+                              title="Hapus Barang Pribadi Secara Permanen"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Hapus</span>
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>

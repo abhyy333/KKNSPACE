@@ -233,6 +233,23 @@ export interface FinanceCategory {
   created_at: string
 }
 
+export interface FinanceBook {
+  id: string
+  book_number: number
+  title: string
+  status: 'active' | 'archived'
+  initial_balance: number | string
+  archived_at: string | null
+  archived_by: string | null
+  snapshot_transaction_count: number | null
+  snapshot_total_income: number | string | null
+  snapshot_total_expense: number | string | null
+  snapshot_final_balance: number | string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface FinanceTransaction {
   id: string
   category_id: string | null
@@ -243,6 +260,11 @@ export interface FinanceTransaction {
   recorded_by: string
   reversal_of_transaction_id: string | null
   correction_reason: string | null
+  book_id?: string | null
+  is_archived?: boolean
+  spending_purpose?: string | null
+  recipient_or_vendor?: string | null
+  program_id?: string | null
   created_at: string
 }
 

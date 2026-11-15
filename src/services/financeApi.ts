@@ -11,6 +11,7 @@ import type {
   FinanceAttachment,
   FinanceCategory,
   FinanceTransaction,
+  FinanceBook,
   WorkspaceMemberSummary,
 } from '@/types/database'
 
@@ -49,6 +50,21 @@ export const financeTransactionFormSchema = z.object({
     .trim()
     .min(3, 'Deskripsi transaksi minimal 3 karakter')
     .max(300, 'Deskripsi transaksi maksimal 300 karakter'),
+  spendingPurpose: z
+    .string()
+    .trim()
+    .max(300, 'Keperluan dana maksimal 300 karakter')
+    .optional(),
+  recipientOrVendor: z
+    .string()
+    .trim()
+    .max(150, 'Penerima / Vendor maksimal 150 karakter')
+    .optional(),
+  programId: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional(),
 })
 
 export type FinanceTransactionFormInput = z.infer<typeof financeTransactionFormSchema>
@@ -74,6 +90,8 @@ export interface FinanceAttachmentWithFile extends FinanceAttachment {
 export interface FinanceLedgerData {
   categories: FinanceCategory[]
   transactions: FinanceTransaction[]
+  books: FinanceBook[]
+  activeBook: FinanceBook | null
   attachmentsByTransaction: Record<string, FinanceAttachmentWithFile[]>
   membersById: Record<string, WorkspaceMemberSummary>
 }
@@ -87,7 +105,7 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 export async function fetchFinanceLedgerData(): Promise<FinanceLedgerData> {
-  const [categoriesRes, transactionsRes, attachmentsRes, membersRes] = await Promise.all([
+  const [categoriesRes, transactionsRes, attachmentsRes, membersRes, booksRes] = await Promise.all([
     supabase
       .from('finance_categories')
       .select('id, name, type, is_active, created_at')
@@ -96,7 +114,7 @@ export async function fetchFinanceLedgerData(): Promise<FinanceLedgerData> {
     supabase
       .from('finance_transactions')
       .select(
-        'id, category_id, type, amount, description, transaction_date, recorded_by, reversal_of_transaction_id, correction_reason, created_at'
+        'id, category_id, type, amount, description, transaction_date, recorded_by, reversal_of_transaction_id, correction_reason, book_id, is_archived, spending_purpose, recipient_or_vendor, program_id, created_at'
       )
       .order('transaction_date', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -105,17 +123,25 @@ export async function fetchFinanceLedgerData(): Promise<FinanceLedgerData> {
       .select('id, transaction_id, file_id, created_at')
       .order('created_at', { ascending: true }),
     supabase.rpc('get_workspace_members'),
+    supabase
+      .from('finance_books')
+      .select('*')
+      .order('book_number', { ascending: false }),
   ])
 
   const firstError =
     categoriesRes.error ||
     transactionsRes.error ||
     attachmentsRes.error ||
-    membersRes.error
+    membersRes.error ||
+    booksRes.error
 
   if (firstError) {
     throw new Error(`Gagal memuat data keuangan: ${firstError.message}`)
   }
+
+  const books = (booksRes.data as FinanceBook[]) ?? []
+  const activeBook = books.find((b) => b.status === 'active') || books[0] || null
 
   const attachments = (attachmentsRes.data as FinanceAttachment[]) ?? []
   const fileMap = new Map<string, FileObject>()
@@ -158,6 +184,8 @@ export async function fetchFinanceLedgerData(): Promise<FinanceLedgerData> {
   return {
     categories: (categoriesRes.data as FinanceCategory[]) ?? [],
     transactions: (transactionsRes.data as FinanceTransaction[]) ?? [],
+    books,
+    activeBook,
     attachmentsByTransaction,
     membersById,
   }
@@ -203,6 +231,7 @@ export async function createFinanceTransaction(params: {
   input: FinanceTransactionFormInput
   receiptFile?: File | null
   categories: FinanceCategory[]
+  activeBookId?: string | null
 }): Promise<FinanceTransaction> {
   const parsed = financeTransactionFormSchema.parse(params.input)
   const amount = parsePositiveRupiahInput(parsed.amountRaw)
@@ -230,6 +259,19 @@ export async function createFinanceTransaction(params: {
     uploadedFile = await uploadPrivateFile(params.receiptFile, 'finance')
   }
 
+  // Get active book id if not provided
+  let targetBookId = params.activeBookId
+  if (!targetBookId) {
+    const { data: activeBookData } = await supabase
+      .from('finance_books')
+      .select('id')
+      .eq('status', 'active')
+      .order('book_number', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    targetBookId = activeBookData?.id || null
+  }
+
   const { data: txData, error: txErr } = await supabase
     .from('finance_transactions')
     .insert({
@@ -237,11 +279,16 @@ export async function createFinanceTransaction(params: {
       type: parsed.type,
       amount,
       description: parsed.description,
+      spending_purpose: parsed.spendingPurpose?.trim() || null,
+      recipient_or_vendor: parsed.recipientOrVendor?.trim() || null,
+      program_id: parsed.programId || null,
+      book_id: targetBookId,
       transaction_date: parsed.transactionDate,
       recorded_by: userId,
+      is_archived: false,
     })
     .select(
-      'id, category_id, type, amount, description, transaction_date, recorded_by, reversal_of_transaction_id, correction_reason, created_at'
+      'id, category_id, type, amount, description, transaction_date, recorded_by, reversal_of_transaction_id, correction_reason, book_id, is_archived, spending_purpose, recipient_or_vendor, program_id, created_at'
     )
     .single()
 
@@ -276,6 +323,21 @@ export async function createFinanceReversal(params: {
     throw new Error('Transaksi pembalik tidak dapat dibalik kembali.')
   }
 
+  // Double check if original transaction has already been reversed
+  const { data: existingReversal, error: checkErr } = await supabase
+    .from('finance_transactions')
+    .select('id')
+    .eq('reversal_of_transaction_id', originalTransaction.id)
+    .maybeSingle()
+
+  if (checkErr) {
+    throw new Error(`Gagal memverifikasi status transaksi: ${checkErr.message}`)
+  }
+
+  if (existingReversal) {
+    throw new Error('Transaksi ini sudah pernah dibatalkan/dibalik sebelumnya.')
+  }
+
   const parsed = financeReversalFormSchema.parse(input)
   const userId = await getCurrentUserId()
   const oppositeType = originalTransaction.type === 'income' ? 'expense' : 'income'
@@ -302,4 +364,71 @@ export async function createFinanceReversal(params: {
   }
 
   return data as FinanceTransaction
+}
+
+export interface ResetFinanceLedgerResult {
+  success: boolean
+  message: string
+  archived_book: {
+    id: string
+    book_number: number
+    snapshot_transaction_count: number
+    snapshot_total_income: number
+    snapshot_total_expense: number
+    snapshot_final_balance: number
+  }
+  new_book: {
+    id: string
+    book_number: number
+    title: string
+    initial_balance: number
+  }
+}
+
+export async function resetFinanceLedger(params: {
+  newInitialBalance: number
+  notes?: string
+}): Promise<ResetFinanceLedgerResult> {
+  if (
+    typeof params.newInitialBalance !== 'number' ||
+    !Number.isFinite(params.newInitialBalance) ||
+    params.newInitialBalance < 0
+  ) {
+    throw new Error('Saldo awal buku kas baru harus berupa angka numerik valid (minimal Rp 0).')
+  }
+
+  const cleanNotes = params.notes && typeof params.notes === 'string' && params.notes.trim() !== ''
+    ? params.notes.trim()
+    : null
+
+  const { data, error } = await supabase.rpc('reset_finance_ledger', {
+    p_new_initial_balance: params.newInitialBalance,
+    p_notes: cleanNotes,
+  })
+
+  if (error) {
+    throw new Error(`Gagal melakukan reset keuangan: ${error.message}`)
+  }
+
+  return data as ResetFinanceLedgerResult
+}
+
+export async function updateFinanceTransactionClassification(params: {
+  transactionId: string
+  categoryId?: string
+  spendingPurpose?: string
+  recipientOrVendor?: string
+  programId?: string | null
+}): Promise<void> {
+  const { error } = await supabase.rpc('update_finance_transaction_classification', {
+    p_transaction_id: params.transactionId,
+    p_category_id: params.categoryId || null,
+    p_spending_purpose: params.spendingPurpose?.trim() || null,
+    p_recipient_or_vendor: params.recipientOrVendor?.trim() || null,
+    p_program_id: params.programId || null,
+  })
+
+  if (error) {
+    throw new Error(`Gagal memperbarui rincian transaksi: ${error.message}`)
+  }
 }

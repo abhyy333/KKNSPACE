@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { formatRupiah } from '@/lib/finance'
+import { formatRupiah, computeFinanceSummaryAndRecap, getMakassarDateKey } from '@/lib/finance'
 import type {
   FinanceTransaction,
   WorkProgram,
@@ -144,45 +144,47 @@ export const PoskoOperationsSummaryCard: React.FC<PoskoOperationsSummaryCardProp
 
   // -------------------------------------------------------------
   // 2. Arus Kas KKN (Cashflow Visualizer)
+  // Menggunakan aggregator tunggal yang konsisten dengan Halaman Keuangan
   // -------------------------------------------------------------
   const { filteredIncome, filteredExpense, netFlow, periodTransactionCount, hasTransactions } =
     useMemo(() => {
-      // Exclude reversals/corrections
-      const activeRows = financeTransactions.filter((t) => !t.reversal_of_transaction_id)
+      const today = todayDateKey || getMakassarDateKey()
+      const currentYearMonth = today.slice(0, 7) // 'YYYY-MM'
 
-      const currentYearMonth = todayDateKey.slice(0, 7)
-      const baseDate = new Date(`${todayDateKey}T00:00:00`)
-      const thirtyDaysAgo = new Date(baseDate.getTime() - 30 * 86_400_000)
-      const thirtyDaysAgoKey = thirtyDaysAgo.toISOString().split('T')[0]
+      let range: { startDate: string; endDate: string } | undefined = undefined
 
-      const filtered = activeRows.filter((t) => {
-        if (periodFilter === 'all') return true
-        if (periodFilter === 'this_month') {
-          return t.transaction_date.startsWith(currentYearMonth)
+      if (periodFilter === 'this_month') {
+        const [y, m] = currentYearMonth.split('-').map(Number)
+        const lastDay = new Date(y, m, 0).getDate()
+        range = {
+          startDate: `${currentYearMonth}-01`,
+          endDate: `${currentYearMonth}-${String(lastDay).padStart(2, '0')}`,
         }
-        if (periodFilter === 'last_30_days') {
-          return t.transaction_date >= thirtyDaysAgoKey && t.transaction_date <= todayDateKey
-        }
-        return true
-      })
-
-      let income = 0
-      let expense = 0
-      for (const t of filtered) {
-        const amt = Number(t.amount) || 0
-        if (t.type === 'income') {
-          income += amt
-        } else if (t.type === 'expense') {
-          expense += amt
+      } else if (periodFilter === 'last_30_days') {
+        const [y, m, d] = today.split('-').map(Number)
+        const baseDate = new Date(Date.UTC(y, m - 1, d))
+        const thirtyDaysAgo = new Date(baseDate.getTime() - 30 * 86_400_000)
+        range = {
+          startDate: thirtyDaysAgo.toISOString().split('T')[0],
+          endDate: today,
         }
       }
+
+      // Compute using single unified financial aggregator
+      const recap = computeFinanceSummaryAndRecap(financeTransactions, [], range)
+
+      const isFiltered = periodFilter !== 'all'
+      const income = isFiltered ? recap.periodIncome : recap.allTimeIncome
+      const expense = isFiltered ? recap.periodExpense : recap.allTimeExpense
+      const net = isFiltered ? recap.periodDifference : recap.cashBalance
+      const count = isFiltered ? recap.periodEffectiveCount : recap.allTimeEffectiveCount
 
       return {
         filteredIncome: income,
         filteredExpense: expense,
-        netFlow: income - expense,
-        periodTransactionCount: filtered.length,
-        hasTransactions: filtered.length > 0,
+        netFlow: net,
+        periodTransactionCount: count,
+        hasTransactions: recap.allTimeEffectiveCount > 0,
       }
     }, [financeTransactions, periodFilter, todayDateKey])
 

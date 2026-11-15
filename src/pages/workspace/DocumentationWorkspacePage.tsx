@@ -528,28 +528,28 @@ export const DocumentationWorkspacePage: React.FC = () => {
                         <Download className="h-3.5 w-3.5" />
                       </button>
                       {editable && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormError(null)
-                              setEditingAsset(asset)
-                              setUploadModalOpen(true)
-                            }}
-                            className="rounded p-1 text-charcoal-muted hover:bg-warm-100 hover:text-charcoal"
-                            title="Edit detail / status"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeletingAsset(asset)}
-                            className="rounded p-1 text-charcoal-muted hover:bg-red-50 hover:text-red-600"
-                            title="Hapus dokumentasi"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormError(null)
+                            setEditingAsset(asset)
+                            setUploadModalOpen(true)
+                          }}
+                          className="rounded p-1 text-charcoal-muted hover:bg-warm-100 hover:text-charcoal"
+                          title="Edit detail / status"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setDeletingAsset(asset)}
+                          className="rounded p-1 text-charcoal-muted hover:bg-red-50 hover:text-red-600"
+                          title="Hapus dokumentasi"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -775,22 +775,25 @@ export const DocumentationWorkspacePage: React.FC = () => {
                         >
                           Jadikan Cover
                         </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await removeDocumentationPhoto(p.id)
-                              setExistingPhotos((prev) => prev.filter((item) => item.id !== p.id))
-                              toast({ title: 'Foto Dihapus', variant: 'success' })
-                            } catch (err) {
-                              toast({ title: 'Gagal Menghapus', variant: 'error' })
-                            }
-                          }}
-                          className="text-red-600 hover:text-red-800 p-0.5"
-                          title="Hapus foto"
-                        >
-                          <Trash2 className="h-2.5 w-2.5" />
-                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm('Hapus foto ini secara permanen dari dokumentasi?')) return
+                              try {
+                                await removeDocumentationPhoto(p.id)
+                                setExistingPhotos((prev) => prev.filter((item) => item.id !== p.id))
+                                toast({ title: 'Foto Dihapus', variant: 'success' })
+                              } catch (err) {
+                                toast({ title: 'Gagal Menghapus', variant: 'error' })
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-800 p-0.5"
+                            title="Hapus foto (Admin)"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

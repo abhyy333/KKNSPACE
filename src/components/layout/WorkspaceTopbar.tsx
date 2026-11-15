@@ -17,6 +17,7 @@ interface WorkspaceTopbarProps {
   villageName?: string
   notifications?: Announcement[]
   isLoadingNotifications?: boolean
+  avatarUrl?: string | null
 }
 
 export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
@@ -28,6 +29,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
   villageName = 'Desa belum diatur',
   notifications = [],
   isLoadingNotifications = false,
+  avatarUrl = null,
 }) => {
   const navigate = useNavigate()
   const { signOut } = useAuth()
@@ -35,7 +37,13 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
   const { locale } = useLocale()
   const [notifOpen, setNotifOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const notifContainerRef = useRef<HTMLDivElement>(null)
+
+  // Reset avatar error when avatarUrl changes
+  useEffect(() => {
+    setAvatarError(false)
+  }, [avatarUrl])
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -240,9 +248,18 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
             className="flex items-center gap-2 rounded-md p-1 hover:bg-warm-100 transition-colors shrink-0"
             title="Buka Profil Saya"
           >
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-sage-100 text-sage-800 font-semibold text-xs border border-sage-200 shrink-0">
-              {userName ? userName.charAt(0).toUpperCase() : 'U'}
-            </div>
+            {avatarUrl && !avatarError ? (
+              <img
+                src={avatarUrl}
+                alt={userName || 'Foto Profil'}
+                onError={() => setAvatarError(true)}
+                className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover border border-sage-200 shrink-0 bg-sage-50"
+              />
+            ) : (
+              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-sage-100 text-sage-800 font-semibold text-xs border border-sage-200 shrink-0">
+                {userName ? userName.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
             <div className="hidden md:flex flex-col text-left">
               <span className="text-xs font-medium text-charcoal truncate max-w-[160px]">
                 {userName}

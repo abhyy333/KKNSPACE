@@ -1087,15 +1087,17 @@ export const MeetingsPage: React.FC = () => {
                         >
                           <Edit2 className="h-3 w-3" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setMeetingToDelete(meeting)}
-                          className="h-6 w-6 text-charcoal-muted hover:text-red-600"
-                          title="Hapus Rapat"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setMeetingToDelete(meeting)}
+                            className="h-6 w-6 text-charcoal-muted hover:text-red-600"
+                            title="Hapus Rapat"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1172,6 +1174,7 @@ export const MeetingsPage: React.FC = () => {
           isLoading={isLoadingDetail}
           currentUserId={user?.id}
           canManage={canManage}
+          isSuperAdmin={isSuperAdmin}
           onRefresh={() => {
             refetchDetail()
             refetch()
@@ -1234,6 +1237,7 @@ interface MeetingDetailModalProps {
   isLoading: boolean
   currentUserId?: string
   canManage: boolean
+  isSuperAdmin?: boolean
   onRefresh: () => void
 }
 
@@ -1244,6 +1248,7 @@ const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
   isLoading,
   currentUserId,
   canManage,
+  isSuperAdmin,
   onRefresh,
 }) => {
   const { toast } = useToast()
@@ -1578,7 +1583,7 @@ const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                           </div>
                         </div>
 
-                        {canManage && (
+                        {isSuperAdmin && (
                           <Button
                             size="icon"
                             variant="ghost"
@@ -1841,17 +1846,19 @@ const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                                 >
                                   Ubah Status
                                 </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={async () => {
-                                    await deleteMeetingDecision(dec.id)
-                                    onRefresh()
-                                  }}
-                                  className="h-6 w-6 text-charcoal-muted hover:text-red-600"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
+                                {isSuperAdmin && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      await deleteMeetingDecision(dec.id)
+                                      onRefresh()
+                                    }}
+                                    className="h-6 w-6 text-charcoal-muted hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>

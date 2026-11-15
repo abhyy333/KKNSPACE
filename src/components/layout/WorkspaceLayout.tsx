@@ -8,6 +8,8 @@ import {
   fetchGroupSettings,
   fetchPublishedAnnouncementsPreview,
 } from '@/services/dashboardApi'
+import { fetchOwnDirectoryProfile } from '@/services/membersApi'
+import { getPrivateFileSignedUrl } from '@/services/storageApi'
 import { SeoHead } from '@/components/seo/SeoHead'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -33,6 +35,29 @@ export const WorkspaceLayout: React.FC = () => {
     queryFn: fetchPublishedAnnouncementsPreview,
     staleTime: 30_000,
   })
+
+  const { data: ownProfile } = useQuery({
+    queryKey: ['workspace', 'own-profile', user?.id ?? null],
+    queryFn: fetchOwnDirectoryProfile,
+    enabled: Boolean(user?.id),
+    staleTime: 30_000,
+  })
+
+  const effectivePhotoFileId = ownProfile?.photo_file_id || profile?.avatar_file_id || null
+
+  const { data: signedPhoto } = useQuery({
+    queryKey: ['workspace', 'own-profile-photo', effectivePhotoFileId],
+    queryFn: () => getPrivateFileSignedUrl(effectivePhotoFileId!, false),
+    enabled: Boolean(effectivePhotoFileId),
+    staleTime: 240_000,
+    retry: 1,
+  })
+
+  const effectiveAvatarUrl =
+    signedPhoto?.signedUrl ||
+    (profile as unknown as { avatar_url?: string | null })?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    null
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Anggota Posko'
   const baseRole = membership?.role
@@ -72,6 +97,7 @@ export const WorkspaceLayout: React.FC = () => {
           villageName={villageName}
           notifications={publishedAnnouncements}
           isLoadingNotifications={isLoadingNotifications}
+          avatarUrl={effectiveAvatarUrl}
         />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 max-w-full">

@@ -122,6 +122,7 @@ export const PoskoMemberPhotoModal: React.FC<PoskoMemberPhotoModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member?.id] })
       queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] })
       queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile'] })
       queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] })
     },
     onError: (err: Error) => {
@@ -159,6 +160,7 @@ export const PoskoMemberPhotoModal: React.FC<PoskoMemberPhotoModalProps> = ({
       queryClient.invalidateQueries({ queryKey: ['public', 'team-photo', member?.id] })
       queryClient.invalidateQueries({ queryKey: ['public', 'team-directory'] })
       queryClient.invalidateQueries({ queryKey: ['workspace', 'dashboard-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile'] })
       queryClient.invalidateQueries({ queryKey: ['workspace', 'own-profile-photo'] })
     },
     onError: (err: Error) => {

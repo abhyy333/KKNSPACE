@@ -89,15 +89,12 @@ export interface DashboardRecentDoc {
 }
 
 export function getLocalDateKey(date: Date = new Date()): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Makassar' }).format(date)
 }
 
 function getLocalStartOfDayIso(date: Date = new Date()): string {
-  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
-  return start.toISOString()
+  const makassarDayStr = getLocalDateKey(date)
+  return new Date(`${makassarDayStr}T00:00:00+08:00`).toISOString()
 }
 
 export async function fetchGroupSettings(): Promise<GroupSettings | null> {

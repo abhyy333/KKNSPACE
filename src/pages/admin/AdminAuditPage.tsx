@@ -61,7 +61,7 @@ const MODULE_DEFINITIONS: Record<
   finance: {
     label: 'Keuangan Posko',
     icon: Coins,
-    tables: ['finance_transactions', 'finance_categories'],
+    tables: ['finance_transactions', 'finance_categories', 'finance_books'],
   },
   work_programs: {
     label: 'Program Kerja',
