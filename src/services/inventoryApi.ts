@@ -5,6 +5,7 @@ import type {
   InventoryItem,
   InventoryLoan,
   InventoryMovement,
+  InventoryMovementType,
   InventoryCondition,
   InventoryItemType,
   InventoryTrackingModel,
@@ -452,6 +453,41 @@ export async function updateInventoryItem(
     throw new Error(`Gagal memperbarui inventaris: ${error.message}`)
   }
 
+  // Record activity log for updates
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.id) {
+      let movementType: InventoryMovementType = 'updated'
+      let logNotes = 'Pembaruan data informasi barang'
+
+      if (input.current_location && input.current_location !== (data as InventoryItem).location) {
+        movementType = 'location_changed'
+        logNotes = `Lokasi barang dipindahkan ke ${input.current_location}`
+      } else if (input.condition && input.condition !== (data as InventoryItem).condition) {
+        movementType = 'condition_changed'
+        logNotes = `Kondisi barang diperbarui menjadi ${input.condition}`
+      }
+
+      await supabase.from('inventory_movements').insert([
+        {
+          item_id: id,
+          movement_type: movementType,
+          quantity: (data as InventoryItem).quantity || 1,
+          user_id: user.id,
+          notes: logNotes,
+          from_location: (data as InventoryItem).current_location || 'Posko',
+          to_location: input.current_location || (data as InventoryItem).current_location || 'Posko',
+          from_holder: (data as InventoryItem).responsible_person || (data as InventoryItem).owner_name || 'Posko',
+          to_holder: (data as InventoryItem).responsible_person || (data as InventoryItem).owner_name || 'Posko',
+        },
+      ])
+    }
+  } catch (logErr) {
+    console.warn('Gagal mencatat riwayat pembaruan:', logErr)
+  }
+
   return data as InventoryItem
 }
 
@@ -806,7 +842,7 @@ export async function fetchInventoryMovements(itemId?: string): Promise<
 > {
   let query = supabase
     .from('inventory_movements')
-    .select('*, user:profiles(full_name), item:inventory_items(name, item_code)')
+    .select('*, item:inventory_items(name, item_code)')
     .order('movement_date', { ascending: false })
     .limit(100)
 
@@ -814,13 +850,47 @@ export async function fetchInventoryMovements(itemId?: string): Promise<
     query = query.eq('item_id', itemId)
   }
 
-  const { data, error } = await query
+  const { data: movementsData, error: movementsError } = await query
 
-  if (error) {
-    throw new Error(`Gagal memuat riwayat mutasi: ${error.message}`)
+  if (movementsError) {
+    throw new Error(`Gagal memuat riwayat aktivitas: ${movementsError.message}`)
   }
 
-  return (data as any) || []
+  if (!movementsData || movementsData.length === 0) return []
+
+  // Resolve user profiles safely without relying strictly on schema cache
+  const userIds = Array.from(
+    new Set(movementsData.map((m: any) => m.user_id).filter(Boolean))
+  )
+  const profileMap: Record<string, string> = {}
+
+  if (userIds.length > 0) {
+    try {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      if (profiles) {
+        profiles.forEach((p) => {
+          if (p.id) profileMap[p.id] = p.full_name
+        })
+      }
+    } catch (profErr) {
+      console.warn('Gagal memuat profil untuk riwayat aktivitas:', profErr)
+    }
+  }
+
+  return movementsData.map((m: any) => ({
+    ...m,
+    user: {
+      full_name:
+        (m.user_id && profileMap[m.user_id]) ||
+        m.to_holder ||
+        m.from_holder ||
+        'Anggota Tim',
+    },
+  }))
 }
 
 // -------------------------------------------------------------
@@ -917,6 +987,25 @@ export async function uploadInventoryItemPhoto(params: {
       .eq('id', params.itemId)
   }
 
+  // Record activity log for photo upload
+  try {
+    await supabase.from('inventory_movements').insert([
+      {
+        item_id: params.itemId,
+        movement_type: 'photo_added',
+        quantity: 1,
+        user_id: userData.user.id,
+        notes: `Menambahkan foto dokumentasi barang (${params.caption?.trim() || 'Foto baru'})`,
+        from_location: 'Dokumentasi',
+        to_location: 'Dokumentasi',
+        from_holder: uploaderName,
+        to_holder: uploaderName,
+      },
+    ])
+  } catch (logErr) {
+    console.warn('Gagal mencatat mutasi penambahan foto:', logErr)
+  }
+
   return photoData as InventoryPhoto
 }
 
@@ -947,6 +1036,27 @@ export async function setPrimaryInventoryPhoto(
   if (itemErr) {
     throw new Error(`Gagal memperbarui referensi foto utama: ${itemErr.message}`)
   }
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.id) {
+      await supabase.from('inventory_movements').insert([
+        {
+          item_id: itemId,
+          movement_type: 'photo_updated',
+          quantity: 1,
+          user_id: user.id,
+          notes: 'Menetapkan foto utama baru untuk barang',
+          from_location: 'Dokumentasi',
+          to_location: 'Dokumentasi',
+        },
+      ])
+    }
+  } catch (logErr) {
+    console.warn('Gagal mencatat mutasi foto utama:', logErr)
+  }
 }
 
 export async function deleteInventoryPhoto(
@@ -967,6 +1077,27 @@ export async function deleteInventoryPhoto(
 
   if (error) {
     throw new Error(`Gagal menghapus foto dokumentasi: ${error.message}`)
+  }
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.id) {
+      await supabase.from('inventory_movements').insert([
+        {
+          item_id: itemId,
+          movement_type: 'photo_removed',
+          quantity: 1,
+          user_id: user.id,
+          notes: 'Menghapus foto dokumentasi barang',
+          from_location: 'Dokumentasi',
+          to_location: 'Dokumentasi',
+        },
+      ])
+    }
+  } catch (logErr) {
+    console.warn('Gagal mencatat mutasi hapus foto:', logErr)
   }
 
   if (item?.photo_file_id === fileId) {

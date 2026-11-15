@@ -7,15 +7,6 @@ import {
   updateInventoryItem,
   archiveInventoryItem,
   restoreInventoryItem,
-  fetchInventoryHandovers,
-  createInventoryHandover,
-  acceptInventoryHandover,
-  rejectInventoryHandover,
-  cancelInventoryHandover,
-  resolveItemReconciliation,
-  fetchInventoryLoans,
-  approveAndHandoutLoan,
-  returnInventoryLoan,
   adjustInventoryStock,
   fetchInventoryMovements,
   fetchInventorySignedPhotoUrls,
@@ -25,7 +16,6 @@ import { fetchTeamDirectory } from '@/services/membersApi'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal, ConfirmDialog } from '@/components/ui/dialog'
@@ -34,14 +24,10 @@ import { InventoryPhotoGalleryModal } from '@/components/workspace/InventoryPhot
 import { optimizeImageFile } from '@/lib/imageOptimization'
 import type {
   InventoryItem,
-  InventoryLoan,
   InventoryCondition,
   InventoryTrackingModel,
   InventoryOwnershipType,
   InventoryItemStatus,
-  InventoryHandover,
-  InventoryReconciliationStatus,
-  InventoryFinalAction,
   KknTeamDirectoryMember,
 } from '@/types/database'
 import {
@@ -50,22 +36,20 @@ import {
   AlertTriangle,
   Plus,
   Search,
-  ArrowRightLeft,
   Edit2,
   MapPin,
   User,
   QrCode,
   Printer,
-  FileCheck,
-  ArrowRight,
-  Download,
   Camera,
-  Image as ImageIcon,
   Eye,
   Upload,
   X,
   Archive,
   RotateCcw,
+  CheckCircle2,
+  Clock,
+  ChevronDown,
 } from 'lucide-react'
 
 // -------------------------------------------------------------
@@ -100,22 +84,22 @@ const OWNERSHIP_META: Record<
   GROUP_OWNED: {
     label: 'Aset Kelompok (Kas KKN)',
     badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300',
-    desc: 'Dibeli menggunakan kas kelompok atau dana bersama KKN.',
+    desc: 'Aset milik kelompok KKN yang dibeli menggunakan kas atau anggaran bersama.',
   },
   PERSONAL_OWNED: {
     label: 'Milik Pribadi Anggota',
     badgeClass: 'bg-blue-50 text-blue-800 border-blue-300',
-    desc: 'Barang pribadi yang dibawa anggota ke posko.',
+    desc: 'Barang pribadi bawaan anggota tim selama masa pengabdian KKN.',
   },
   BORROWED_EXTERNAL: {
     label: 'Pinjaman Pihak Luar',
     badgeClass: 'bg-amber-50 text-amber-800 border-amber-300',
-    desc: 'Dipinjam dari warga, pemilik posko, kampus, atau kantor desa.',
+    desc: 'Dipinjam dari warga, pemilik posko, kampus, atau pemerintah desa.',
   },
   DONATED: {
     label: 'Hibah / Donasi',
     badgeClass: 'bg-purple-50 text-purple-800 border-purple-300',
-    desc: 'Diterima melalui hibah atau sumbangan pihak ketiga.',
+    desc: 'Diterima melalui hibah, bantuan sponsor, atau sumbangan pihak ketiga.',
   },
 }
 
@@ -125,7 +109,7 @@ const STATUS_META: Record<
 > = {
   stored: { label: 'Tersimpan di Posko', badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
   in_use: { label: 'Sedang Digunakan', badgeClass: 'bg-blue-50 text-blue-800 border-blue-200' },
-  borrowed_member: { label: 'Dipinjam Anggota', badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-200' },
+  borrowed_member: { label: 'Dipakai Anggota', badgeClass: 'bg-indigo-50 text-indigo-800 border-indigo-200' },
   borrowed_external: { label: 'Dipinjam Pihak Luar', badgeClass: 'bg-purple-50 text-purple-800 border-purple-200' },
   maintenance: { label: 'Dalam Perbaikan', badgeClass: 'bg-amber-50 text-amber-800 border-amber-200' },
   returned: { label: 'Sudah Dikembalikan', badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
@@ -145,14 +129,67 @@ const CONDITION_BADGES: Record<
   lost: { label: 'Hilang', badgeClass: 'bg-rose-50 text-rose-800 border-rose-200' },
 }
 
-const RECONCILIATION_STATUS_META: Record<
-  InventoryReconciliationStatus,
-  { label: string; badgeClass: string }
-> = {
-  pending: { label: 'Belum Direkonsiliasi', badgeClass: 'bg-warm-100 text-charcoal border-warm-300' },
-  resolved: { label: 'Selesai & Beres', badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
-  problematic: { label: 'Bermasalah / Butuh Tindak Lanjut', badgeClass: 'bg-rose-50 text-rose-800 border-rose-300' },
-  waiting_confirmation: { label: 'Menunggu Konfirmasi', badgeClass: 'bg-amber-50 text-amber-800 border-amber-300' },
+export type MainInventoryTab =
+  | 'all'
+  | 'my_items'
+  | 'group'
+  | 'personal'
+  | 'borrowed'
+  | 'archived'
+  | 'activity'
+
+// Helper formatter to convert inventory activity logs into human-readable Indonesian sentences
+function formatActivitySentence(m: {
+  user?: { full_name: string }
+  item?: { name: string; item_code: string | null }
+  movement_type: string
+  notes?: string | null
+  from_location?: string | null
+  to_location?: string | null
+  from_holder?: string | null
+  to_holder?: string | null
+  quantity?: number
+}): string {
+  const actor = m.user?.full_name?.trim() || 'Anggota Tim'
+  const itemName = m.item?.name?.trim() || 'Barang'
+
+  switch (m.movement_type) {
+    case 'in':
+      return `${actor} menambahkan barang ${itemName} ke dalam inventaris posko.`
+    case 'archived':
+      return `${actor} mengarsipkan barang ${itemName}${m.notes ? ` (${m.notes})` : ''}.`
+    case 'restored':
+      return `${actor} memulihkan barang ${itemName} dari arsip ke daftar inventaris aktif.`
+    case 'photo_added':
+      return `${actor} menambahkan foto dokumentasi untuk barang ${itemName}.`
+    case 'photo_removed':
+      return `${actor} menghapus foto dokumentasi barang ${itemName}.`
+    case 'photo_updated':
+      return `${actor} memperbarui foto utama barang ${itemName}.`
+    case 'location_changed':
+    case 'transfer':
+      if (m.from_location && m.to_location && m.from_location !== m.to_location) {
+        return `${actor} memindahkan lokasi barang ${itemName} dari ${m.from_location} ke ${m.to_location}.`
+      }
+      return `${actor} mengubah lokasi penyimpanan barang ${itemName}.`
+    case 'condition_changed':
+      return `${actor} memperbarui kondisi fisik barang ${itemName}${m.notes ? ` (${m.notes})` : ''}.`
+    case 'adjustment':
+      return `${actor} menyesuaikan kuantitas stok barang ${itemName}${m.quantity ? ` menjadi ${m.quantity}` : ''}.`
+    case 'borrow':
+      return `${actor} mencatat peminjaman barang ${itemName}${m.to_holder ? ` kepada ${m.to_holder}` : ''}.`
+    case 'return':
+      return `${actor} mencatat pengembalian barang ${itemName}${m.from_holder ? ` dari ${m.from_holder}` : ''}.`
+    case 'out':
+      return `${actor} mengeluarkan barang ${itemName} dari posko.`
+    case 'updated':
+      return `${actor} memperbarui data informasi barang ${itemName}.`
+    default:
+      if (m.notes && m.notes.length > 0) {
+        return `${actor}: ${m.notes} (${itemName})`
+      }
+      return `${actor} memperbarui status barang ${itemName}.`
+  }
 }
 
 export const InventoryPage: React.FC = () => {
@@ -160,15 +197,15 @@ export const InventoryPage: React.FC = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const canManage =
+  // Authority Flags
+  const isLeaderOrAdmin = Boolean(
     isSuperAdmin ||
     membership?.role === 'ketua' ||
-    membership?.role === 'sekretaris' ||
-    membership?.role === 'bendahara'
+    membership?.role === 'sekretaris'
+  )
 
-  // Main Tabs
-  type MainTab = 'all' | 'group' | 'personal' | 'borrowed' | 'archived' | 'handovers' | 'reconciliation' | 'loans' | 'movements'
-  const [activeTab, setActiveTab] = useState<MainTab>('all')
+  // Navigation State
+  const [activeTab, setActiveTab] = useState<MainInventoryTab>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [selectedLocation, setSelectedLocation] = useState<string>('all')
@@ -180,11 +217,7 @@ export const InventoryPage: React.FC = () => {
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
   const [itemToRestore, setItemToRestore] = useState<InventoryItem | null>(null)
   const [qrItem, setQrItem] = useState<InventoryItem | null>(null)
-  const [handoverItem, setHandoverItem] = useState<InventoryItem | null>(null)
-  const [reconcilingItem, setReconcilingItem] = useState<InventoryItem | null>(null)
-  const [returningLoan, setReturningLoan] = useState<InventoryLoan | null>(null)
   const [stockAdjustmentItem, setStockAdjustmentItem] = useState<InventoryItem | null>(null)
-  const [isClosingReportOpen, setIsClosingReportOpen] = useState(false)
   const [isQuickScanModalOpen, setIsQuickScanModalOpen] = useState(false)
   const [galleryModalItem, setGalleryModalItem] = useState<InventoryItem | null>(null)
 
@@ -233,33 +266,14 @@ export const InventoryPage: React.FC = () => {
     queryFn: fetchTeamDirectory,
   })
 
-  const {
-    data: handovers = [],
-    isLoading: isLoadingHandovers,
-    refetch: refetchHandovers,
-  } = useQuery({
-    queryKey: ['inventory-handovers'],
-    queryFn: () => fetchInventoryHandovers(),
-    enabled: activeTab === 'handovers' || activeTab === 'all',
-  })
-
-  const {
-    data: loans = [],
-    isLoading: isLoadingLoans,
-    refetch: refetchLoans,
-  } = useQuery({
-    queryKey: ['inventory-loans'],
-    queryFn: () => fetchInventoryLoans(),
-    enabled: activeTab === 'loans' || activeTab === 'all',
-  })
-
+  // Activity Log Query (all members can read)
   const {
     data: movements = [],
     isLoading: isLoadingMovements,
   } = useQuery({
     queryKey: ['inventory-movements'],
     queryFn: () => fetchInventoryMovements(),
-    enabled: activeTab === 'movements',
+    enabled: activeTab === 'activity',
   })
 
   // Mutations
@@ -268,6 +282,7 @@ export const InventoryPage: React.FC = () => {
     onSuccess: () => {
       toast({ title: 'Barang Berhasil Didaftarkan', variant: 'success' })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       setIsCreateModalOpen(false)
     },
     onError: (err: any) => {
@@ -281,6 +296,7 @@ export const InventoryPage: React.FC = () => {
     onSuccess: () => {
       toast({ title: 'Data Barang Diperbarui', variant: 'success' })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       setEditingItem(null)
     },
     onError: (err: any) => {
@@ -291,9 +307,14 @@ export const InventoryPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (vars: { id: string; reason?: string }) => archiveInventoryItem(vars.id, vars.reason),
     onSuccess: () => {
-      toast({ title: 'Barang Berhasil Diarsipkan', description: 'Data barang dan riwayat mutasi tetap tersimpan aman.', variant: 'success' })
+      toast({
+        title: 'Barang Berhasil Diarsipkan',
+        description: 'Barang dipindahkan ke arsip. Riwayat mutasi dan audit tersimpan aman.',
+        variant: 'success',
+      })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-items-archived'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       setItemToDelete(null)
       setArchivalReason('')
     },
@@ -305,9 +326,14 @@ export const InventoryPage: React.FC = () => {
   const restoreMutation = useMutation({
     mutationFn: (id: string) => restoreInventoryItem(id),
     onSuccess: () => {
-      toast({ title: 'Barang Berhasil Dipulihkan', description: 'Barang kembali aktif di katalog inventaris.', variant: 'success' })
+      toast({
+        title: 'Barang Berhasil Dipulihkan',
+        description: 'Barang kembali aktif di daftar inventaris posko.',
+        variant: 'success',
+      })
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] })
       queryClient.invalidateQueries({ queryKey: ['inventory-items-archived'] })
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
       setItemToRestore(null)
     },
     onError: (err: any) => {
@@ -315,7 +341,36 @@ export const InventoryPage: React.FC = () => {
     },
   })
 
+  // Permission Checks per Item
+  const canManageItem = (item: InventoryItem) => {
+    if (isSuperAdmin) return true
+    if (item.ownership_type === 'PERSONAL_OWNED') {
+      return Boolean(user?.id && item.owner_member_id === user.id)
+    }
+    return isLeaderOrAdmin
+  }
+
+  const canArchiveItem = (item: InventoryItem) => {
+    if (isSuperAdmin) return true
+    if (item.ownership_type === 'PERSONAL_OWNED') {
+      return Boolean(user?.id && item.owner_member_id === user.id)
+    }
+    return isLeaderOrAdmin
+  }
+
+  const canRestoreItemRecord = (item: InventoryItem) => {
+    if (isSuperAdmin) return true
+    if (item.ownership_type === 'PERSONAL_OWNED') {
+      return Boolean(user?.id && item.owner_member_id === user.id)
+    }
+    return isLeaderOrAdmin
+  }
+
   // Derived Categorized Lists
+  const myItems = useMemo(
+    () => items.filter((i) => i.ownership_type === 'PERSONAL_OWNED' && user?.id && i.owner_member_id === user.id),
+    [items, user?.id]
+  )
   const groupItems = useMemo(() => items.filter((i) => i.ownership_type === 'GROUP_OWNED'), [items])
   const personalItems = useMemo(() => items.filter((i) => i.ownership_type === 'PERSONAL_OWNED'), [items])
   const borrowedItems = useMemo(
@@ -325,17 +380,21 @@ export const InventoryPage: React.FC = () => {
 
   // Calculated Stats
   const totalItemsCount = items.length
+  const myItemsCount = myItems.length
   const groupCount = groupItems.length
   const personalCount = personalItems.length
   const borrowedCount = borrowedItems.length
-  const storedCount = items.filter((i) => i.item_status === 'stored').length
   const inUseCount = items.filter((i) => i.item_status === 'in_use' || i.item_status === 'borrowed_member').length
-  const damagedOrLostCount = items.filter((i) => i.condition === 'damaged' || i.condition === 'lost' || i.item_status === 'lost' || i.item_status === 'damaged').length
-  const reconciledCount = items.filter((i) => i.reconciliation_status === 'resolved').length
-  const pendingReconcileCount = items.filter((i) => i.reconciliation_status === 'pending').length
-  const problematicCount = items.filter((i) => i.reconciliation_status === 'problematic').length
 
-  const reconciliationPercentage = totalItemsCount > 0 ? Math.round((reconciledCount / totalItemsCount) * 100) : 0
+  const tabOptions: { key: MainInventoryTab; label: string; count?: number }[] = [
+    { key: 'all', label: 'Semua Barang Posko', count: totalItemsCount },
+    { key: 'my_items', label: 'Barang Milik Saya', count: myItemsCount },
+    { key: 'group', label: 'Aset Kelompok', count: groupCount },
+    { key: 'personal', label: 'Semua Milik Pribadi', count: personalCount },
+    { key: 'borrowed', label: 'Pinjaman & Hibah', count: borrowedCount },
+    { key: 'archived', label: 'Arsip Barang', count: archivedItems.length },
+    { key: 'activity', label: 'Riwayat Aktivitas', count: movements.length },
+  ]
 
   return (
     <div className="space-y-6 pb-16">
@@ -353,7 +412,7 @@ export const InventoryPage: React.FC = () => {
             Inventaris &amp; Logistik Posko
           </h1>
           <p className="text-xs text-charcoal-muted mt-1 max-w-2xl leading-relaxed">
-            Sistem pencatatan terpadu dengan pelacakan kepemilikan (*Group*, *Personal*, *External*, *Donated*), serah terima antaranggota, QR code, dan rekonsiliasi akhir penutupan KKN.
+            Pencatatan inventaris posko dengan pelacakan kepemilikan transparan (*Aset Kelompok*, *Milik Pribadi*, *Pinjaman &amp; Hibah*), dokumentasi foto resmi, dan riwayat aktivitas terpadu.
           </p>
         </div>
 
@@ -370,32 +429,30 @@ export const InventoryPage: React.FC = () => {
 
           <Button
             size="sm"
-            variant="outline"
-            onClick={() => setIsClosingReportOpen(true)}
-            className="text-xs gap-1.5 border-sage-300 text-sage-800 bg-sage-50/70 hover:bg-sage-100"
-          >
-            <FileCheck className="h-3.5 w-3.5 text-sage-700" />
-            <span>Laporan Penutupan</span>
-          </Button>
-
-          <Button
-            size="sm"
             onClick={() => setIsCreateModalOpen(true)}
             className="text-xs gap-1.5 bg-sage-700 hover:bg-sage-800 text-white"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Daftarkan Barang Baru</span>
+            <span>Daftarkan Barang</span>
           </Button>
         </div>
       </div>
 
-      {/* 2. Visual Metric Cards (Ownership & Reconciliation Highlights) */}
+      {/* 2. Visual Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="bg-white border-warm-200">
           <CardContent className="p-3.5">
             <p className="text-[11px] font-semibold text-charcoal-muted">Total Barang</p>
             <p className="text-xl font-serif font-bold text-charcoal mt-1">{totalItemsCount}</p>
-            <p className="text-[10px] text-charcoal-muted mt-0.5">Item terdaftar di posko</p>
+            <p className="text-[10px] text-charcoal-muted mt-0.5">Item aktif di posko</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border-blue-200">
+          <CardContent className="p-3.5">
+            <p className="text-[11px] font-semibold text-blue-800">Barang Milik Saya</p>
+            <p className="text-xl font-serif font-bold text-blue-900 mt-1">{myItemsCount}</p>
+            <p className="text-[10px] text-blue-700 mt-0.5">Bawaan pribadi Anda</p>
           </CardContent>
         </Card>
 
@@ -409,17 +466,17 @@ export const InventoryPage: React.FC = () => {
 
         <Card className="bg-white border-blue-200">
           <CardContent className="p-3.5">
-            <p className="text-[11px] font-semibold text-blue-800">Milik Pribadi</p>
+            <p className="text-[11px] font-semibold text-blue-800">Semua Milik Pribadi</p>
             <p className="text-xl font-serif font-bold text-blue-900 mt-1">{personalCount}</p>
-            <p className="text-[10px] text-blue-700 mt-0.5">Bawaan anggota</p>
+            <p className="text-[10px] text-blue-700 mt-0.5">Bawaan seluruh tim</p>
           </CardContent>
         </Card>
 
         <Card className="bg-white border-amber-200">
           <CardContent className="p-3.5">
-            <p className="text-[11px] font-semibold text-amber-800">Pinjaman Luar / Hibah</p>
+            <p className="text-[11px] font-semibold text-amber-800">Pinjaman &amp; Hibah</p>
             <p className="text-xl font-serif font-bold text-amber-900 mt-1">{borrowedCount}</p>
-            <p className="text-[10px] text-amber-700 mt-0.5">Warga, kampus, donatur</p>
+            <p className="text-[10px] text-amber-700 mt-0.5">Warga, kampus, sponsor</p>
           </CardContent>
         </Card>
 
@@ -427,155 +484,354 @@ export const InventoryPage: React.FC = () => {
           <CardContent className="p-3.5">
             <p className="text-[11px] font-semibold text-charcoal-muted">Dalam Penggunaan</p>
             <p className="text-xl font-serif font-bold text-charcoal mt-1">{inUseCount}</p>
-            <p className="text-[10px] text-charcoal-muted mt-0.5">Tersimpan: {storedCount} | Rusak/Hilang: {damagedOrLostCount}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-sage-50/70 border-sage-300">
-          <CardContent className="p-3.5">
-            <p className="text-[11px] font-semibold text-sage-900">Rekonsiliasi Akhir</p>
-            <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-xl font-serif font-bold text-sage-900">{reconciliationPercentage}%</span>
-              <span className="text-[10px] text-sage-700">({reconciledCount}/{totalItemsCount})</span>
-            </div>
-            <p className="text-[10px] text-sage-800 mt-0.5">
-              {pendingReconcileCount} belum beres {problematicCount > 0 ? `(${problematicCount} bermasalah)` : ''}
-            </p>
+            <p className="text-[10px] text-charcoal-muted mt-0.5">Aktif dipakai kegiatan</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* 3. Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-warm-200 pb-2 overflow-x-auto">
-        <div className="flex items-center gap-1.5 flex-nowrap min-w-max">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'all' ? 'bg-charcoal text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Semua Barang ({totalItemsCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('group')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'group' ? 'bg-emerald-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Aset Kelompok ({groupCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('personal')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'personal' ? 'bg-blue-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Milik Pribadi ({personalCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('borrowed')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'borrowed' ? 'bg-amber-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Pinjaman Luar ({borrowedCount})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('archived')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'archived' ? 'bg-stone-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Arsip Barang
-          </button>
-
-          <button
-            onClick={() => setActiveTab('handovers')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'handovers' ? 'bg-purple-800 text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Serah Terima Antaranggota ({handovers.filter((h) => h.status === 'pending').length} Baru)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reconciliation')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'reconciliation' ? 'bg-sage-800 text-white' : 'bg-warm-100 text-sage-900 font-bold hover:bg-sage-200'
-            }`}
-          >
-            Penutupan KKN ({pendingReconcileCount} Belum Beres)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('loans')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'loans' ? 'bg-charcoal text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Pinjam Pakai Posko ({loans.filter((l) => l.status === 'borrowed' || l.status === 'pending').length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('movements')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-              activeTab === 'movements' ? 'bg-charcoal text-white' : 'bg-warm-100 text-charcoal-muted hover:text-charcoal'
-            }`}
-          >
-            Riwayat Mutasi
-          </button>
+      {/* 3. Navigation Controls: Clean Dropdown for Mobile + Compact Pills for Desktop */}
+      <div className="space-y-3">
+        {/* Mobile Dropdown Selector */}
+        <div className="block sm:hidden">
+          <label className="text-[11px] font-semibold text-charcoal-muted block mb-1">
+            Navigasi Inventaris
+          </label>
+          <div className="relative">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value as MainInventoryTab)}
+              className="w-full appearance-none text-xs font-semibold py-2.5 pl-3 pr-8 rounded-lg border border-warm-300 bg-white text-charcoal shadow-sm focus:border-sage-700 focus:ring-1 focus:ring-sage-700"
+            >
+              <option value="all">Semua Barang Posko ({totalItemsCount})</option>
+              <option value="my_items">Barang Milik Saya ({myItemsCount})</option>
+              <option value="group">Aset Kelompok ({groupCount})</option>
+              <option value="personal">Semua Milik Pribadi ({personalCount})</option>
+              <option value="borrowed">Pinjaman &amp; Hibah ({borrowedCount})</option>
+              <option value="archived">Arsip Barang</option>
+              <option value="activity">Riwayat Aktivitas</option>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-charcoal-muted" />
+          </div>
         </div>
 
-        {/* Filters */}
-        {(activeTab === 'all' || activeTab === 'group' || activeTab === 'personal' || activeTab === 'borrowed' || activeTab === 'reconciliation' || activeTab === 'archived') && (
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
-              <Input
-                placeholder="Cari barang / kode / pemilik..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 text-xs h-8 w-44 sm:w-56"
-              />
-            </div>
+        {/* Desktop Segmented Tab Bar */}
+        <div className="hidden sm:flex items-center justify-between gap-3 border-b border-warm-200 pb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {tabOptions.map((tab) => {
+              const isActive = activeTab === tab.key
+              let activeColor = 'bg-charcoal text-white'
+              if (tab.key === 'my_items') activeColor = 'bg-blue-700 text-white shadow-sm'
+              else if (tab.key === 'group') activeColor = 'bg-emerald-800 text-white shadow-sm'
+              else if (tab.key === 'personal') activeColor = 'bg-blue-800 text-white shadow-sm'
+              else if (tab.key === 'borrowed') activeColor = 'bg-amber-800 text-white shadow-sm'
+              else if (tab.key === 'archived') activeColor = 'bg-stone-800 text-white shadow-sm'
+              else if (tab.key === 'activity') activeColor = 'bg-sage-800 text-white shadow-sm'
 
-            {activeTab !== 'archived' && (
-              <>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    isActive ? activeColor : 'bg-warm-100 text-charcoal-muted hover:text-charcoal hover:bg-warm-200'
+                  }`}
                 >
-                  <option value="all">Semua Kategori</option>
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
-                >
-                  <option value="all">Semua Lokasi</option>
-                  {LOCATION_OPTIONS.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-              </>
-            )}
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-warm-200 text-charcoal'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
-        )}
+
+          {/* Quick Filter & Search Bar */}
+          {(activeTab === 'all' ||
+            activeTab === 'my_items' ||
+            activeTab === 'group' ||
+            activeTab === 'personal' ||
+            activeTab === 'borrowed' ||
+            activeTab === 'archived') && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
+                <Input
+                  placeholder="Cari nama / kode / lokasi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 text-xs h-8 w-44 lg:w-56"
+                />
+              </div>
+
+              {activeTab !== 'archived' && (
+                <>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+                  >
+                    <option value="all">Semua Kategori</option>
+                    {CATEGORY_OPTIONS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="text-xs h-8 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
+                  >
+                    <option value="all">Semua Lokasi</option>
+                    {LOCATION_OPTIONS.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Search Box for filtered tabs */}
+        <div className="block sm:hidden">
+          {(activeTab === 'all' ||
+            activeTab === 'my_items' ||
+            activeTab === 'group' ||
+            activeTab === 'personal' ||
+            activeTab === 'borrowed' ||
+            activeTab === 'archived') && (
+            <div className="space-y-2 pt-1">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-charcoal-muted" />
+                <Input
+                  placeholder="Cari barang atau lokasi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 text-xs h-9 w-full"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 4. Tab Contents */}
+      {/* 4. CONTENT SECTIONS */}
 
-      {/* TAB A: ITEMS CATALOG (All, Group, Personal, Borrowed) */}
-      {(activeTab === 'all' || activeTab === 'group' || activeTab === 'personal' || activeTab === 'borrowed') && (
+      {/* SECTION A: TAB BARANG MILIK SAYA */}
+      {activeTab === 'my_items' && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <User className="h-5 w-5 text-blue-700 mt-0.5 shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold text-charcoal">Barang Pribadi Milik Anda</h3>
+                <p className="text-xs text-charcoal-muted mt-0.5 leading-relaxed">
+                  Menampilkan seluruh barang bawaan pribadi yang Anda daftarkan di posko KKN. Anda memiliki hak penuh untuk mengubah data, mengunggah foto fisik, atau menghapusnya kapan saja.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="text-xs gap-1.5 bg-blue-700 hover:bg-blue-800 text-white shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Tambah Barang Pribadi</span>
+            </Button>
+          </div>
+
+          {isLoadingItems ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ) : myItems.length === 0 ? (
+            <Card className="bg-white border-warm-200 text-center py-12">
+              <CardContent className="space-y-3">
+                <div className="h-12 w-12 rounded-full bg-blue-50 text-blue-700 mx-auto flex items-center justify-center">
+                  <Package className="h-6 w-6" />
+                </div>
+                <h3 className="font-serif font-semibold text-charcoal text-base">
+                  Belum Ada Barang Pribadi yang Anda Daftarkan
+                </h3>
+                <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                  Daftarkan barang bawaan pribadi Anda (seperti laptop, perlengkapan tidur, atau kendaraan) agar tercatat rapi dan tidak tertukar.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="text-xs gap-1.5 bg-blue-700 hover:bg-blue-800 text-white mt-2"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Daftarkan Barang Pribadi Sekarang</span>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myItems.map((item) => {
+                const conditionMeta = CONDITION_BADGES[item.condition] || CONDITION_BADGES.good
+                const statusMeta = STATUS_META[item.item_status] || STATUS_META.stored
+                const createdDate = item.created_at
+                  ? new Date(item.created_at).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '-'
+
+                return (
+                  <Card key={item.id} className="bg-white hover:border-blue-400 transition-all flex flex-col justify-between">
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-mono text-[10px] bg-blue-50 text-blue-900 font-semibold px-2 py-0.5 rounded border border-blue-200">
+                          {item.item_code || 'INV-PRB'}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-50 text-blue-800 border-blue-300">
+                            Milik Pribadi Saya
+                          </span>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${statusMeta.badgeClass}`}>
+                            {statusMeta.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      <CardTitle className="text-base font-serif font-semibold text-charcoal mt-2 line-clamp-1">
+                        {item.name}
+                      </CardTitle>
+
+                      <CardDescription className="text-xs text-charcoal-muted line-clamp-2 mt-0.5">
+                        {item.description || 'Tidak ada catatan deskripsi tambahan.'}
+                      </CardDescription>
+
+                      {/* Photo Thumbnail */}
+                      {item.photo_file_id && itemPhotoUrls[item.photo_file_id] ? (
+                        <div
+                          onClick={() => setGalleryModalItem(item)}
+                          className="relative group cursor-pointer overflow-hidden rounded-md border border-warm-200 bg-warm-100 h-32 w-full mt-2"
+                          title="Buka galeri foto lengkap"
+                        >
+                          <img
+                            src={itemPhotoUrls[item.photo_file_id]}
+                            alt={item.name}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1.5 font-medium">
+                            <Eye className="h-4 w-4" />
+                            <span>Buka Galeri Foto</span>
+                          </div>
+                          <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm flex items-center gap-1">
+                            <Camera className="h-3 w-3" />
+                            <span>Foto</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => setGalleryModalItem(item)}
+                          className="mt-2 h-14 w-full rounded-md border border-dashed border-blue-200 bg-blue-50/60 hover:bg-blue-100/70 flex items-center justify-center gap-1.5 text-blue-800 cursor-pointer transition-colors"
+                          title="Belum ada foto fisik. Ketuk untuk mengunggah foto."
+                        >
+                          <Camera className="h-3.5 w-3.5 text-blue-700" />
+                          <span className="text-[11px] font-medium">Tambah Foto Fisik</span>
+                        </div>
+                      )}
+                    </CardHeader>
+
+                    <CardContent className="p-4 pt-0 space-y-3">
+                      <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-2.5 text-xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-charcoal-muted flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            <span>Lokasi Terkini:</span>
+                          </span>
+                          <span className="font-semibold text-charcoal">
+                            {item.current_location || 'Posko'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-charcoal-muted">Kategori:</span>
+                          <span className="font-medium text-charcoal">{item.category}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-charcoal-muted">Tanggal Input:</span>
+                          <span className="font-medium text-charcoal">{createdDate}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-warm-200/80">
+                          <span className="text-charcoal-muted">Kuantitas &amp; Kondisi:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-charcoal">
+                              {item.quantity} {item.unit}
+                            </span>
+                            <span className={`text-[9px] px-1.5 py-0.2 rounded border ${conditionMeta.badgeClass}`}>
+                              {conditionMeta.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Explicit Action Buttons for Personal Items */}
+                      <div className="flex items-center justify-between pt-2 border-t border-warm-200 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setGalleryModalItem(item)}
+                          className="h-7 px-2.5 text-xs text-charcoal hover:bg-warm-100 border-warm-300 gap-1"
+                          title="Kelola Foto Dokumentasi"
+                        >
+                          <Camera className="h-3.5 w-3.5 text-sage-700" />
+                          <span>Kelola Foto</span>
+                        </Button>
+
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingItem(item)}
+                            className="h-7 px-2.5 text-xs text-charcoal hover:bg-warm-100 border-warm-300 gap-1"
+                            title="Ubah Data Barang"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                            <span>Edit</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setItemToDelete(item)
+                              setArchivalReason('')
+                            }}
+                            className="h-7 px-2 text-xs text-rose-700 hover:text-rose-800 hover:bg-rose-50 gap-1"
+                            title="Hapus / Arsipkan Barang"
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Hapus</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECTION B: GENERAL INVENTORY GRID (SEMUA, ASET KELOMPOK, MILIK PRIBADI, PINJAMAN & HIBAH) */}
+      {(activeTab === 'all' ||
+        activeTab === 'group' ||
+        activeTab === 'personal' ||
+        activeTab === 'borrowed') && (
         <div className="space-y-4">
           {isLoadingItems ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -596,17 +852,19 @@ export const InventoryPage: React.FC = () => {
 
               if (displayList.length === 0) {
                 return (
-                  <Card className="border-dashed border-warm-300 bg-white">
-                    <CardContent className="p-12 text-center space-y-3">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
+                  <Card className="bg-white border-warm-200 text-center py-12">
+                    <CardContent className="space-y-3">
+                      <div className="h-12 w-12 rounded-full bg-warm-100 text-charcoal-muted mx-auto flex items-center justify-center">
                         <Package className="h-6 w-6" />
                       </div>
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-semibold text-charcoal">Tidak Ada Barang Ditemukan</h3>
-                        <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-                          Belum ada barang inventaris pada kategori atau filter ini.
-                        </p>
-                      </div>
+                      <h3 className="font-serif font-semibold text-charcoal text-base">
+                        Tidak Ada Barang Ditemukan
+                      </h3>
+                      <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                        {searchTerm
+                          ? `Tidak ada barang yang cocok dengan kata kunci "${searchTerm}".`
+                          : 'Belum ada data barang terdaftar untuk kategori ini.'}
+                      </p>
                       <Button
                         size="sm"
                         onClick={() => setIsCreateModalOpen(true)}
@@ -627,8 +885,8 @@ export const InventoryPage: React.FC = () => {
                     const statusMeta = STATUS_META[item.item_status] || STATUS_META.stored
                     const conditionMeta = CONDITION_BADGES[item.condition] || CONDITION_BADGES.good
                     const isTracked = item.tracking_model === 'tracked'
-                    const isOwner = Boolean(user?.id && item.owner_member_id === user.id)
-                    const canArchiveItem = canManage || (isOwner && item.ownership_type !== 'GROUP_OWNED')
+                    const hasManageRight = canManageItem(item)
+                    const hasArchiveRight = canArchiveItem(item)
 
                     return (
                       <Card
@@ -684,10 +942,12 @@ export const InventoryPage: React.FC = () => {
                             <div
                               onClick={() => setGalleryModalItem(item)}
                               className="mt-2 h-14 w-full rounded-md border border-dashed border-warm-200 bg-warm-50/70 hover:bg-warm-100/80 flex items-center justify-center gap-1.5 text-charcoal-muted cursor-pointer transition-colors"
-                              title="Belum ada foto. Ketuk untuk menambah foto."
+                              title="Belum ada foto. Ketuk untuk membuka galeri foto."
                             >
                               <Camera className="h-3.5 w-3.5 text-charcoal-muted" />
-                              <span className="text-[11px]">Tambah Foto Dokumentasi</span>
+                              <span className="text-[11px]">
+                                {hasManageRight ? 'Tambah Foto Dokumentasi' : 'Lihat Dokumentasi Foto'}
+                              </span>
                             </div>
                           )}
                         </CardHeader>
@@ -716,7 +976,7 @@ export const InventoryPage: React.FC = () => {
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <span className="text-charcoal-muted">Pemegang Saat Ini:</span>
+                              <span className="text-charcoal-muted">Penanggung Jawab:</span>
                               <span className="font-semibold text-charcoal truncate max-w-[150px]">
                                 {item.current_holder_name || item.responsible_person || 'Posko KKN'}
                               </span>
@@ -735,7 +995,7 @@ export const InventoryPage: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Quick Action Footer */}
+                          {/* Action Footer */}
                           <div className="flex items-center justify-between pt-2 border-t border-warm-200">
                             <div className="flex items-center gap-1">
                               <Button
@@ -755,27 +1015,14 @@ export const InventoryPage: React.FC = () => {
                                   variant="ghost"
                                   onClick={() => setQrItem(item)}
                                   className="h-7 px-2 text-xs text-charcoal-muted hover:text-charcoal"
-                                  title="Lihat & Cetak QR Code"
+                                  title="Lihat & Cetak Label QR Code"
                                 >
                                   <QrCode className="h-3.5 w-3.5" />
                                   <span className="ml-1 hidden sm:inline">QR</span>
                                 </Button>
                               )}
 
-                              {isTracked && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => setHandoverItem(item)}
-                                  className="h-7 px-2 text-xs text-purple-700 hover:text-purple-800 hover:bg-purple-50"
-                                  title="Serah Terima Barang ke Anggota Lain"
-                                >
-                                  <ArrowRightLeft className="h-3.5 w-3.5" />
-                                  <span className="ml-1 hidden sm:inline">Serah Terima</span>
-                                </Button>
-                              )}
-
-                              {item.item_type === 'consumable' && canManage && (
+                              {item.item_type === 'consumable' && isLeaderOrAdmin && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -790,7 +1037,7 @@ export const InventoryPage: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1">
-                              {(canManage || isOwner) && (
+                              {hasManageRight && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -802,7 +1049,7 @@ export const InventoryPage: React.FC = () => {
                                 </Button>
                               )}
 
-                              {canArchiveItem && (
+                              {hasArchiveRight && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -829,7 +1076,7 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB ARSIP: BARANG DIARSIPKAN */}
+      {/* SECTION C: TAB ARSIP BARANG */}
       {activeTab === 'archived' && (
         <div className="space-y-4">
           <div className="rounded-lg border border-warm-300 bg-stone-50/70 p-4">
@@ -837,8 +1084,8 @@ export const InventoryPage: React.FC = () => {
               <Archive className="h-5 w-5 text-stone-700 mt-0.5 shrink-0" />
               <div>
                 <h3 className="text-sm font-semibold text-charcoal">Arsip Barang &amp; Logistik</h3>
-                <p className="text-xs text-charcoal-muted mt-0.5">
-                  Barang yang diarsipkan tidak muncul di daftar aktif posko, namun seluruh riwayat mutasi, peminjaman, dan serah terima tetap tersimpan utuh di sistem. Pemilik sah atau Admin dapat mengaktifkan kembali barang ini sewaktu-waktu.
+                <p className="text-xs text-charcoal-muted mt-0.5 leading-relaxed">
+                  Daftar barang yang telah diarsipkan atau selesai masa pakainya. Seluruh riwayat transaksi, mutasi, dan pencatatan tetap terjaga utuh di database. Pemilik sah atau Admin dapat memulihkan barang kembali ke daftar aktif sewaktu-waktu.
                 </p>
               </div>
             </div>
@@ -850,25 +1097,22 @@ export const InventoryPage: React.FC = () => {
               <Skeleton className="h-44 w-full" />
             </div>
           ) : archivedItems.length === 0 ? (
-            <Card className="border-dashed border-warm-300 bg-white">
-              <CardContent className="p-12 text-center space-y-3">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
-                  <Archive className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-charcoal">Belum Ada Barang yang Diarsipkan</h3>
-                  <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-                    Seluruh barang posko saat ini masih berstatus aktif.
-                  </p>
-                </div>
+            <Card className="bg-white border-warm-200 text-center py-12">
+              <CardContent className="space-y-2">
+                <CheckCircle2 className="h-10 w-10 text-stone-400 mx-auto" />
+                <h3 className="font-serif font-semibold text-charcoal text-sm">
+                  Tidak Ada Barang dalam Arsip
+                </h3>
+                <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                  Seluruh barang posko saat ini masih berstatus aktif.
+                </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {archivedItems.map((item) => {
                 const ownMeta = OWNERSHIP_META[item.ownership_type] || OWNERSHIP_META.GROUP_OWNED
-                const isOwner = Boolean(user?.id && item.owner_member_id === user.id)
-                const canRestore = canManage || (isOwner && item.ownership_type !== 'GROUP_OWNED')
+                const canRestore = canRestoreItemRecord(item)
 
                 return (
                   <Card
@@ -950,400 +1194,18 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB B: SERAH TERIMA ANTARANGGOTA (HANDOVERS) */}
-      {activeTab === 'handovers' && (
+      {/* SECTION D: TAB RIWAYAT AKTIVITAS (REBRANDED FROM RIWAYAT MUTASI) */}
+      {activeTab === 'activity' && (
         <Card className="bg-white border-warm-200">
           <CardHeader className="p-4 sm:p-5 border-b border-warm-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <CardTitle className="text-base font-serif font-semibold text-charcoal">
-                  <span>Sistem Serah Terima &amp; Perpindahan Pemegang Barang</span>
-                </CardTitle>
-                <CardDescription className="text-xs text-charcoal-muted mt-1">
-                  Mencegah barang pribadi atau aset posko tertukar atau tidak diketahui siapa pemegang fisiknya saat ini.
-                </CardDescription>
-              </div>
-
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (items.filter((i) => i.tracking_model === 'tracked').length === 0) {
-                    toast({ title: 'Belum Ada Barang Individual', description: 'Daftarkan barang individual terlebih dahulu.', variant: 'error' })
-                    return
-                  }
-                  setHandoverItem(items.find((i) => i.tracking_model === 'tracked') || null)
-                }}
-                className="text-xs gap-1.5 bg-purple-700 hover:bg-purple-800 text-white"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                <span>Buat Serah Terima Baru</span>
-              </Button>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-sage-700" />
+              <CardTitle className="text-base font-serif font-semibold text-charcoal">
+                Riwayat Aktivitas Inventaris Posko
+              </CardTitle>
             </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {isLoadingHandovers ? (
-              <div className="p-6 space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : handovers.length === 0 ? (
-              <div className="p-12 text-center text-charcoal-muted text-xs">
-                Belum ada catatan serah terima barang antaranggota.
-              </div>
-            ) : (
-              <div className="divide-y divide-warm-200">
-                {handovers.map((h) => {
-                  const isPending = h.status === 'pending'
-                  const isRecipient = user?.id && h.to_holder_id === user.id
-                  const canAct = isRecipient || canManage
-
-                  return (
-                    <div key={h.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-warm-50/50">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-charcoal text-xs">
-                            {h.item?.name || 'Barang Inventaris'}
-                          </span>
-                          <span className="font-mono text-[10px] bg-warm-100 text-charcoal px-1.5 py-0.2 rounded border border-warm-200">
-                            {h.item?.item_code || 'INV'}
-                          </span>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
-                            h.status === 'accepted'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                              : h.status === 'rejected'
-                              ? 'bg-rose-50 text-rose-800 border-rose-300'
-                              : 'bg-amber-50 text-amber-800 border-amber-300'
-                          }`}>
-                            {h.status === 'accepted' ? 'Diterima & Sah' : h.status === 'rejected' ? 'Ditolak' : 'Menunggu Konfirmasi'}
-                          </span>
-                        </div>
-
-                        <div className="text-xs text-charcoal-muted flex items-center gap-2 flex-wrap">
-                          <span>Dari: <strong className="text-charcoal">{h.from_holder_name}</strong> ({h.origin_location})</span>
-                          <ArrowRight className="h-3 w-3 text-charcoal-muted" />
-                          <span>Kepada: <strong className="text-charcoal">{h.to_holder_name}</strong> ({h.destination_location})</span>
-                        </div>
-
-                        {h.purpose && (
-                          <p className="text-[11px] text-charcoal-muted">Keperluan: {h.purpose}</p>
-                        )}
-                        {h.notes && (
-                          <p className="text-[11px] text-charcoal-muted italic">Catatan: {h.notes}</p>
-                        )}
-                      </div>
-
-                      {isPending && (
-                        <div className="flex items-center gap-2">
-                          {canAct && (
-                            <Button
-                              size="sm"
-                              onClick={async () => {
-                                try {
-                                  await acceptInventoryHandover(h.id)
-                                  toast({ title: 'Serah Terima Diterima', description: 'Lokasi dan pemegang barang telah diperbarui.', variant: 'success' })
-                                  refetchHandovers()
-                                  refetchItems()
-                                } catch (err: any) {
-                                  toast({ title: 'Gagal Konfirmasi', description: err.message, variant: 'error' })
-                                }
-                              }}
-                              className="text-xs h-8 bg-emerald-700 hover:bg-emerald-800 text-white"
-                            >
-                              Konfirmasi Penerimaan
-                            </Button>
-                          )}
-
-                          {canAct && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                const reason = prompt('Masukkan alasan penolakan:')
-                                if (!reason?.trim()) return
-                                try {
-                                  await rejectInventoryHandover(h.id, reason)
-                                  toast({ title: 'Serah Terima Ditolak', variant: 'success' })
-                                  refetchHandovers()
-                                } catch (err: any) {
-                                  toast({ title: 'Gagal Menolak', description: err.message, variant: 'error' })
-                                }
-                              }}
-                              className="text-xs h-8 text-rose-700 border-rose-200"
-                            >
-                              Tolak
-                            </Button>
-                          )}
-
-                          {user?.id && h.created_by === user.id && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={async () => {
-                                try {
-                                  await cancelInventoryHandover(h.id)
-                                  toast({ title: 'Permintaan Dibatalkan', variant: 'success' })
-                                  refetchHandovers()
-                                } catch (err: any) {
-                                  toast({ title: 'Gagal Membatalkan', description: err.message, variant: 'error' })
-                                }
-                              }}
-                              className="text-xs h-8 text-charcoal-muted"
-                            >
-                              Batalkan
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* TAB C: REKONSILIASI & PENUTUPAN AKHIR KKN (THE CRITICAL FEATURE) */}
-      {activeTab === 'reconciliation' && (
-        <div className="space-y-4">
-          <Card className="bg-sage-50/80 border-sage-300">
-            <CardHeader className="p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-sage-900 bg-sage-200/80 px-2 py-0.5 rounded">
-                      Proses Penutupan Inventaris KKN
-                    </span>
-                    <Badge variant={reconciliationPercentage === 100 ? 'success' : 'warning'}>
-                      {reconciliationPercentage === 100 ? 'Siap Ditutup 100%' : `${reconciliationPercentage}% Terselesaikan`}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-lg font-serif font-semibold text-sage-950">
-                    Checklist Serah Terima &amp; Penutupan Inventaris
-                  </CardTitle>
-                  <CardDescription className="text-xs text-sage-800 leading-relaxed max-w-2xl">
-                    Memastikan tidak ada barang pribadi tertinggal di posko, barang pinjaman warga belum kembali, atau aset kelompok terbengkalai saat masa KKN berakhir.
-                  </CardDescription>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsClosingReportOpen(true)}
-                    className="text-xs gap-1.5 bg-white border-sage-300 text-sage-900"
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    <span>Cetak Lembar Laporan</span>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
-          {/* Checklist Table */}
-          <Card className="bg-white border-warm-200">
-            <CardContent className="p-0">
-              <div className="divide-y divide-warm-200">
-                {items.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-charcoal-muted">
-                    Belum ada barang untuk direkonsiliasi.
-                  </div>
-                ) : (
-                  items.map((item) => {
-                    const ownMeta = OWNERSHIP_META[item.ownership_type] || OWNERSHIP_META.GROUP_OWNED
-                    const reconMeta = RECONCILIATION_STATUS_META[item.reconciliation_status] || RECONCILIATION_STATUS_META.pending
-                    const isResolved = item.reconciliation_status === 'resolved'
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                          isResolved ? 'bg-white' : 'bg-warm-50/40'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3 max-w-xl">
-                          {item.photo_file_id && itemPhotoUrls[item.photo_file_id] ? (
-                            <img
-                              src={itemPhotoUrls[item.photo_file_id]}
-                              alt={item.name}
-                              onClick={() => setGalleryModalItem(item)}
-                              className="h-12 w-12 flex-shrink-0 rounded-md object-cover border border-warm-200 cursor-pointer hover:opacity-90 transition-opacity mt-0.5"
-                              title="Buka Galeri Foto"
-                            />
-                          ) : (
-                            <div
-                              onClick={() => setGalleryModalItem(item)}
-                              className="h-12 w-12 flex-shrink-0 rounded-md border border-dashed border-warm-300 bg-warm-50 flex items-center justify-center text-charcoal-muted cursor-pointer hover:bg-warm-100 transition-colors mt-0.5"
-                              title="Tambah Foto Dokumentasi"
-                            >
-                              <Camera className="h-4 w-4" />
-                            </div>
-                          )}
-
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-xs text-charcoal">{item.name}</span>
-                              <span className="font-mono text-[10px] bg-warm-100 text-charcoal px-1.5 py-0.2 rounded border border-warm-200">
-                                {item.item_code}
-                              </span>
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${ownMeta.badgeClass}`}>
-                                {ownMeta.label}
-                              </span>
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${reconMeta.badgeClass}`}>
-                                {reconMeta.label}
-                              </span>
-                            </div>
-
-                            <div className="text-xs text-charcoal-muted flex items-center gap-3 flex-wrap">
-                              <span>Pemilik: <strong className="text-charcoal">{item.owner_name || 'Kelompok KKN'}</strong></span>
-                              <span>Pemegang Terkini: <strong className="text-charcoal">{item.current_holder_name || 'Posko'}</strong></span>
-                              <span>Lokasi: {item.current_location}</span>
-                            </div>
-
-                            {item.reconciliation_final_action && (
-                              <p className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block border border-emerald-200">
-                                Status Akhir: <strong>{item.reconciliation_final_action}</strong> | Diterima oleh: {item.reconciliation_receiver_name || '-'}
-                              </p>
-                            )}
-
-                            {item.reconciliation_notes && (
-                              <p className="text-[11px] text-charcoal-muted italic">
-                                Catatan Rekonsiliasi: {item.reconciliation_notes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setGalleryModalItem(item)}
-                            className="text-xs h-8 gap-1 text-charcoal"
-                            title="Lihat Galeri Foto"
-                          >
-                            <Camera className="h-3.5 w-3.5 text-charcoal-muted" />
-                            <span>Foto</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant={isResolved ? 'outline' : 'default'}
-                            onClick={() => setReconcilingItem(item)}
-                            className={`text-xs h-8 gap-1 ${
-                              isResolved
-                                ? 'text-charcoal-muted border-warm-300'
-                                : 'bg-sage-800 hover:bg-sage-900 text-white font-semibold'
-                            }`}
-                          >
-                            <FileCheck className="h-3.5 w-3.5" />
-                            <span>{isResolved ? 'Ubah Status Akhir' : 'Proses Rekonsiliasi'}</span>
-                          </Button>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* TAB D: LOANS / PEMINJAMAN POSKO */}
-      {activeTab === 'loans' && (
-        <Card className="bg-white border-warm-200">
-          <CardHeader className="p-4 sm:p-5 border-b border-warm-200">
-            <CardTitle className="text-base font-serif font-semibold text-charcoal">
-              Riwayat Peminjaman &amp; Pemakaian Barang Posko
-            </CardTitle>
             <CardDescription className="text-xs text-charcoal-muted">
-              Peminjaman perlengkapan kegiatan antaranggota posko yang memerlukan persetujuan pengurus.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {isLoadingLoans ? (
-              <div className="p-6 space-y-3">
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : loans.length === 0 ? (
-              <div className="p-12 text-center text-xs text-charcoal-muted">
-                Belum ada transaksi peminjaman aktif.
-              </div>
-            ) : (
-              <div className="divide-y divide-warm-200">
-                {loans.map((loan) => (
-                  <div key={loan.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-charcoal">
-                          {loan.item?.name || 'Barang Posko'}
-                        </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-warm-100 text-charcoal border-warm-200">
-                          {loan.quantity} {loan.item?.unit || 'unit'}
-                        </span>
-                        <Badge variant={loan.status === 'borrowed' ? 'secondary' : loan.status === 'returned' ? 'success' : 'warning'}>
-                          {loan.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-charcoal-muted">
-                        Peminjam: <strong className="text-charcoal">{loan.borrower?.full_name || '-'}</strong> | Batas Kembali: {loan.expected_return_date ? new Date(loan.expected_return_date).toLocaleDateString('id-ID') : '-'}
-                      </p>
-                      {loan.purpose && (
-                        <p className="text-[11px] text-charcoal-muted">Keperluan: {loan.purpose}</p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {canManage && loan.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={async () => {
-                            try {
-                              await approveAndHandoutLoan(loan.id)
-                              toast({ title: 'Peminjaman Disetujui', variant: 'success' })
-                              refetchLoans()
-                              refetchItems()
-                            } catch (err: any) {
-                              toast({ title: 'Gagal Menyetujui', description: err.message, variant: 'error' })
-                            }
-                          }}
-                          className="text-xs h-7 bg-emerald-700 hover:bg-emerald-800 text-white"
-                        >
-                          Setujui &amp; Serahkan
-                        </Button>
-                      )}
-
-                      {canManage && loan.status === 'borrowed' && (
-                        <Button
-                          size="sm"
-                          onClick={() => setReturningLoan(loan)}
-                          className="text-xs h-7 bg-sage-700 hover:bg-sage-800 text-white"
-                        >
-                          Catat Pengembalian
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* TAB E: MOVEMENTS AUDIT LOG */}
-      {activeTab === 'movements' && (
-        <Card className="bg-white border-warm-200">
-          <CardHeader className="p-4 sm:p-5 border-b border-warm-200">
-            <CardTitle className="text-base font-serif font-semibold text-charcoal">
-              Riwayat Perpindahan, Mutasi &amp; Jejak Audit Inventaris
-            </CardTitle>
-            <CardDescription className="text-xs text-charcoal-muted">
-              Catatan permanen setiap kali barang berpindah tangan, berubah lokasi, bertambah, berkurang, atau direkonsiliasi.
+              Catatan transparan aktivitas barang posko (penambahan, pembaruan foto, perubahan lokasi/kondisi, pengarsipan, dan pemulihan) dalam kalimat informatif yang mudah dipahami seluruh tim.
             </CardDescription>
           </CardHeader>
 
@@ -1351,34 +1213,57 @@ export const InventoryPage: React.FC = () => {
             {isLoadingMovements ? (
               <div className="p-6 space-y-3">
                 <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : movements.length === 0 ? (
               <div className="p-12 text-center text-xs text-charcoal-muted">
-                Belum ada riwayat mutasi tercatat.
+                Belum ada catatan aktivitas inventaris tercatat.
               </div>
             ) : (
               <div className="divide-y divide-warm-200">
-                {movements.map((m) => (
-                  <div key={m.id} className="p-3.5 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-charcoal">{m.item?.name || 'Barang'}</span>
-                        <span className="font-mono text-[10px] text-charcoal-muted">({m.item?.item_code || '-'})</span>
-                        <span className="text-[10px] uppercase font-semibold px-1.5 py-0.2 rounded bg-warm-100 text-charcoal">
-                          {m.movement_type}
-                        </span>
-                      </div>
-                      <p className="text-charcoal-muted">
-                        {m.from_holder && m.to_holder ? `${m.from_holder} → ${m.to_holder}` : m.notes || 'Perubahan data inventaris'}
-                      </p>
-                    </div>
+                {movements.map((m) => {
+                  const sentence = formatActivitySentence(m)
+                  const formattedDate = new Date(m.movement_date).toLocaleString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
 
-                    <div className="text-right text-[11px] text-charcoal-muted">
-                      <p>{m.user?.full_name || 'Petugas'}</p>
-                      <p>{new Date(m.movement_date).toLocaleString('id-ID')}</p>
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-warm-50/50 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-charcoal text-xs">
+                            {sentence}
+                          </span>
+                          {m.item?.item_code && (
+                            <span className="font-mono text-[10px] text-charcoal-muted bg-warm-100 px-1.5 py-0.2 rounded border border-warm-200">
+                              {m.item.item_code}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Extra notes or movement context */}
+                        {(m.from_location || m.to_location) && m.from_location !== m.to_location && (
+                          <p className="text-[11px] text-charcoal-muted">
+                            Lokasi: <span className="font-medium text-charcoal">{m.from_location || 'Posko'}</span> → <span className="font-medium text-charcoal">{m.to_location || 'Posko'}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="text-left sm:text-right text-[11px] text-charcoal-muted shrink-0">
+                        <p className="font-medium text-charcoal">{m.user?.full_name || 'Petugas'}</p>
+                        <p>{formattedDate} WITA</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -1389,7 +1274,7 @@ export const InventoryPage: React.FC = () => {
       {/* MODALS */}
       {/* ============================================================= */}
 
-      {/* 1. Modal Tambah / Edit Barang (Multi Ownership & Tracking Model) */}
+      {/* 1. Modal Tambah / Edit Barang (Multi Ownership & Access Control) */}
       <ItemFormModal
         open={isCreateModalOpen || Boolean(editingItem)}
         onClose={() => {
@@ -1398,6 +1283,9 @@ export const InventoryPage: React.FC = () => {
         }}
         initialData={editingItem}
         directoryMembers={directoryMembers}
+        currentUser={user}
+        isLeaderOrAdmin={isLeaderOrAdmin}
+        isSuperAdmin={isSuperAdmin}
         onSubmit={async (data) => {
           if (editingItem) {
             await updateMutation.mutateAsync({ id: editingItem.id, input: data })
@@ -1417,45 +1305,7 @@ export const InventoryPage: React.FC = () => {
         />
       )}
 
-      {/* 3. Modal Serah Terima Antaranggota */}
-      {handoverItem && (
-        <HandoverModal
-          open={Boolean(handoverItem)}
-          onClose={() => setHandoverItem(null)}
-          item={handoverItem}
-          directoryMembers={directoryMembers}
-          onSuccess={() => {
-            setHandoverItem(null)
-            refetchHandovers()
-            refetchItems()
-          }}
-        />
-      )}
-
-      {/* 4. Modal Rekonsiliasi Akhir KKN */}
-      {reconcilingItem && (
-        <ReconciliationResolveModal
-          open={Boolean(reconcilingItem)}
-          onClose={() => setReconcilingItem(null)}
-          item={reconcilingItem}
-          photoUrls={itemPhotoUrls}
-          onSuccess={() => {
-            setReconcilingItem(null)
-            refetchItems()
-            queryClient.invalidateQueries({ queryKey: ['inventory-photo-urls'] })
-          }}
-        />
-      )}
-
-      {/* 5. Modal Laporan Penutupan Inventaris KKN */}
-      <ClosingReportModal
-        open={isClosingReportOpen}
-        onClose={() => setIsClosingReportOpen(false)}
-        items={items}
-        handovers={handovers}
-      />
-
-      {/* 6. Modal Quick Search / Scan QR */}
+      {/* 3. Modal Quick Search / Scan QR */}
       <QuickSearchQrModal
         open={isQuickScanModalOpen}
         onClose={() => setIsQuickScanModalOpen(false)}
@@ -1464,7 +1314,7 @@ export const InventoryPage: React.FC = () => {
         onOpenGallery={(item) => setGalleryModalItem(item)}
       />
 
-      {/* 7. Modal Mutasi Stok Opname */}
+      {/* 4. Modal Mutasi Stok Opname (Consumable) */}
       {stockAdjustmentItem && (
         <StockAdjustmentModal
           open={Boolean(stockAdjustmentItem)}
@@ -1477,33 +1327,20 @@ export const InventoryPage: React.FC = () => {
         />
       )}
 
-      {/* 8. Modal Catat Pengembalian Pinjaman */}
-      {returningLoan && (
-        <ReturnLoanModal
-          open={Boolean(returningLoan)}
-          onClose={() => setReturningLoan(null)}
-          loan={returningLoan}
-          onSuccess={() => {
-            setReturningLoan(null)
-            refetchLoans()
-            refetchItems()
-          }}
-        />
-      )}
-
-      {/* 9. Modal Galeri & Dokumentasi Foto Inventaris */}
+      {/* 5. Modal Galeri & Dokumentasi Foto Inventaris */}
       <InventoryPhotoGalleryModal
         open={Boolean(galleryModalItem)}
         onClose={() => setGalleryModalItem(null)}
         item={galleryModalItem}
-        canManage={canManage}
+        canManage={galleryModalItem ? canManageItem(galleryModalItem) : false}
         onPhotoUpdated={() => {
           refetchItems()
           queryClient.invalidateQueries({ queryKey: ['inventory-photo-urls'] })
+          queryClient.invalidateQueries({ queryKey: ['inventory-movements'] })
         }}
       />
 
-      {/* 10. Modal Konfirmasi Arsip Barang */}
+      {/* 6. Modal Konfirmasi Arsip Barang */}
       <Modal
         open={Boolean(itemToDelete)}
         onClose={() => {
@@ -1522,23 +1359,25 @@ export const InventoryPage: React.FC = () => {
               <span className="font-bold text-charcoal">{itemToDelete?.name}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-charcoal-muted">Pemilik Sah:</span>
+              <span className="text-charcoal-muted">Status Kepemilikan:</span>
               <span className="font-semibold text-charcoal">
                 {itemToDelete?.ownership_type === 'GROUP_OWNED'
                   ? 'Aset Kelompok KKN'
-                  : itemToDelete?.owner_name || 'Tidak Diketahui'}
+                  : itemToDelete?.ownership_type === 'PERSONAL_OWNED'
+                  ? `Milik Pribadi (${itemToDelete.owner_name || 'Anggota'})`
+                  : itemToDelete?.owner_name || 'Pinjaman/Hibah'}
               </span>
             </div>
-            {itemToDelete?.current_holder_name && (
+            {itemToDelete?.current_location && (
               <div className="flex items-center justify-between">
-                <span className="text-charcoal-muted">Pemegang Saat Ini:</span>
-                <span className="font-medium text-charcoal">{itemToDelete.current_holder_name}</span>
+                <span className="text-charcoal-muted">Lokasi Terkini:</span>
+                <span className="font-medium text-charcoal">{itemToDelete.current_location}</span>
               </div>
             )}
           </div>
 
           <p className="text-charcoal-muted leading-relaxed">
-            Barang ini akan dipindahkan ke arsip dan tidak muncul di daftar aktif. Seluruh riwayat mutasi, peminjaman, dan serah terima tetap tersimpan utuh di sistem untuk kebutuhan laporan dan pertanggungjawaban.
+            Barang ini akan dipindahkan ke tab Arsip dan tidak muncul di daftar inventaris aktif. Seluruh data riwayat, mutasi, dan pencatatan tetap terjaga aman di sistem posko.
           </p>
 
           <div>
@@ -1546,7 +1385,7 @@ export const InventoryPage: React.FC = () => {
             <Input
               value={archivalReason}
               onChange={(e) => setArchivalReason(e.target.value)}
-              placeholder="Contoh: Dibawa pulang pemilik / Barang habis / Selesai masa pakai"
+              placeholder="Contoh: Dibawa pulang pemilik / Masa pakai selesai / Rusak total"
               className="text-xs"
             />
           </div>
@@ -1586,7 +1425,7 @@ export const InventoryPage: React.FC = () => {
         </div>
       </Modal>
 
-      {/* 11. Modal Konfirmasi Pulihkan Barang dari Arsip */}
+      {/* 7. Modal Konfirmasi Pulihkan Barang dari Arsip */}
       <ConfirmDialog
         open={Boolean(itemToRestore)}
         onClose={() => setItemToRestore(null)}
@@ -1598,21 +1437,23 @@ export const InventoryPage: React.FC = () => {
         title="Aktifkan Kembali Barang?"
         description={`Barang "${itemToRestore?.name}" akan dipulihkan dari arsip dan kembali muncul di daftar inventaris aktif posko.`}
         confirmLabel="Aktifkan Kembali"
-        variant="default"
-        isLoading={restoreMutation.isPending}
+        cancelLabel="Batal"
       />
     </div>
   )
 }
 
 // -------------------------------------------------------------
-// Sub-Modal: Add/Edit Item Form (Ownership Decoupled)
+// Sub-Modal: Item Form Modal (Create & Edit)
 // -------------------------------------------------------------
 interface ItemFormModalProps {
   open: boolean
   onClose: () => void
   initialData?: InventoryItem | null
   directoryMembers: KknTeamDirectoryMember[]
+  currentUser: { id: string; email?: string } | null
+  isLeaderOrAdmin: boolean
+  isSuperAdmin: boolean
   onSubmit: (data: Partial<CreateInventoryItemInput>) => Promise<void>
   isSubmitting: boolean
 }
@@ -1622,11 +1463,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
   onClose,
   initialData,
   directoryMembers,
+  currentUser,
+  isLeaderOrAdmin,
+  isSuperAdmin,
   onSubmit,
   isSubmitting,
 }) => {
   const [trackingModel, setTrackingModel] = useState<InventoryTrackingModel>('tracked')
-  const [ownershipType, setOwnershipType] = useState<InventoryOwnershipType>('GROUP_OWNED')
+  const [ownershipType, setOwnershipType] = useState<InventoryOwnershipType>('PERSONAL_OWNED')
   const [name, setName] = useState('')
   const [category, setCategory] = useState(CATEGORY_OPTIONS[0])
   const [description, setDescription] = useState('')
@@ -1660,6 +1504,16 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
   const cameraInputRef = React.useRef<HTMLInputElement | null>(null)
   const galleryInputRef = React.useRef<HTMLInputElement | null>(null)
 
+  // Current logged in member's name from directory
+  const currentMember = useMemo(() => {
+    if (!currentUser?.id) return null
+    return (
+      directoryMembers.find(
+        (m) => m.linked_user_id === currentUser.id || m.id === currentUser.id
+      ) || null
+    )
+  }, [currentUser?.id, directoryMembers])
+
   React.useEffect(() => {
     setStagedPhotoFile(null)
     setPhotoPreview(null)
@@ -1667,7 +1521,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
 
     if (initialData) {
       setTrackingModel(initialData.tracking_model || 'tracked')
-      setOwnershipType(initialData.ownership_type || 'GROUP_OWNED')
+      setOwnershipType(initialData.ownership_type || 'PERSONAL_OWNED')
       setName(initialData.name || '')
       setCategory(initialData.category || CATEGORY_OPTIONS[0])
       setDescription(initialData.description || '')
@@ -1688,7 +1542,18 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       setNotes(initialData.notes || '')
     } else {
       setTrackingModel('tracked')
-      setOwnershipType('GROUP_OWNED')
+      // If ordinary member, ownership is locked to PERSONAL_OWNED
+      if (!isLeaderOrAdmin && !isSuperAdmin) {
+        setOwnershipType('PERSONAL_OWNED')
+        setOwnerMemberId(currentUser?.id || '')
+        setOwnerName(currentMember?.full_name || 'Anggota Tim')
+        setCurrentHolderName(currentMember?.full_name || 'Anggota Tim')
+      } else {
+        setOwnershipType('GROUP_OWNED')
+        setOwnerMemberId('')
+        setOwnerName('Kelompok KKN')
+        setCurrentHolderName('Posko KKN')
+      }
       setName('')
       setCategory(CATEGORY_OPTIONS[0])
       setDescription('')
@@ -1696,9 +1561,6 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       setUnit('unit')
       setCondition('good')
       setCurrentLocation(LOCATION_OPTIONS[0])
-      setCurrentHolderName('Posko KKN')
-      setOwnerMemberId('')
-      setOwnerName('')
       setPostKknPlan('take_home')
       setLenderName('')
       setLenderContact('')
@@ -1708,7 +1570,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       setPurchaseCost('')
       setNotes('')
     }
-  }, [initialData, open])
+  }, [initialData, open, isLeaderOrAdmin, isSuperAdmin, currentUser?.id, currentMember])
 
   const handleFileSelected = async (file: File | undefined) => {
     if (!file) return
@@ -1757,14 +1619,37 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       return
     }
 
+    // Determine ownership details
+    let finalOwnershipType = ownershipType
     let determinedOwner = ownerName.trim()
-    if (ownershipType === 'PERSONAL_OWNED' && ownerMemberId) {
-      const found = directoryMembers.find((m) => m.linked_user_id === ownerMemberId || m.id === ownerMemberId)
-      if (found) determinedOwner = found.full_name
-    } else if (ownershipType === 'GROUP_OWNED') {
-      determinedOwner = 'Kelompok KKN'
-    } else if (ownershipType === 'BORROWED_EXTERNAL') {
-      determinedOwner = lenderName.trim()
+    let determinedOwnerMemberId = ownerMemberId
+
+    // Ordinary member rule: ALWAYS PERSONAL_OWNED bound to auth.uid()
+    if (!isLeaderOrAdmin && !isSuperAdmin) {
+      finalOwnershipType = 'PERSONAL_OWNED'
+      determinedOwnerMemberId = currentUser?.id || ''
+      determinedOwner = currentMember?.full_name || 'Anggota Tim'
+    } else {
+      if (finalOwnershipType === 'PERSONAL_OWNED') {
+        if (determinedOwnerMemberId) {
+          const found = directoryMembers.find(
+            (m) => m.linked_user_id === determinedOwnerMemberId || m.id === determinedOwnerMemberId
+          )
+          if (found) determinedOwner = found.full_name
+        } else {
+          determinedOwnerMemberId = currentUser?.id || ''
+          determinedOwner = currentMember?.full_name || 'Anggota Tim'
+        }
+      } else if (finalOwnershipType === 'GROUP_OWNED') {
+        determinedOwner = 'Kelompok KKN'
+        determinedOwnerMemberId = ''
+      } else if (finalOwnershipType === 'BORROWED_EXTERNAL') {
+        determinedOwner = lenderName.trim() || 'Pihak Luar'
+        determinedOwnerMemberId = ''
+      } else if (finalOwnershipType === 'DONATED') {
+        determinedOwner = lenderName.trim() || 'Donatur'
+        determinedOwnerMemberId = ''
+      }
     }
 
     const payload: Partial<CreateInventoryItemInput> = {
@@ -1773,16 +1658,16 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       description: description.trim() || undefined,
       item_type: trackingModel === 'tracked' ? 'asset' : 'consumable',
       tracking_model: trackingModel,
-      ownership_type: ownershipType,
+      ownership_type: finalOwnershipType,
       owner_name: determinedOwner || undefined,
-      owner_member_id: ownershipType === 'PERSONAL_OWNED' && ownerMemberId ? ownerMemberId : undefined,
-      is_owner_confirmed: ownershipType === 'PERSONAL_OWNED',
-      post_kkn_plan: ownershipType === 'PERSONAL_OWNED' ? postKknPlan : undefined,
-      lender_name: ownershipType === 'BORROWED_EXTERNAL' ? lenderName.trim() : undefined,
-      lender_contact: ownershipType === 'BORROWED_EXTERNAL' ? lenderContact.trim() : undefined,
-      borrow_due_date: ownershipType === 'BORROWED_EXTERNAL' ? borrowDueDate || undefined : undefined,
-      lender_notes: ownershipType === 'BORROWED_EXTERNAL' ? lenderNotes.trim() : undefined,
-      funding_source: ownershipType === 'GROUP_OWNED' ? fundingSource.trim() : undefined,
+      owner_member_id: finalOwnershipType === 'PERSONAL_OWNED' && determinedOwnerMemberId ? determinedOwnerMemberId : undefined,
+      is_owner_confirmed: finalOwnershipType === 'PERSONAL_OWNED',
+      post_kkn_plan: finalOwnershipType === 'PERSONAL_OWNED' ? postKknPlan : undefined,
+      lender_name: (finalOwnershipType === 'BORROWED_EXTERNAL' || finalOwnershipType === 'DONATED') ? lenderName.trim() : undefined,
+      lender_contact: finalOwnershipType === 'BORROWED_EXTERNAL' ? lenderContact.trim() : undefined,
+      borrow_due_date: finalOwnershipType === 'BORROWED_EXTERNAL' ? borrowDueDate || undefined : undefined,
+      lender_notes: finalOwnershipType === 'BORROWED_EXTERNAL' ? lenderNotes.trim() : undefined,
+      funding_source: finalOwnershipType === 'GROUP_OWNED' ? fundingSource.trim() : undefined,
       purchase_cost: purchaseCost !== '' ? Number(purchaseCost) : undefined,
       quantity: Number(quantity),
       unit: unit.trim() || 'unit',
@@ -1803,7 +1688,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
     <Modal
       open={open}
       onClose={onClose}
-      title={initialData ? 'Ubah Data Inventaris' : 'Daftarkan Barang Baru ke Inventaris Posko'}
+      title={initialData ? 'Ubah Data Inventaris' : 'Daftarkan Barang ke Inventaris Posko'}
       maxWidthClass="max-w-2xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -1822,7 +1707,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                 <span>Barang Individual (Tracked)</span>
               </div>
               <p className="text-[11px] font-normal text-charcoal-muted mt-0.5">
-                Laptop, kompor, rice cooker, speaker, alat peraga. Wajib QR &amp; pelacakan pemilik.
+                Laptop, kompor, rice cooker, speaker, dispenser. Wajib QR &amp; pelacakan pemilik.
               </p>
             </div>
 
@@ -1843,69 +1728,89 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
           </div>
         </div>
 
-        {/* 2. Klasifikasi Kepemilikan (Crucial Principle) */}
+        {/* 2. Klasifikasi Kepemilikan (Access Controlled) */}
         <div>
           <label className="font-semibold text-charcoal block mb-1">Klasifikasi Kepemilikan Barang *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(['GROUP_OWNED', 'PERSONAL_OWNED', 'BORROWED_EXTERNAL', 'DONATED'] as InventoryOwnershipType[]).map((type) => {
-              const meta = OWNERSHIP_META[type]
-              const isSelected = ownershipType === type
+          
+          {(!isLeaderOrAdmin && !isSuperAdmin) ? (
+            <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-3 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-blue-900 text-xs">Milik Pribadi Anggota</span>
+                <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">
+                  Terisi Otomatis
+                </span>
+              </div>
+              <p className="text-[11px] text-blue-700 leading-relaxed">
+                Sebagai anggota, barang yang Anda input otomatis tercatat sebagai milik pribadi Anda sendiri. Aset kelompok, pinjaman posko, atau hibah didaftarkan oleh Ketua, Sekretaris, atau Admin.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(['GROUP_OWNED', 'PERSONAL_OWNED', 'BORROWED_EXTERNAL', 'DONATED'] as InventoryOwnershipType[]).map((type) => {
+                const meta = OWNERSHIP_META[type]
+                const isSelected = ownershipType === type
 
-              return (
-                <div
-                  key={type}
-                  onClick={() => setOwnershipType(type)}
-                  className={`p-2 rounded-md border text-center cursor-pointer transition-all ${
-                    isSelected ? 'border-sage-800 bg-sage-50 font-semibold text-sage-900' : 'border-warm-200 bg-white text-charcoal-muted'
-                  }`}
-                >
-                  <p className="text-xs">{meta.label.split('(')[0]}</p>
-                </div>
-              )
-            })}
-          </div>
+                return (
+                  <div
+                    key={type}
+                    onClick={() => setOwnershipType(type)}
+                    className={`p-2 rounded-md border text-center cursor-pointer transition-all ${
+                      isSelected ? 'border-sage-800 bg-sage-50 font-semibold text-sage-900' : 'border-warm-200 bg-white text-charcoal-muted'
+                    }`}
+                  >
+                    <p className="text-xs">{meta.label.split('(')[0]}</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <p className="text-[11px] text-charcoal-muted mt-1 italic">{OWNERSHIP_META[ownershipType].desc}</p>
         </div>
 
         {/* 3. Conditional Fields based on Ownership */}
         {ownershipType === 'PERSONAL_OWNED' && (
           <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 space-y-3">
-            <h4 className="font-semibold text-blue-900 flex items-center gap-1.5">
-              <User className="h-4 w-4" />
-              <span>Detail Kepemilikan Pribadi Anggota</span>
-            </h4>
-
+            <h4 className="font-semibold text-blue-900">Data Kepemilikan Pribadi</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Anggota Pemilik Barang *</label>
-                <select
-                  value={ownerMemberId}
-                  onChange={(e) => {
-                    setOwnerMemberId(e.target.value)
-                    const m = directoryMembers.find((dm) => dm.linked_user_id === e.target.value || dm.id === e.target.value)
-                    if (m) setOwnerName(m.full_name)
-                  }}
-                  className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-                >
-                  <option value="">Pilih Anggota Tim</option>
-                  {directoryMembers.map((m) => (
-                    <option key={m.id} value={m.linked_user_id || m.id}>
-                      {m.full_name} ({m.position_label || m.role})
-                    </option>
-                  ))}
-                </select>
+                <label className="font-medium text-charcoal block mb-1">Pemilik Sah Barang *</label>
+                {(!isLeaderOrAdmin && !isSuperAdmin) ? (
+                  <Input
+                    value={ownerName || currentMember?.full_name || 'Anggota Tim'}
+                    disabled
+                    className="bg-warm-100/70 text-charcoal font-semibold"
+                  />
+                ) : (
+                  <select
+                    value={ownerMemberId}
+                    onChange={(e) => {
+                      const id = e.target.value
+                      setOwnerMemberId(id)
+                      const found = directoryMembers.find((m) => m.linked_user_id === id || m.id === id)
+                      if (found) setOwnerName(found.full_name)
+                    }}
+                    className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
+                  >
+                    <option value="">Pilih Anggota Tim...</option>
+                    {directoryMembers.map((m) => (
+                      <option key={m.id} value={m.linked_user_id || m.id}>
+                        {m.full_name} ({m.position_label || m.role || 'Anggota'})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Rencana Pasca-KKN</label>
+                <label className="font-medium text-charcoal block mb-1">Rencana Pasca-KKN</label>
                 <select
                   value={postKknPlan}
                   onChange={(e) => setPostKknPlan(e.target.value)}
-                  className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
+                  className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
                 >
-                  <option value="take_home">Dibawa pulang oleh pemilik</option>
-                  <option value="entrust_group">Dititipkan ke kelompok</option>
-                  <option value="donate_to_village">Dihibahkan ke warga / desa</option>
+                  <option value="take_home">Dibawa Pulang Pemilik</option>
+                  <option value="donate_posko">Dihibahkan ke Posko / Warga</option>
+                  <option value="other">Lainnya</option>
                 </select>
               </div>
             </div>
@@ -1914,46 +1819,67 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
 
         {ownershipType === 'BORROWED_EXTERNAL' && (
           <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-3">
-            <h4 className="font-semibold text-amber-900 flex items-center gap-1.5">
-              <AlertTriangle className="h-4 w-4" />
-              <span>Detail Pinjaman Pihak Luar</span>
-            </h4>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <h4 className="font-semibold text-amber-900">Data Pemberi Pinjaman &amp; Tenggat</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Nama Pemilik / Pihak Peminjam *</label>
+                <label className="font-medium text-charcoal block mb-1">Nama Pemilik / Pemberi Pinjaman *</label>
                 <Input
                   value={lenderName}
                   onChange={(e) => setLenderName(e.target.value)}
-                  placeholder="Misal: Pak Haji Kadir (Pemilik Posko)"
+                  placeholder="Misal: Bapak H. Hamzan / Kantor Desa"
                   required
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Kontak Pemilik (HP / WA)</label>
+                <label className="font-medium text-charcoal block mb-1">Kontak Pemilik / No. WhatsApp</label>
                 <Input
                   value={lenderContact}
                   onChange={(e) => setLenderContact(e.target.value)}
-                  placeholder="0812xxxxxxxx (Terlindungi)"
+                  placeholder="08123456789"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Target Tanggal Pengembalian</label>
+                <label className="font-medium text-charcoal block mb-1">Tenggat Pengembalian</label>
                 <Input
                   type="date"
                   value={borrowDueDate}
                   onChange={(e) => setBorrowDueDate(e.target.value)}
                 />
               </div>
+            </div>
 
+            <div>
+              <label className="font-medium text-charcoal block mb-1">Syarat / Perjanjian Pinjam</label>
+              <Input
+                value={lenderNotes}
+                onChange={(e) => setLenderNotes(e.target.value)}
+                placeholder="Misal: Wajib dikembalikan bersih dan kabel tergulung rapi"
+              />
+            </div>
+          </div>
+        )}
+
+        {ownershipType === 'DONATED' && (
+          <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2">
+            <h4 className="font-semibold text-purple-900">Data Sumber Hibah / Bantuan Sponsor</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Catatan Kesepakatan Pinjaman</label>
+                <label className="font-medium text-charcoal block mb-1">Pemberi Hibah / Nama Sponsor *</label>
                 <Input
-                  value={lenderNotes}
-                  onChange={(e) => setLenderNotes(e.target.value)}
-                  placeholder="Misal: Harus dikembalikan sebelum hari penarikan"
+                  value={lenderName}
+                  onChange={(e) => setLenderName(e.target.value)}
+                  placeholder="Misal: Alumni KKN / Sponsor Mandiri / Donatur Warga"
+                  required
+                />
+              </div>
+              <div>
+                <label className="font-medium text-charcoal block mb-1">Penanggung Jawab Aset</label>
+                <Input
+                  value={currentHolderName}
+                  onChange={(e) => setCurrentHolderName(e.target.value)}
+                  placeholder="Nama anggota yang bertanggung jawab"
                 />
               </div>
             </div>
@@ -1961,57 +1887,90 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
         )}
 
         {ownershipType === 'GROUP_OWNED' && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 space-y-3">
-            <h4 className="font-semibold text-emerald-900 flex items-center gap-1.5">
-              <Package className="h-4 w-4" />
-              <span>Detail Pembelian Aset Kelompok</span>
-            </h4>
-
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 space-y-2">
+            <h4 className="font-semibold text-emerald-900">Asal-Usul &amp; Anggaran Aset Kelompok</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Sumber Dana Pembelian</label>
+                <label className="font-medium text-charcoal block mb-1">Sumber Pendanaan *</label>
                 <Input
                   value={fundingSource}
                   onChange={(e) => setFundingSource(e.target.value)}
-                  placeholder="Kas Kelompok / Iuran Anggota / Sponsor"
+                  placeholder="Misal: Kas Bersama KKN / Iuran Divisi / Sponsor"
+                  required
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-charcoal block mb-1">Nominal Pembelian (Rp)</label>
+                <label className="font-medium text-charcoal block mb-1">Biaya Pembelian (Rp)</label>
                 <Input
                   type="number"
                   value={purchaseCost}
                   onChange={(e) => setPurchaseCost(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="Misal: 250000"
+                  placeholder="Contoh: 150000"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* 4. Common Item Fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
+        {/* 4. Core Item Details */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
             <label className="font-semibold text-charcoal block mb-1">Nama Barang *</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Misal: Rice Cooker Miyako 1.8L"
+              placeholder="Contoh: Kompor Gas 2 Tungku Rinnai"
               required
             />
           </div>
 
           <div>
-            <label className="font-semibold text-charcoal block mb-1">Kategori Barang *</label>
+            <label className="font-semibold text-charcoal block mb-1">Kategori *</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
+              className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
             >
               {CATEGORY_OPTIONS.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Kuantitas *</label>
+            <Input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Satuan</label>
+            <Input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="unit / buah / pack"
+            />
+          </div>
+
+          <div>
+            <label className="font-semibold text-charcoal block mb-1">Kondisi Fisik *</label>
+            <select
+              value={condition}
+              onChange={(e) => setCondition(e.target.value as InventoryCondition)}
+              className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
+            >
+              <option value="good">Baik</option>
+              <option value="fair">Cukup</option>
+              <option value="damaged">Rusak</option>
+              <option value="lost">Hilang</option>
             </select>
           </div>
 
@@ -2020,176 +1979,64 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
             <select
               value={currentLocation}
               onChange={(e) => setCurrentLocation(e.target.value)}
-              className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
+              className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
             >
-              {LOCATION_OPTIONS.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
+              {LOCATION_OPTIONS.map((l) => (
+                <option key={l} value={l}>{l}</option>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="font-semibold text-charcoal block mb-1">Pemegang Fisik Saat Ini</label>
-            <Input
-              value={currentHolderName}
-              onChange={(e) => setCurrentHolderName(e.target.value)}
-              placeholder="Misal: Abdul Habir Al Majdi"
-            />
-          </div>
-
-          <div>
-            <label className="font-semibold text-charcoal block mb-1">Jumlah &amp; Satuan *</label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-24"
-                required
-              />
-              <Input
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                placeholder="unit, buah, set"
-                className="flex-1"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="font-semibold text-charcoal block mb-1">Kondisi Fisik *</label>
-            <select
-              value={condition}
-              onChange={(e) => setCondition(e.target.value as InventoryCondition)}
-              className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-            >
-              <option value="good">Baik (Siap Pakai)</option>
-              <option value="fair">Cukup (Sedikit Lecet / Aus)</option>
-              <option value="damaged">Rusak (Perlu Perbaikan)</option>
             </select>
           </div>
         </div>
 
-        {/* Foto Fisik Barang (Identifikasi Visual) */}
-        <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-3 space-y-2.5">
+        {/* 5. Photo Upload Section */}
+        <div className="rounded-lg border border-warm-300 bg-warm-50/70 p-3 space-y-2">
           <div className="flex items-center justify-between">
             <div>
-              <label className="font-semibold text-charcoal flex items-center gap-1.5">
-                <Camera className="h-4 w-4 text-sage-700" />
-                <span>Foto Fisik Barang {trackingModel === 'tracked' ? '*' : '(Opsional)'}</span>
-              </label>
-              <p className="text-[11px] text-charcoal-muted mt-0.5">
-                {trackingModel === 'tracked'
-                  ? 'Wajib untuk barang individual (Tracked) seperti Rice Cooker, Kompor, Speaker, Dispenser agar kepemilikan dan ciri fisik jelas.'
-                  : 'Foto representatif untuk barang berjumlah (piring, sendok, alat tulis).'}
+              <label className="font-semibold text-charcoal block">Foto Fisik Barang *</label>
+              <p className="text-[11px] text-charcoal-muted">
+                Wajib untuk barang individual guna memastikan tanda fisik dan mencegah barang tertukar.
               </p>
             </div>
-            {photoPreview && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
-                Siap Disimpan
-              </Badge>
+            {trackingModel === 'tracked' && (
+              <span className="text-[10px] bg-sage-100 text-sage-800 font-semibold px-2 py-0.5 rounded border border-sage-300">
+                Wajib Foto
+              </span>
             )}
           </div>
 
-          {/* Hidden inputs */}
           <input
-            type="file"
             ref={cameraInputRef}
-            accept="image/jpeg,image/png,image/webp"
+            type="file"
+            accept="image/*"
             capture="environment"
             className="hidden"
             onChange={(e) => handleFileSelected(e.target.files?.[0])}
           />
           <input
-            type="file"
             ref={galleryInputRef}
+            type="file"
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => handleFileSelected(e.target.files?.[0])}
           />
 
           {photoPreview ? (
-            <div className="relative rounded-lg border border-warm-300 bg-white p-2.5 flex items-center gap-3">
-              <div className="h-20 w-20 flex-shrink-0 rounded-md overflow-hidden border border-warm-200 bg-warm-100">
-                <img src={photoPreview} alt="Preview Foto" className="h-full w-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-xs font-semibold text-charcoal truncate">{stagedPhotoFile?.name || 'Foto Fisik'}</p>
-                <p className="text-[11px] text-charcoal-muted">
-                  Ukuran: {stagedPhotoFile ? `${(stagedPhotoFile.size / 1024).toFixed(1)} KB (Teroptimasi)` : '-'}
-                </p>
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
-                  >
-                    <Camera className="h-3 w-3" />
-                    <span>Ambil Ulang</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => galleryInputRef.current?.click()}
-                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
-                  >
-                    <Upload className="h-3 w-3" />
-                    <span>Ganti File</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleRemovePhoto}
-                    className="h-6 text-[11px] px-2 text-rose-700 hover:text-rose-800 hover:bg-rose-50"
-                  >
-                    <X className="h-3 w-3 mr-0.5" />
-                    <span>Hapus</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : initialData?.photo_file_id ? (
-            <div className="rounded-lg border border-warm-300 bg-white p-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded bg-sage-50 border border-sage-200 flex items-center justify-center text-sage-700">
-                  <ImageIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-charcoal">Foto Registrasi Tersimpan</p>
-                  <p className="text-[11px] text-charcoal-muted">Barang ini sudah memiliki foto utama di sistem.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="h-7 text-xs gap-1"
-                >
-                  <Camera className="h-3 w-3" />
-                  <span>Kamera</span>
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="h-7 text-xs gap-1"
-                >
-                  <Upload className="h-3 w-3" />
-                  <span>Galeri</span>
-                </Button>
+            <div className="relative rounded-lg overflow-hidden border border-warm-300 bg-white h-40 w-full flex items-center justify-center">
+              <img src={photoPreview} alt="Pratinjau fisik" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 hover:bg-black text-white transition-colors"
+                title="Hapus foto"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm">
+                Foto siap disimpan
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
@@ -2240,7 +2087,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
-            placeholder="Catatan kondisi awal serah terima posko..."
+            placeholder="Catatan kondisi awal barang di posko..."
           />
         </div>
 
@@ -2282,7 +2129,6 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ open, onClose, item }) => {
   return (
     <Modal open={open} onClose={onClose} title="Label &amp; QR Code Inventaris Posko" maxWidthClass="max-w-md">
       <div className="space-y-4 text-xs">
-        {/* Printable Label Card Preview */}
         <div id="printable-qr-label" className="border-2 border-dashed border-charcoal/40 p-4 rounded-xl bg-white text-center space-y-2">
           <p className="text-[10px] font-bold tracking-widest text-charcoal uppercase">
             KKN DESA PRINGGASELA SELATAN 2026
@@ -2305,7 +2151,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ open, onClose, item }) => {
         </div>
 
         <div className="bg-warm-50 p-2.5 rounded text-[11px] text-charcoal-muted leading-relaxed">
-          Label stiker ini dapat dicetak dan ditempelkan pada fisik barang untuk memudahkan pendataan serta mencegah barang tertukar saat penutupan posko.
+          Label stiker ini dapat dicetak dan ditempelkan pada fisik barang untuk memudahkan pendataan serta mencegah barang tertukar saat kegiatan KKN.
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
@@ -2315,672 +2161,6 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ open, onClose, item }) => {
           <Button type="button" size="sm" onClick={handlePrintLabel} className="bg-sage-800 hover:bg-sage-900 text-white gap-1.5">
             <Printer className="h-3.5 w-3.5" />
             <span>Cetak Stiker Label</span>
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  )
-}
-
-// -------------------------------------------------------------
-// Sub-Modal: Serah Terima Antaranggota (Handover)
-// -------------------------------------------------------------
-interface HandoverModalProps {
-  open: boolean
-  onClose: () => void
-  item: InventoryItem
-  directoryMembers: KknTeamDirectoryMember[]
-  onSuccess: () => void
-}
-
-const HandoverModal: React.FC<HandoverModalProps> = ({
-  open,
-  onClose,
-  item,
-  directoryMembers,
-  onSuccess,
-}) => {
-  const { toast } = useToast()
-  const [toHolderId, setToHolderId] = useState('')
-  const [toHolderName, setToHolderName] = useState('')
-  const [destinationLocation, setDestinationLocation] = useState(LOCATION_OPTIONS[0])
-  const [purpose, setPurpose] = useState('')
-  const [notes, setNotes] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!toHolderName.trim()) {
-      toast({ title: 'Nama Penerima Wajib Diisi', variant: 'error' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      await createInventoryHandover({
-        item_id: item.id,
-        to_holder_id: toHolderId || undefined,
-        to_holder_name: toHolderName.trim(),
-        origin_location: item.current_location || 'Posko',
-        destination_location: destinationLocation,
-        purpose: purpose.trim() || undefined,
-        notes: notes.trim() || undefined,
-      })
-      toast({ title: 'Serah Terima Diajukan', description: 'Menunggu konfirmasi penerimaan oleh penerima.', variant: 'success' })
-      onSuccess()
-    } catch (err: any) {
-      toast({ title: 'Gagal Mengajukan', description: err.message, variant: 'error' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Serah Terima Barang Antaranggota" maxWidthClass="max-w-lg">
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-        <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-1">
-          <p className="font-semibold text-purple-950 text-sm">{item.name}</p>
-          <div className="text-charcoal-muted flex items-center gap-3">
-            <span>Kode: <strong className="font-mono text-charcoal">{item.item_code}</strong></span>
-            <span>Pemilik Asli: <strong className="text-charcoal">{item.owner_name || 'Kelompok KKN'}</strong></span>
-          </div>
-          <p className="text-[11px] text-purple-900 mt-1">
-            Pemegang Fisik Saat Ini: <strong>{item.current_holder_name || 'Posko KKN'}</strong> ({item.current_location})
-          </p>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Pilih Anggota Penerima *</label>
-          <select
-            value={toHolderId}
-            onChange={(e) => {
-              setToHolderId(e.target.value)
-              const m = directoryMembers.find((dm) => dm.linked_user_id === e.target.value || dm.id === e.target.value)
-              if (m) setToHolderName(m.full_name)
-            }}
-            className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-            required
-          >
-            <option value="">Pilih Anggota Penerima</option>
-            {directoryMembers.map((m) => (
-              <option key={m.id} value={m.linked_user_id || m.id}>
-                {m.full_name} ({m.position_label || m.role})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Lokasi Tujuan Pemakaian *</label>
-          <select
-            value={destinationLocation}
-            onChange={(e) => setDestinationLocation(e.target.value)}
-            className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-          >
-            {LOCATION_OPTIONS.map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Keperluan Pemakaian</label>
-          <Input
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="Misal: Dipinjam untuk presentasi penyuluhan stunting"
-          />
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Catatan Kondisi Saat Penyerahan</label>
-          <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Misal: Kabel charger dan mouse lengkap dalam kondisi baik"
-          />
-        </div>
-
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
-            Batal
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-purple-700 hover:bg-purple-800 text-white">
-            {isSubmitting ? 'Memproses...' : 'Catat Serah Terima'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-// -------------------------------------------------------------
-// Sub-Modal: Rekonsiliasi Akhir KKN (Final Action Resolution)
-// -------------------------------------------------------------
-interface ReconciliationResolveModalProps {
-  open: boolean
-  onClose: () => void
-  item: InventoryItem
-  onSuccess: () => void
-  photoUrls: Record<string, string>
-}
-
-const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
-  open,
-  onClose,
-  item,
-  onSuccess,
-  photoUrls,
-}) => {
-  const { toast } = useToast()
-  const isPersonal = item.ownership_type === 'PERSONAL_OWNED'
-  const isExternal = item.ownership_type === 'BORROWED_EXTERNAL'
-  const isGroup = item.ownership_type === 'GROUP_OWNED' || item.ownership_type === 'DONATED'
-
-  const [finalAction, setFinalAction] = useState<InventoryFinalAction>(
-    isPersonal
-      ? 'returned_to_owner'
-      : isExternal
-      ? 'returned_to_lender'
-      : 'stored_next_period'
-  )
-  const [finalCondition, setFinalCondition] = useState<InventoryCondition>(item.condition || 'good')
-  const [receiverName, setReceiverName] = useState(
-    isPersonal ? item.owner_name || '' : isExternal ? item.lender_name || '' : 'Pengurus Kelompok'
-  )
-  const [notes, setNotes] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Proof Photo State
-  const [proofPhoto, setProofPhoto] = useState<File | null>(null)
-  const [proofPreview, setProofPreview] = useState<string | null>(null)
-  const [isProcessingProof, setIsProcessingProof] = useState(false)
-  const proofCameraRef = React.useRef<HTMLInputElement | null>(null)
-  const proofGalleryRef = React.useRef<HTMLInputElement | null>(null)
-
-  React.useEffect(() => {
-    setProofPhoto(null)
-    setProofPreview(null)
-  }, [open, item.id])
-
-  const handleProofSelected = async (file: File | undefined) => {
-    if (!file) return
-    setIsProcessingProof(true)
-    try {
-      const optimized = await optimizeImageFile(file, 1200, 0.85)
-      setProofPhoto(optimized)
-      setProofPreview(URL.createObjectURL(optimized))
-    } catch (err: any) {
-      toast({ title: 'Gagal Memproses Foto Bukti', description: err.message, variant: 'error' })
-    } finally {
-      setIsProcessingProof(false)
-    }
-  }
-
-  const handleRemoveProof = () => {
-    setProofPhoto(null)
-    setProofPreview(null)
-    if (proofCameraRef.current) proofCameraRef.current.value = ''
-    if (proofGalleryRef.current) proofGalleryRef.current.value = ''
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!receiverName.trim()) {
-      toast({ title: 'Nama Pihak Penerima Wajib Diisi', variant: 'error' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      await resolveItemReconciliation({
-        item_id: item.id,
-        final_action: finalAction,
-        final_condition: finalCondition,
-        receiver_name: receiverName.trim(),
-        notes: notes.trim(),
-        proof_file: proofPhoto,
-      })
-      toast({ title: 'Rekonsiliasi Disimpan', description: 'Status penyelesaian akhir telah diperbarui.', variant: 'success' })
-      onSuccess()
-    } catch (err: any) {
-      toast({ title: 'Gagal Menyimpan', description: err.message, variant: 'error' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Penyelesaian Rekonsiliasi Akhir KKN" maxWidthClass="max-w-lg">
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-        <div className="rounded-lg border border-sage-300 bg-sage-50/70 p-3 space-y-1">
-          <p className="font-semibold text-sage-950 text-sm">{item.name}</p>
-          <p className="text-charcoal-muted">
-            Kepemilikan: <strong className="text-charcoal">{OWNERSHIP_META[item.ownership_type].label}</strong> | Pemilik: {item.owner_name || 'Kelompok'}
-          </p>
-        </div>
-
-        {/* Foto Kondisi Awal Saat Pendaftaran */}
-        {item.photo_file_id && photoUrls[item.photo_file_id] && (
-          <div className="flex items-center gap-3 p-2.5 rounded-lg border border-warm-200 bg-white">
-            <img
-              src={photoUrls[item.photo_file_id]}
-              alt={item.name}
-              className="h-16 w-16 object-cover rounded-md border border-warm-200 flex-shrink-0"
-            />
-            <div className="text-xs space-y-0.5">
-              <span className="font-semibold text-charcoal block">Foto Kondisi Awal Saat Pendaftaran</span>
-              <span className="text-[11px] text-charcoal-muted">
-                Kondisi awal: {CONDITION_BADGES[item.condition || 'good'].label} • Arsip foto awal terlindungi
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Status Penyelesaian Akhir *</label>
-          <select
-            value={finalAction}
-            onChange={(e) => setFinalAction(e.target.value as any)}
-            className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-          >
-            {isPersonal && (
-              <>
-                <option value="returned_to_owner">Sudah dikembalikan kepada pemilik</option>
-                <option value="taken_home">Sudah dibawa pulang langsung oleh pemilik</option>
-                <option value="entrusted_group">Masih dititipkan dengan persetujuan pemilik</option>
-                <option value="not_found">Belum ditemukan (Hilang dalam pencarian)</option>
-                <option value="damaged_reported">Rusak dan telah dilaporkan kepada pemilik</option>
-              </>
-            )}
-
-            {isExternal && (
-              <>
-                <option value="returned_to_lender">Sudah dikembalikan kepada pemilik (Warga / Kampus)</option>
-                <option value="pending_return">Belum dikembalikan (Masih di posko)</option>
-                <option value="awaiting_lender_confirmation">Menunggu konfirmasi dari pemilik</option>
-                <option value="lost_damaged_resolution">Hilang / rusak dan butuh penyelesaian ganti rugi</option>
-              </>
-            )}
-
-            {isGroup && (
-              <>
-                <option value="stored_next_period">Disimpan untuk kelompok / periode berikutnya</option>
-                <option value="handed_over">Diserahkan kepada pihak penerima / pengurus baru</option>
-                <option value="moved_storage">Dipindahkan ke lokasi penyimpanan kampus / desa</option>
-                <option value="sold_group_decision">Dijual berdasarkan keputusan bersama kelompok</option>
-                <option value="donated_approved">Dihibahkan ke desa / masjid dengan persetujuan</option>
-                <option value="disposed_approved">Dihapuskan / dimusnahkan secara sah</option>
-                <option value="lost_damaged_action">Hilang / rusak dan butuh tindak lanjut</option>
-              </>
-            )}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="font-semibold text-charcoal block mb-1">Pihak yang Menerima *</label>
-            <Input
-              value={receiverName}
-              onChange={(e) => setReceiverName(e.target.value)}
-              placeholder="Nama jelas penerima barang"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="font-semibold text-charcoal block mb-1">Kondisi Akhir Barang *</label>
-            <select
-              value={finalCondition}
-              onChange={(e) => setFinalCondition(e.target.value as InventoryCondition)}
-              className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-            >
-              <option value="good">Baik (Lengkap)</option>
-              <option value="fair">Cukup (Wajar Pakai)</option>
-              <option value="damaged">Rusak</option>
-              <option value="lost">Hilang</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Foto Bukti Pengembalian / Kondisi Akhir */}
-        <div className="rounded-lg border border-warm-200 bg-warm-50/70 p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-semibold text-charcoal block">
-              Foto Bukti Pengembalian / Kondisi Akhir <span className="text-charcoal-muted font-normal">(Opsional)</span>
-            </label>
-            {proofPreview && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
-                Bukti Terlampir
-              </Badge>
-            )}
-          </div>
-
-          <input
-            type="file"
-            ref={proofCameraRef}
-            accept="image/jpeg,image/png,image/webp"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => handleProofSelected(e.target.files?.[0])}
-          />
-          <input
-            type="file"
-            ref={proofGalleryRef}
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => handleProofSelected(e.target.files?.[0])}
-          />
-
-          {proofPreview ? (
-            <div className="relative rounded-lg border border-warm-300 bg-white p-2.5 flex items-center gap-3">
-              <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden border border-warm-200 bg-warm-100">
-                <img src={proofPreview} alt="Bukti Rekonsiliasi" className="h-full w-full object-cover" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-xs font-semibold text-charcoal truncate">{proofPhoto?.name || 'Bukti Serah Terima'}</p>
-                <p className="text-[11px] text-charcoal-muted">
-                  Ukuran: {proofPhoto ? `${(proofPhoto.size / 1024).toFixed(1)} KB` : '-'}
-                </p>
-                <div className="flex items-center gap-2 pt-0.5">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => proofCameraRef.current?.click()}
-                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
-                  >
-                    <Camera className="h-3 w-3" />
-                    <span>Kamera</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => proofGalleryRef.current?.click()}
-                    className="h-6 text-[11px] px-2 gap-1 text-charcoal"
-                  >
-                    <Upload className="h-3 w-3" />
-                    <span>Galeri</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleRemoveProof}
-                    className="h-6 text-[11px] px-2 text-rose-700 hover:text-rose-800"
-                  >
-                    <X className="h-3 w-3 mr-0.5" />
-                    <span>Hapus</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => proofCameraRef.current?.click()}
-                disabled={isProcessingProof}
-                className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
-              >
-                <Camera className="h-3.5 w-3.5 text-sage-700" />
-                <span className="font-semibold text-xs">Ambil Foto Bukti</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => proofGalleryRef.current?.click()}
-                disabled={isProcessingProof}
-                className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-dashed border-warm-300 bg-white hover:bg-sage-50 hover:border-sage-400 transition-colors text-charcoal"
-              >
-                <Upload className="h-3.5 w-3.5 text-sage-700" />
-                <span className="font-semibold text-xs">Pilih dari Galeri</span>
-              </button>
-            </div>
-          )}
-
-          {isProcessingProof && (
-            <p className="text-[11px] text-sage-700 animate-pulse">Mengompresi dan menyiapkan foto bukti...</p>
-          )}
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Catatan Berita Acara Rekonsiliasi *</label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Keterangan serah terima, nomor kwitansi, atau bukti konfirmasi dari pemilik/penerima..."
-            className="w-full p-2 text-xs rounded border border-warm-300 bg-white"
-            required
-          />
-        </div>
-
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
-            Batal
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-800 hover:bg-sage-900 text-white font-semibold w-full sm:w-auto">
-            {isSubmitting ? 'Menyimpan...' : 'Simpan Status Rekonsiliasi'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-// -------------------------------------------------------------
-// Sub-Modal: Laporan Penutupan Inventaris KKN (Print & CSV)
-// -------------------------------------------------------------
-interface ClosingReportModalProps {
-  open: boolean
-  onClose: () => void
-  items: InventoryItem[]
-  handovers: InventoryHandover[]
-}
-
-const ClosingReportModal: React.FC<ClosingReportModalProps> = ({
-  open,
-  onClose,
-  items,
-}) => {
-  const { toast } = useToast()
-
-  const groupItems = items.filter((i) => i.ownership_type === 'GROUP_OWNED')
-  const personalItems = items.filter((i) => i.ownership_type === 'PERSONAL_OWNED')
-  const externalItems = items.filter((i) => i.ownership_type === 'BORROWED_EXTERNAL')
-  const donatedItems = items.filter((i) => i.ownership_type === 'DONATED')
-
-  const resolvedCount = items.filter((i) => i.reconciliation_status === 'resolved').length
-  const pendingCount = items.filter((i) => i.reconciliation_status === 'pending').length
-  const problematicCount = items.filter((i) => i.reconciliation_status === 'problematic').length
-
-  const handleExportCSV = () => {
-    if (items.length === 0) {
-      toast({ title: 'Tidak Ada Data untuk Diekspor', variant: 'error' })
-      return
-    }
-
-    const headers = [
-      'Kode Inventaris',
-      'Nama Barang',
-      'Model Pelacakan',
-      'Klasifikasi Kepemilikan',
-      'Nama Pemilik',
-      'Lokasi Terkini',
-      'Pemegang Terkini',
-      'Jumlah',
-      'Satuan',
-      'Kondisi Terkini',
-      'Status Rekonsiliasi',
-      'Aksi Akhir Penutupan',
-      'Penerima Akhir',
-      'Catatan Rekonsiliasi',
-    ]
-
-    const rows = items.map((i) => [
-      i.item_code || '-',
-      `"${(i.name || '').replace(/"/g, '""')}"`,
-      i.tracking_model,
-      i.ownership_type,
-      `"${(i.owner_name || '').replace(/"/g, '""')}"`,
-      `"${(i.current_location || '').replace(/"/g, '""')}"`,
-      `"${(i.current_holder_name || '').replace(/"/g, '""')}"`,
-      i.quantity,
-      i.unit,
-      i.condition,
-      i.reconciliation_status,
-      `"${(i.reconciliation_final_action || '').replace(/"/g, '""')}"`,
-      `"${(i.reconciliation_receiver_name || '').replace(/"/g, '""')}"`,
-      `"${(i.reconciliation_notes || '').replace(/"/g, '""')}"`,
-    ])
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `Laporan_Rekonsiliasi_Inventaris_KKN_${new Date().toISOString().split('T')[0]}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast({ title: 'Laporan Berhasil Diunduh (.CSV)', variant: 'success' })
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Laporan Akhir Penutupan Inventaris KKN" maxWidthClass="max-w-4xl" scrollableContent={false}>
-      <div className="p-5 overflow-y-auto max-h-[75vh] space-y-6 text-xs print:p-0">
-        {/* Document Header */}
-        <div className="text-center pb-4 border-b-2 border-charcoal space-y-1">
-          <p className="text-xs uppercase font-bold tracking-widest text-charcoal">
-            LAPORAN REKONSILIASI &amp; BERITA ACARA PENUTUPAN INVENTARIS
-          </p>
-          <h2 className="text-base font-serif font-bold text-charcoal">
-            KKN UNIVERSITAS MATARAM — DESA PRINGGASELA SELATAN 2026
-          </h2>
-          <p className="text-[11px] text-charcoal-muted">
-            Kecamatan Pringgasela, Kabupaten Lombok Timur, Provinsi Nusa Tenggara Barat
-          </p>
-        </div>
-
-        {/* Executive Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-          <div className="p-2.5 rounded bg-warm-100">
-            <p className="text-[10px] text-charcoal-muted">Total Barang Terdata</p>
-            <p className="text-base font-bold text-charcoal">{items.length}</p>
-          </div>
-          <div className="p-2.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-200">
-            <p className="text-[10px]">Terselesaikan (Beres)</p>
-            <p className="text-base font-bold">{resolvedCount}</p>
-          </div>
-          <div className="p-2.5 rounded bg-amber-50 text-amber-900 border border-amber-200">
-            <p className="text-[10px]">Belum Direkonsiliasi</p>
-            <p className="text-base font-bold">{pendingCount}</p>
-          </div>
-          <div className="p-2.5 rounded bg-rose-50 text-rose-900 border border-rose-200">
-            <p className="text-[10px]">Bermasalah / Butuh Tindak Lanjut</p>
-            <p className="text-base font-bold">{problematicCount}</p>
-          </div>
-        </div>
-
-        {/* Breakdown by Ownership */}
-        <div className="space-y-2">
-          <h4 className="font-semibold text-charcoal text-xs uppercase tracking-wider">
-            1. Rekapitulasi Menurut Kepemilikan Barang
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-            <div className="p-2 border border-warm-200 rounded">
-              <span className="font-semibold text-charcoal">Aset Kelompok:</span> {groupItems.length} item
-            </div>
-            <div className="p-2 border border-warm-200 rounded">
-              <span className="font-semibold text-charcoal">Milik Pribadi:</span> {personalItems.length} item
-            </div>
-            <div className="p-2 border border-warm-200 rounded">
-              <span className="font-semibold text-charcoal">Pinjaman Luar:</span> {externalItems.length} item
-            </div>
-            <div className="p-2 border border-warm-200 rounded">
-              <span className="font-semibold text-charcoal">Hibah/Donasi:</span> {donatedItems.length} item
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Items Table */}
-        <div className="space-y-2">
-          <h4 className="font-semibold text-charcoal text-xs uppercase tracking-wider">
-            2. Daftar Rincian Barang &amp; Status Akhir
-          </h4>
-          <div className="border border-warm-200 rounded-lg overflow-x-auto">
-            <table className="w-full text-left text-[11px]">
-              <thead className="bg-warm-100 text-charcoal font-semibold border-b border-warm-200">
-                <tr>
-                  <th className="p-2">Kode</th>
-                  <th className="p-2">Nama Barang</th>
-                  <th className="p-2">Kepemilikan</th>
-                  <th className="p-2">Pemilik</th>
-                  <th className="p-2">Pemegang</th>
-                  <th className="p-2">Status Akhir</th>
-                  <th className="p-2">Penerima</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-warm-200">
-                {items.map((i) => (
-                  <tr key={i.id} className="hover:bg-warm-50/50">
-                    <td className="p-2 font-mono">{i.item_code}</td>
-                    <td className="p-2 font-medium">{i.name}</td>
-                    <td className="p-2">{OWNERSHIP_META[i.ownership_type].label.split('(')[0]}</td>
-                    <td className="p-2">{i.owner_name || 'Kelompok'}</td>
-                    <td className="p-2">{i.current_holder_name || 'Posko'}</td>
-                    <td className="p-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                        i.reconciliation_status === 'resolved'
-                          ? 'bg-emerald-50 text-emerald-800'
-                          : 'bg-amber-50 text-amber-800'
-                      }`}>
-                        {i.reconciliation_final_action || i.reconciliation_status}
-                      </span>
-                    </td>
-                    <td className="p-2">{i.reconciliation_receiver_name || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Signatures Block for Official Closing */}
-        <div className="pt-6 border-t border-warm-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-          <div className="space-y-12">
-            <p className="text-[11px] font-semibold text-charcoal">Ketua KKN</p>
-            <p className="text-xs font-semibold underline text-charcoal">Josua Ujung</p>
-          </div>
-          <div className="space-y-12">
-            <p className="text-[11px] font-semibold text-charcoal">Sekretaris KKN</p>
-            <p className="text-xs font-semibold underline text-charcoal">Dini Aminarti</p>
-          </div>
-          <div className="space-y-12">
-            <p className="text-[11px] font-semibold text-charcoal">Bendahara KKN</p>
-            <p className="text-xs font-semibold underline text-charcoal">Tsaniatul Amni Alwan</p>
-          </div>
-          <div className="space-y-12">
-            <p className="text-[11px] font-semibold text-charcoal">Dosen Pembimbing Lapangan</p>
-            <p className="text-xs font-semibold underline text-charcoal">Lalu Muhammad Aby Dujana, M.Si.</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 bg-warm-50 border-t border-warm-200 flex items-center justify-between">
-        <Button variant="outline" size="sm" onClick={onClose} className="text-xs">
-          Tutup
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV} className="text-xs gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            <span>Ekspor CSV</span>
-          </Button>
-          <Button size="sm" onClick={() => window.print()} className="text-xs gap-1.5 bg-sage-800 hover:bg-sage-900 text-white">
-            <Printer className="h-3.5 w-3.5" />
-            <span>Cetak Berita Acara</span>
           </Button>
         </div>
       </div>
@@ -3069,7 +2249,7 @@ const QuickSearchQrModal: React.FC<QuickSearchQrModalProps> = ({
 
             <div className="space-y-1 text-xs border-t border-warm-200 pt-2 text-charcoal">
               <p><strong className="text-charcoal-muted">Pemilik:</strong> {foundItem.owner_name || 'Kelompok KKN'}</p>
-              <p><strong className="text-charcoal-muted">Pemegang Terkini:</strong> {foundItem.current_holder_name || foundItem.responsible_person || 'Posko'}</p>
+              <p><strong className="text-charcoal-muted">Penanggung Jawab:</strong> {foundItem.current_holder_name || foundItem.responsible_person || 'Posko'}</p>
               <p><strong className="text-charcoal-muted">Lokasi Terkini:</strong> {foundItem.current_location}</p>
               <p><strong className="text-charcoal-muted">Kondisi:</strong> {foundItem.condition}</p>
               <p><strong className="text-charcoal-muted">Status:</strong> {STATUS_META[foundItem.item_status].label}</p>
@@ -3116,22 +2296,26 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast()
-  const [movementType, setMovementType] = useState<'in' | 'out' | 'adjustment'>('in')
-  const [quantity, setQuantity] = useState(1)
-  const [notes, setNotes] = useState('')
+  const [newQuantity, setNewQuantity] = useState(item.quantity)
+  const [reason, setReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!notes.trim()) {
-      toast({ title: 'Keterangan Wajib Diisi', variant: 'error' })
+    if (!reason.trim()) {
+      toast({ title: 'Alasan Wajib Diisi', description: 'Harap sertakan alasan mutasi penyesuaian stok.', variant: 'error' })
       return
     }
 
     setIsSubmitting(true)
     try {
-      await adjustInventoryStock(item.id, movementType, quantity, notes)
-      toast({ title: 'Mutasi Stok Berhasil', variant: 'success' })
+      await adjustInventoryStock(
+        item.id,
+        'adjustment',
+        newQuantity,
+        reason.trim()
+      )
+      toast({ title: 'Stok Berhasil Disesuaikan', variant: 'success' })
       onSuccess()
     } catch (err: any) {
       toast({ title: 'Gagal Menyesuaikan Stok', description: err.message, variant: 'error' })
@@ -3145,128 +2329,36 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         <div className="rounded-lg border border-warm-200 bg-warm-50 p-3 space-y-1">
           <p className="font-semibold text-charcoal">{item.name}</p>
-          <p className="text-charcoal-muted">
-            Stok saat ini: {item.available_quantity} / {item.quantity} {item.unit}
-          </p>
+          <p className="text-charcoal-muted">Stok Tercatat Saat Ini: <strong className="text-charcoal">{item.quantity} {item.unit}</strong></p>
         </div>
 
         <div>
-          <label className="font-semibold text-charcoal block mb-1">Jenis Mutasi *</label>
-          <select
-            value={movementType}
-            onChange={(e) => setMovementType(e.target.value as any)}
-            className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-          >
-            <option value="in">Barang Masuk / Tambah Stok (+)</option>
-            <option value="out">Barang Keluar / Terpakai (-)</option>
-            <option value="adjustment">Koreksi Stok Opname</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Jumlah *</label>
+          <label className="font-semibold text-charcoal block mb-1">Jumlah Stok Fisik Sebenarnya *</label>
           <Input
             type="number"
-            min="1"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
+            min={0}
+            value={newQuantity}
+            onChange={(e) => setNewQuantity(parseInt(e.target.value) || 0)}
             required
           />
         </div>
 
         <div>
-          <label className="font-semibold text-charcoal block mb-1">Alasan / Keterangan Mutasi *</label>
+          <label className="font-semibold text-charcoal block mb-1">Alasan Penyesuaian Stok *</label>
           <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Misal: Pembelian tambahan kas atau pemakaian rapat warga"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Contoh: Stok opname mingguan / Habis dipakai kegiatan / Pembelian baru"
             required
           />
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
             Batal
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white w-full sm:w-auto">
-            {isSubmitting ? 'Menyimpan...' : 'Simpan Mutasi'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-// -------------------------------------------------------------
-// Sub-Modal: Return Loan (Catat Pengembalian Pinjaman)
-// -------------------------------------------------------------
-interface ReturnLoanModalProps {
-  open: boolean
-  onClose: () => void
-  loan: InventoryLoan
-  onSuccess: () => void
-}
-
-const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
-  open,
-  onClose,
-  loan,
-  onSuccess,
-}) => {
-  const { toast } = useToast()
-  const [conditionAfter, setConditionAfter] = useState<InventoryCondition>('good')
-  const [notes, setNotes] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    try {
-      await returnInventoryLoan(loan.id, conditionAfter, notes)
-      toast({ title: 'Pengembalian Berhasil Dicatat', variant: 'success' })
-      onSuccess()
-    } catch (err: any) {
-      toast({ title: 'Gagal Mencatat Pengembalian', description: err.message, variant: 'error' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Catat Pengembalian Barang Posko" maxWidthClass="max-w-md">
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-        <div className="rounded-lg border border-warm-200 bg-warm-50 p-3 space-y-1">
-          <p className="font-semibold text-charcoal">{loan.quantity} unit barang telah diserahkan kembali.</p>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Kondisi Barang Setelah Dipakai *</label>
-          <select
-            value={conditionAfter}
-            onChange={(e) => setConditionAfter(e.target.value as InventoryCondition)}
-            className="w-full text-xs h-8 px-2 rounded border border-warm-300 bg-white"
-          >
-            <option value="good">Baik (Lengkap)</option>
-            <option value="fair">Cukup (Sedikit Kotor/Aus)</option>
-            <option value="damaged">Rusak (Membutuhkan Perbaikan)</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="font-semibold text-charcoal block mb-1">Catatan Pemeriksaan</label>
-          <Input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Pemeriksaan fisik barang saat dikembalikan..."
-          />
-        </div>
-
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
-            Batal
-          </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white w-full sm:w-auto">
-            {isSubmitting ? 'Menyimpan...' : 'Konfirmasi Pengembalian'}
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white">
+            {isSubmitting ? 'Menyimpan...' : 'Simpan Mutasi Stok'}
           </Button>
         </div>
       </form>
