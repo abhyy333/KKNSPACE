@@ -270,6 +270,69 @@ export function runPrerender() {
   }
 
   console.log(`Successfully prerendered ${generatedCount} static HTML SEO routes into dist/!`)
+  generateSitemap(distDir)
+}
+
+export function generateSitemap(distDir: string) {
+  const publicDir = path.resolve(process.cwd(), 'public')
+  const now = new Date().toISOString()
+
+  const routeMeta: Record<SeoRouteKey, { changefreq: string; priority: string; comment: string }> = {
+    home: { changefreq: 'daily', priority: '1.0', comment: 'Homepage' },
+    villageProfile: { changefreq: 'weekly', priority: '0.9', comment: 'Profil Desa (Village Profile Overview)' },
+    villageHistory: { changefreq: 'monthly', priority: '0.8', comment: 'Profil Desa — Sejarah' },
+    villageTerritory: { changefreq: 'monthly', priority: '0.8', comment: 'Profil Desa — Peta & 7 Dusun' },
+    villageTourism: { changefreq: 'monthly', priority: '0.8', comment: 'Profil Desa — Pariwisata' },
+    villageCulture: { changefreq: 'monthly', priority: '0.8', comment: 'Profil Desa — Budaya & Sentra Tenun Sasak' },
+    villageEconomy: { changefreq: 'monthly', priority: '0.8', comment: 'Profil Desa — Potensi Ekonomi & UMKM' },
+    villageGallery: { changefreq: 'weekly', priority: '0.7', comment: 'Profil Desa — Galeri Foto' },
+    team: { changefreq: 'weekly', priority: '0.9', comment: 'Tim KKN Universitas Mataram' },
+    programs: { changefreq: 'weekly', priority: '0.9', comment: 'Program Kerja KKN' },
+    documentation: { changefreq: 'weekly', priority: '0.8', comment: 'Galeri Dokumentasi Kegiatan' },
+    timeline: { changefreq: 'monthly', priority: '0.8', comment: 'Timeline & Tahapan KKN' },
+    sponsors: { changefreq: 'weekly', priority: '0.8', comment: 'Sponsor & Mitra Kolaborasi' },
+  }
+
+  const urlBlocks: string[] = []
+
+  for (const target of PUBLIC_ROUTE_TARGETS) {
+    const meta = routeMeta[target.routeKey] || { changefreq: 'weekly', priority: '0.8', comment: target.canonicalPath }
+    const canonicalUrl = `${SITE_URL}${target.canonicalPath === '/' ? '/' : target.canonicalPath}`
+    const hreflangs = buildHreflangTags(target.canonicalPath)
+    const hreflangLinks = hreflangs
+      .map((h) => `    <xhtml:link rel="alternate" hreflang="${h.lang}" href="${h.href}" />`)
+      .join('\n')
+
+    urlBlocks.push(`  <!-- ${meta.comment} -->
+  <url>
+    <loc>${canonicalUrl}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${meta.changefreq}</changefreq>
+    <priority>${meta.priority}</priority>
+${hreflangLinks}
+  </url>`)
+  }
+
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urlBlocks.join('\n\n')}
+</urlset>
+`
+
+  // Write to both public and dist directories
+  fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapXml, 'utf-8')
+  if (fs.existsSync(distDir)) {
+    fs.writeFileSync(path.join(distDir, 'sitemap.xml'), sitemapXml, 'utf-8')
+  }
+
+  // Ensure robots.txt is in dist as well
+  const publicRobots = path.join(publicDir, 'robots.txt')
+  if (fs.existsSync(publicRobots) && fs.existsSync(distDir)) {
+    fs.copyFileSync(publicRobots, path.join(distDir, 'robots.txt'))
+  }
+
+  console.log(`Successfully generated and synchronized sitemap.xml with ${PUBLIC_ROUTE_TARGETS.length} public canonical routes!`)
 }
 
 runPrerender()
