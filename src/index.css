@@ -93,6 +93,15 @@
   }
 
   /* 2. Adaptive Modal Layout */
+  @media screen and (max-width: 639px) {
+    [role="dialog"] {
+      width: calc(100vw - 16px) !important;
+      max-width: calc(100vw - 16px) !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+  }
+
   .modal-surface-adaptive {
     max-height: calc(100vh - 16px);
     max-height: calc(100dvh - 16px);
@@ -114,9 +123,14 @@
   }
 
   /* 3. Global viewport stability & overflow isolation */
-  html, body {
+  html,
+  body,
+  #root {
+    width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 4. Responsive table container */

@@ -269,6 +269,17 @@ export const TasksPage: React.FC = () => {
     }
   }
 
+  const onFormValidationError = (formErrors: typeof errors) => {
+    const firstKey = Object.keys(formErrors)[0] as keyof typeof formErrors
+    const msg = formErrors[firstKey]?.message || 'Periksa kembali isian formulir tugas yang wajib diisi.'
+    setFormError(msg)
+    toast({
+      title: 'Validasi Formulir',
+      description: msg,
+      variant: 'error',
+    })
+  }
+
   const todayKey = getLocalDateKey()
   const currentUserId = user?.id ?? null
 
@@ -589,7 +600,7 @@ export const TasksPage: React.FC = () => {
         description="Hubungkan tugas ke program kerja terkait dan pilih anggota penanggung jawabnya."
         maxWidthClass="max-w-lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit, onFormValidationError)} className="space-y-4">
           {formError && (
             <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -660,9 +671,11 @@ export const TasksPage: React.FC = () => {
                 {members.map((m) => (
                   <label
                     key={m.user_id}
+                    htmlFor={`assignee-${m.user_id}`}
                     className="flex items-center gap-2.5 px-3 py-2 text-xs cursor-pointer hover:bg-warm-50"
                   >
                     <input
+                      id={`assignee-${m.user_id}`}
                       type="checkbox"
                       checked={selectedAssignees.includes(m.user_id)}
                       onChange={() =>
@@ -684,15 +697,15 @@ export const TasksPage: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-warm-200">
-            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal}>
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal} className="w-full sm:w-auto">
               Batal
             </Button>
             <Button
               type="submit"
               size="sm"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="gap-1.5"
+              className="w-full sm:w-auto gap-1.5"
             >
               {(createMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

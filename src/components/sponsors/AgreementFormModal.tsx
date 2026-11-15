@@ -218,8 +218,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
         {/* Row 1: Sponsor & Tier Selection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="font-semibold text-charcoal">Mitra / Organisasi Sponsor *</label>
+            <label htmlFor="agree-sponsor-id" className="font-semibold text-charcoal">Mitra / Organisasi Sponsor *</label>
             <select
+              id="agree-sponsor-id"
               value={sponsorId}
               onChange={(e) => {
                 setSponsorId(e.target.value)
@@ -243,8 +244,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-charcoal">Sponsorship Tier / Kemitraan *</label>
+            <label htmlFor="agree-tier-key" className="font-semibold text-charcoal">Sponsorship Tier / Kemitraan *</label>
             <select
+              id="agree-tier-key"
               value={tierKey}
               onChange={(e) => handleTierChange(e.target.value as SponsorshipTierKey)}
               className="w-full rounded-xl border border-warm-300 p-2.5 text-xs bg-white text-charcoal focus:ring-forest font-semibold"
@@ -262,8 +264,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
         {/* Row 2: Title & Relationship Category */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2 space-y-1">
-            <label className="font-semibold text-charcoal">Judul Kesepakatan / Dokumen Perjanjian *</label>
+            <label htmlFor="agree-title" className="font-semibold text-charcoal">Judul Kesepakatan / Dokumen Perjanjian *</label>
             <Input
+              id="agree-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Contoh: MoU Dukungan Operasional & Publikasi — PT ABC"
@@ -272,8 +275,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-charcoal">Jenis Hubungan *</label>
+            <label htmlFor="agree-rel-type" className="font-semibold text-charcoal">Jenis Hubungan *</label>
             <select
+              id="agree-rel-type"
               value={relationshipType}
               onChange={(e) => setRelationshipType(e.target.value as SponsorCategory)}
               className="w-full rounded-xl border border-warm-300 p-2.5 text-xs bg-white text-charcoal focus:ring-forest"
@@ -454,8 +458,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
         {/* PIC & Special Terms */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="font-semibold text-charcoal">Penanggung Jawab Internal (PIC Posko)</label>
+            <label htmlFor="agree-pic-user" className="font-semibold text-charcoal">Penanggung Jawab Internal (PIC Posko)</label>
             <select
+              id="agree-pic-user"
               value={picUserId}
               onChange={(e) => setPicUserId(e.target.value)}
               className="w-full rounded-xl border border-warm-300 p-2.5 text-xs bg-white text-charcoal focus:ring-forest"
@@ -470,8 +475,9 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
           </div>
 
           <div className="space-y-1">
-            <label className="font-semibold text-charcoal">Ketentuan Khusus / Catatan Tambahan</label>
+            <label htmlFor="agree-special-terms" className="font-semibold text-charcoal">Ketentuan Khusus / Catatan Tambahan</label>
             <Input
+              id="agree-special-terms"
               value={specialTerms}
               onChange={(e) => setSpecialTerms(e.target.value)}
               placeholder="Contoh: Mitra meminta sertifikat fisik diserahkan saat lokakarya desa."
@@ -479,11 +485,11 @@ export const AgreementFormModal: React.FC<AgreementFormModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
-          <Button type="submit" size="sm" className="bg-forest hover:bg-forest/90 text-white" disabled={isSubmitting}>
+          <Button type="submit" size="sm" className="w-full sm:w-auto bg-forest hover:bg-forest/90 text-white" disabled={isSubmitting}>
             {isSubmitting ? 'Menyimpan...' : 'Simpan Kesepakatan & Kunci Snapshot'}
           </Button>
         </div>

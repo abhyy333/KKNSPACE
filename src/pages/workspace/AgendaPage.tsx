@@ -342,6 +342,17 @@ export const AgendaPage: React.FC = () => {
     }
   }
 
+  const onFormValidationError = (formErrors: typeof errors) => {
+    const firstKey = Object.keys(formErrors)[0] as keyof typeof formErrors
+    const msg = formErrors[firstKey]?.message || 'Periksa kembali isian formulir agenda yang wajib diisi.'
+    setFormError(msg)
+    toast({
+      title: 'Validasi Formulir',
+      description: msg,
+      variant: 'error',
+    })
+  }
+
   // Equipment tag handling
   const addEquipTag = () => {
     const val = newEquipInput.trim()
@@ -836,7 +847,7 @@ export const AgendaPage: React.FC = () => {
         maxWidthClass="max-w-2xl"
         scrollableContent={false}
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+        <form onSubmit={handleSubmit(onSubmit, onFormValidationError)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
             {formError && (
               <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -1173,13 +1184,13 @@ export const AgendaPage: React.FC = () => {
           </div>
 
           {/* Form Actions Footer */}
-          <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="flex shrink-0 flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 border-t border-warm-200 bg-warm-50/95 px-4 py-3 sm:px-6 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={handleCloseModal}
-              className="h-9 px-3.5 text-xs text-charcoal hover:bg-warm-100"
+              className="h-9 px-3.5 text-xs text-charcoal hover:bg-warm-100 w-full sm:w-auto"
             >
               Batal
             </Button>
@@ -1187,7 +1198,7 @@ export const AgendaPage: React.FC = () => {
               type="submit"
               size="sm"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="h-9 px-4 text-xs gap-1.5 bg-forest hover:bg-forest/90 text-white font-semibold shadow-xs"
+              className="h-9 px-4 text-xs gap-1.5 bg-forest hover:bg-forest/90 text-white font-semibold shadow-xs w-full sm:w-auto"
             >
               {(createMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

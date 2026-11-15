@@ -85,37 +85,37 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
       : 'Posko Desa (Belum Diatur)'
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-warm-300 bg-white/95 px-4 backdrop-blur-xs sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 w-full max-w-full items-center justify-between border-b border-warm-300 bg-white/95 px-3 backdrop-blur-xs sm:px-6 overflow-hidden">
       {/* Left side: Hamburger button + Context Title */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 max-w-[50%] sm:max-w-none">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-md p-1.5 text-charcoal hover:bg-warm-200/80 lg:hidden focus:outline-none"
+          className="rounded-md p-1.5 text-charcoal hover:bg-warm-200/80 lg:hidden focus:outline-none shrink-0"
           aria-label="Toggle navigation"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-semibold text-charcoal tracking-wide uppercase shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 overflow-hidden">
+          <span className="text-xs font-semibold text-charcoal tracking-wide uppercase shrink-0 hidden sm:inline">
             {t('workspace.nav.workSpace')}
           </span>
-          <span className="text-warm-400 shrink-0">/</span>
-          <span className="text-xs text-charcoal-muted truncate">{poskoLabel}</span>
+          <span className="text-warm-400 shrink-0 hidden sm:inline">/</span>
+          <span className="text-xs text-charcoal-muted truncate min-w-0">{poskoLabel}</span>
         </div>
       </div>
 
       {/* Right side: Global search, super admin shortcut, notifications, and profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0 max-w-[50%] justify-end">
         {/* Global Search Button */}
         <button
           type="button"
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 rounded-lg border border-warm-200 bg-warm-50/80 px-2.5 py-1.5 text-xs text-charcoal-muted hover:border-sage-400 hover:bg-white hover:text-charcoal transition-colors"
+          className="flex items-center gap-1 rounded-lg border border-warm-200 bg-warm-50/80 p-1.5 sm:px-2.5 sm:py-1.5 text-xs text-charcoal-muted hover:border-sage-400 hover:bg-white hover:text-charcoal transition-colors shrink-0"
           title={`${t('common.search')} (Ctrl+K)`}
         >
-          <Search className="h-3.5 w-3.5 text-sage-700" />
+          <Search className="h-3.5 w-3.5 text-sage-700 shrink-0" />
           <span className="hidden md:inline">{t('common.search')}...</span>
           <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-warm-300 bg-warm-100 px-1 py-0.2 font-mono text-[9px] text-charcoal-muted">
             Ctrl+K
@@ -123,8 +123,8 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
         </button>
 
         {isSuperAdmin && (
-          <Link to="/admin">
-            <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5 text-xs text-sage-800 border-sage-300 bg-sage-50 hover:bg-sage-100">
+          <Link to="/admin" className="hidden sm:inline-flex shrink-0">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs text-sage-800 border-sage-300 bg-sage-50 hover:bg-sage-100">
               <Shield className="h-3.5 w-3.5 text-sage-600" />
               <span>Admin Console</span>
             </Button>
@@ -132,18 +132,18 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
         )}
 
         {/* Multilingual Switcher */}
-        <div className="hidden sm:block">
+        <div className="hidden sm:block shrink-0">
           <LanguageSwitcher variant="compact" />
         </div>
-        <div className="sm:hidden">
+        <div className="sm:hidden shrink-0">
           <LanguageSwitcher variant="minimal" />
         </div>
 
-        <div className="relative" ref={notifContainerRef}>
+        <div className="relative shrink-0" ref={notifContainerRef}>
           <button
             type="button"
             onClick={() => setNotifOpen((prev) => !prev)}
-            className="rounded-full p-2 text-charcoal-muted hover:bg-warm-200/60 hover:text-charcoal transition-colors relative"
+            className="rounded-full p-1.5 sm:p-2 text-charcoal-muted hover:bg-warm-200/60 hover:text-charcoal transition-colors relative"
             aria-label="Notifikasi pengumuman"
             aria-expanded={notifOpen}
           >
@@ -239,16 +239,16 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
           )}
         </div>
 
-        <div className="h-5 w-[1px] bg-warm-300 mx-1" />
+        <div className="h-5 w-[1px] bg-warm-300 mx-0.5 sm:mx-1 shrink-0 hidden sm:block" />
 
         {/* User profile shortcut & sign out */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <Link
             to="/workspace/profile"
-            className="flex items-center gap-2.5 rounded-md px-1.5 py-1 hover:bg-warm-100 transition-colors"
+            className="flex items-center gap-2 rounded-md p-1 hover:bg-warm-100 transition-colors shrink-0"
             title="Buka Profil Saya"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sage-100 text-sage-800 font-semibold text-xs border border-sage-200">
+            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-sage-100 text-sage-800 font-semibold text-xs border border-sage-200 shrink-0">
               {userName ? userName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden md:flex flex-col text-left">
@@ -266,7 +266,7 @@ export const WorkspaceTopbar: React.FC<WorkspaceTopbarProps> = ({
             size="icon"
             onClick={handleLogout}
             title={`${t('auth.signOut')} (${userEmail})`}
-            className="text-charcoal-muted hover:text-red-600 h-8 w-8"
+            className="text-charcoal-muted hover:text-red-600 h-7 w-7 sm:h-8 sm:w-8 p-1 shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </Button>

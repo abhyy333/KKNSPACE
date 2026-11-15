@@ -301,6 +301,17 @@ export const ProgramsWorkspacePage: React.FC = () => {
     }
   }
 
+  const onProgramValidationError = (formErrors: typeof errors) => {
+    const firstKey = Object.keys(formErrors)[0] as keyof typeof formErrors
+    const msg = formErrors[firstKey]?.message || 'Periksa kembali isian program kerja yang wajib diisi.'
+    setFormError(msg)
+    toast({
+      title: 'Validasi Formulir',
+      description: msg,
+      variant: 'error',
+    })
+  }
+
   const openAssignmentModal = (prog: WorkProgram) => {
     const existing = assignmentsByProgram.get(prog.id) ?? []
     const draft: Record<string, ProgramAssignmentType> = {}
@@ -664,7 +675,7 @@ export const ProgramsWorkspacePage: React.FC = () => {
         }
         maxWidthClass="max-w-lg"
       >
-        <form onSubmit={handleSubmit(onSubmitProgram)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmitProgram, onProgramValidationError)} className="space-y-4">
           {formError && (
             <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -759,15 +770,15 @@ export const ProgramsWorkspacePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-warm-200">
-            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal}>
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+            <Button type="button" variant="ghost" size="sm" onClick={handleCloseModal} className="w-full sm:w-auto">
               Batal
             </Button>
             <Button
               type="submit"
               size="sm"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="gap-1.5"
+              className="gap-1.5 w-full sm:w-auto"
             >
               {(createMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

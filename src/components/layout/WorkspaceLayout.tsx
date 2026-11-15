@@ -48,7 +48,7 @@ export const WorkspaceLayout: React.FC = () => {
   const villageName = groupSettings?.village_name?.trim() || 'Desa belum diatur'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-warm-100 text-charcoal">
+    <div className="flex h-screen w-full max-w-full overflow-hidden bg-warm-100 text-charcoal">
       <SeoHead noindex title="Workspace KKN" />
       {/* Sidebar Navigation */}
       <WorkspaceSidebar
@@ -62,7 +62,7 @@ export const WorkspaceLayout: React.FC = () => {
       />
 
       {/* Main Content Area — takes remaining width, scrolls independently */}
-      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+      <div className="flex flex-1 flex-col min-w-0 max-w-full overflow-hidden">
         <WorkspaceTopbar
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
           userName={displayName}
@@ -74,8 +74,8 @@ export const WorkspaceLayout: React.FC = () => {
           isLoadingNotifications={isLoadingNotifications}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 max-w-full">
+          <div className="mx-auto max-w-7xl min-w-0">
             <Outlet />
           </div>
         </main>

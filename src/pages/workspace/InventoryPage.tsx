@@ -1990,11 +1990,11 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white">
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white w-full sm:w-auto">
             {isSubmitting ? 'Menyimpan...' : initialData ? 'Simpan Perubahan' : 'Daftarkan Barang'}
           </Button>
         </div>
@@ -2503,11 +2503,11 @@ const ReconciliationResolveModal: React.FC<ReconciliationResolveModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-800 hover:bg-sage-900 text-white font-semibold">
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-800 hover:bg-sage-900 text-white font-semibold w-full sm:w-auto">
             {isSubmitting ? 'Menyimpan...' : 'Simpan Status Rekonsiliasi'}
           </Button>
         </div>
@@ -2930,11 +2930,11 @@ const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white">
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white w-full sm:w-auto">
             {isSubmitting ? 'Menyimpan...' : 'Simpan Mutasi'}
           </Button>
         </div>
@@ -3007,11 +3007,11 @@ const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
-          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white">
+          <Button type="submit" size="sm" disabled={isSubmitting} className="bg-sage-700 hover:bg-sage-800 text-white w-full sm:w-auto">
             {isSubmitting ? 'Menyimpan...' : 'Konfirmasi Pengembalian'}
           </Button>
         </div>

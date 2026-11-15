@@ -282,10 +282,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-charcoal">
+            <label htmlFor="sponsor-name" className="text-xs font-semibold text-charcoal">
               Nama Organisasi / Perusahaan <span className="text-rose-500">*</span>
             </label>
             <Input
+              id="sponsor-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Contoh: PT Semen Lombok Utama / Bank NTB Syariah"
@@ -296,7 +297,7 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           {/* Logo Upload Area */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-charcoal flex items-center justify-between">
+            <label htmlFor="sponsor-logo-input" className="text-xs font-semibold text-charcoal flex items-center justify-between cursor-pointer">
               <span>Logo Resmi Organisasi</span>
               <span className="text-[11px] font-normal text-charcoal-muted">PNG, JPG, WebP (Maks. 10MB)</span>
             </label>
@@ -357,6 +358,7 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             )}
 
             <input
+              id="sponsor-logo-input"
               ref={fileInputRef}
               type="file"
               accept=".png,.jpg,.jpeg,.webp"
@@ -367,8 +369,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Kategori Kerja Sama</label>
+              <label htmlFor="sponsor-category" className="text-xs font-semibold text-charcoal">Kategori Kerja Sama</label>
               <select
+                id="sponsor-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as SponsorCategory)}
                 className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30"
@@ -382,8 +385,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Bentuk Kontribusi Utama</label>
+              <label htmlFor="sponsor-contrib-type" className="text-xs font-semibold text-charcoal">Bentuk Kontribusi Utama</label>
               <select
+                id="sponsor-contrib-type"
                 value={contributionType}
                 onChange={(e) => setContributionType(e.target.value as SponsorContributionType)}
                 className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30"
@@ -399,8 +403,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Tier Kemitraan (Sponsorship Tier)</label>
+              <label htmlFor="sponsor-tier-key" className="text-xs font-semibold text-charcoal">Tier Kemitraan (Sponsorship Tier)</label>
               <select
+                id="sponsor-tier-key"
                 value={tierKey}
                 onChange={(e) => {
                   const val = e.target.value as SponsorshipTierKey
@@ -424,8 +429,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Paket Template (Opsional)</label>
+              <label htmlFor="sponsor-package-id" className="text-xs font-semibold text-charcoal">Paket Template (Opsional)</label>
               <select
+                id="sponsor-package-id"
                 value={packageId}
                 onChange={(e) => {
                   setPackageId(e.target.value)
@@ -445,8 +451,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-charcoal">Deskripsi Singkat Profil (Tampil di Publik)</label>
+            <label htmlFor="sponsor-desc" className="text-xs font-semibold text-charcoal">Deskripsi Singkat Profil (Tampil di Publik)</label>
             <textarea
+              id="sponsor-desc"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -456,8 +463,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-charcoal">Rincian Bentuk Dukungan / Kontribusi</label>
+            <label htmlFor="sponsor-contrib-desc" className="text-xs font-semibold text-charcoal">Rincian Bentuk Dukungan / Kontribusi</label>
             <textarea
+              id="sponsor-contrib-desc"
               rows={2}
               value={contributionDescription}
               onChange={(e) => setContributionDescription(e.target.value)}
@@ -478,8 +486,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Website Resmi (Opsional)</label>
+              <label htmlFor="sponsor-website-url" className="text-xs font-semibold text-charcoal">Website Resmi (Opsional)</label>
               <Input
+                id="sponsor-website-url"
                 type="url"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
@@ -489,8 +498,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Media Sosial Resmi (Opsional)</label>
+              <label htmlFor="sponsor-social-url" className="text-xs font-semibold text-charcoal">Media Sosial Resmi (Opsional)</label>
               <Input
+                id="sponsor-social-url"
                 type="url"
                 value={socialMediaUrl}
                 onChange={(e) => setSocialMediaUrl(e.target.value)}
@@ -502,8 +512,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Tanggal Mulai Kerja Sama</label>
+              <label htmlFor="sponsor-start-date" className="text-xs font-semibold text-charcoal">Tanggal Mulai Kerja Sama</label>
               <Input
+                id="sponsor-start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
@@ -512,8 +523,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Tanggal Berakhir (Kosongkan jika berkelanjutan)</label>
+              <label htmlFor="sponsor-end-date" className="text-xs font-semibold text-charcoal">Tanggal Berakhir (Kosongkan jika berkelanjutan)</label>
               <Input
+                id="sponsor-end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -534,8 +546,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Status Hubungan / Pipeline</label>
+              <label htmlFor="sponsor-partnership-status" className="text-xs font-semibold text-charcoal">Status Hubungan / Pipeline</label>
               <select
+                id="sponsor-partnership-status"
                 value={partnershipStatus}
                 onChange={(e) => setPartnershipStatus(e.target.value as SponsorPartnershipStatus)}
                 className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30 font-medium"
@@ -549,8 +562,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">PIC Anggota KKN</label>
+              <label htmlFor="sponsor-pic-user" className="text-xs font-semibold text-charcoal">PIC Anggota KKN</label>
               <select
+                id="sponsor-pic-user"
                 value={picUserId}
                 onChange={(e) => setPicUserId(e.target.value)}
                 className="w-full text-xs rounded-lg border border-warm-300 bg-white px-3 py-2 text-charcoal focus:outline-hidden focus:ring-2 focus:ring-forest/30"
@@ -567,10 +581,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal flex items-center gap-1">
+              <label htmlFor="sponsor-contact-name" className="text-xs font-semibold text-charcoal flex items-center gap-1">
                 <User className="h-3.5 w-3.5 text-charcoal-muted" /> Nama Kontak
               </label>
               <Input
+                id="sponsor-contact-name"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="PIC Eksternal"
@@ -579,10 +594,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal flex items-center gap-1">
+              <label htmlFor="sponsor-contact-email" className="text-xs font-semibold text-charcoal flex items-center gap-1">
                 <Mail className="h-3.5 w-3.5 text-charcoal-muted" /> Email
               </label>
               <Input
+                id="sponsor-contact-email"
                 type="email"
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
@@ -592,10 +608,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal flex items-center gap-1">
+              <label htmlFor="sponsor-contact-phone" className="text-xs font-semibold text-charcoal flex items-center gap-1">
                 <Phone className="h-3.5 w-3.5 text-charcoal-muted" /> Telepon / WA
               </label>
               <Input
+                id="sponsor-contact-phone"
                 type="tel"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
@@ -607,10 +624,11 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal flex items-center gap-1">
+              <label htmlFor="sponsor-followup-date" className="text-xs font-semibold text-charcoal flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5 text-charcoal-muted" /> Jadwal Follow-up Berikutnya
               </label>
               <Input
+                id="sponsor-followup-date"
                 type="date"
                 value={nextFollowUpDate}
                 onChange={(e) => setNextFollowUpDate(e.target.value)}
@@ -620,8 +638,9 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-charcoal">Catatan Pendekatan & Negosiasi Internal</label>
+            <label htmlFor="sponsor-internal-notes" className="text-xs font-semibold text-charcoal">Catatan Pendekatan & Negosiasi Internal</label>
             <textarea
+              id="sponsor-internal-notes"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -632,15 +651,15 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-warm-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-warm-200">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Batal
           </Button>
           <Button
             type="submit"
             size="sm"
             disabled={isSubmitting}
-            className="bg-forest hover:bg-forest/90 text-white gap-1.5 shadow-subtle"
+            className="w-full sm:w-auto bg-forest hover:bg-forest/90 text-white gap-1.5 shadow-subtle"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>{sponsor ? 'Simpan Perubahan' : 'Simpan Data Sponsor'}</span>
