@@ -260,7 +260,7 @@ export const AdminVillagePage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-charcoal">Gambaran Umum (Overview)</label>
+              <label className="text-xs font-semibold text-charcoal">Gambaran Umum Desa</label>
               <textarea
                 rows={4}
                 value={profileForm.overview || ''}

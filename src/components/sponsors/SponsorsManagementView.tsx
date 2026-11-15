@@ -316,7 +316,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
           }`}
         >
           <Building2 className="h-3.5 w-3.5" />
-          <span>Overview</span>
+          <span>Ringkasan</span>
         </button>
 
         <button
@@ -329,7 +329,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
           }`}
         >
           <Clock className="h-3.5 w-3.5" />
-          <span>Sponsor Pipeline</span>
+          <span>Calon Sponsor</span>
           {stats?.totalPipelineProspects ? (
             <span className="rounded-full bg-forest/10 text-forest text-[10px] font-mono px-1.5 py-0.2">
               {stats.totalPipelineProspects}
@@ -347,7 +347,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
           }`}
         >
           <Building2 className="h-3.5 w-3.5" />
-          <span>Sponsor Directory</span>
+          <span>Direktori Sponsor</span>
           {stats?.totalActiveSponsors ? (
             <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono px-1.5 py-0.2">
               {stats.totalActiveSponsors}
@@ -383,7 +383,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
           }`}
         >
           <Edit2 className="h-3.5 w-3.5" />
-          <span>Proposal Generator</span>
+          <span>Penyusun Proposal</span>
           {stats?.totalProposalsCount ? (
             <span className="rounded-full bg-warm-200 text-charcoal text-[10px] font-mono px-1.5 py-0.2">
               {stats.totalProposalsCount}
@@ -402,7 +402,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Paket Kemitraan (Tiers)</span>
+            <span>Paket Kemitraan</span>
           </button>
         )}
 
@@ -416,7 +416,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
           }`}
         >
           <Send className="h-3.5 w-3.5" />
-          <span>Publication Requests</span>
+          <span>Pengajuan Publikasi</span>
           {stats?.pendingPublicationRequests ? (
             <span className="rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.2 animate-pulse">
               {stats.pendingPublicationRequests}
@@ -435,7 +435,7 @@ export const SponsorsManagementView: React.FC<SponsorsManagementViewProps> = ({ 
             }`}
           >
             <Settings className="h-3.5 w-3.5" />
-            <span>Partnership Settings</span>
+            <span>Pengaturan Kemitraan</span>
           </button>
         )}
       </div>

@@ -280,7 +280,7 @@ export const PoskoOperationsSummaryCard: React.FC<PoskoOperationsSummaryCardProp
             </CardDescription>
           </div>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-sage-50 text-sage-800 border border-sage-200">
-            Realtime
+            Langsung
           </span>
         </div>
       </CardHeader>

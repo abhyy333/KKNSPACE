@@ -209,7 +209,7 @@ const DashboardSkeleton: React.FC = () => (
 export const OverviewPage: React.FC = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const { user, membership, isSuperAdmin } = useAuth()
+  const { user, profile, membership, isSuperAdmin } = useAuth()
   const { t } = useTranslation()
   const { locale } = useLocale()
 
@@ -456,6 +456,13 @@ export const OverviewPage: React.FC = () => {
     else if (dueMs <= threeDaysMs) dueSoonCount += 1
   }
 
+  // Derive genuine personalized first name from user profile
+  const rawFullName = profile?.full_name?.trim() || ''
+  const firstName = rawFullName ? rawFullName.split(/\s+/)[0] : ''
+  const greetingText = firstName
+    ? t('workspace.overview.welcomeWithName', { name: firstName })
+    : t('workspace.overview.welcomeGeneric')
+
   return (
     <div className="space-y-6">
       {/* Top Banner Greeting */}
@@ -463,7 +470,7 @@ export const OverviewPage: React.FC = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-serif font-semibold text-charcoal">
-              {t('workspace.overview.welcome')}
+              {greetingText}
             </h1>
             <Badge variant={periodBadge.variant}>{periodBadge.label}</Badge>
           </div>

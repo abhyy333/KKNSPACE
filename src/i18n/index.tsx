@@ -114,12 +114,13 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (params) {
-        return Object.entries(params).reduce((str, [paramKey, paramValue]) => {
+        result = Object.entries(params).reduce((str, [paramKey, paramValue]) => {
           return str.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue ?? ''))
         }, result)
       }
 
-      return result
+      // Defensive cleanup: never leak raw {placeholder} tags or dangling punctuation
+      return result.replace(/,\s*\{[a-zA-Z0-9_]+\}/g, '').replace(/\{[a-zA-Z0-9_]+\}/g, '').trim()
     },
     [locale]
   )
