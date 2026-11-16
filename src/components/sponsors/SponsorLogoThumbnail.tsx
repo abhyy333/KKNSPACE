@@ -40,6 +40,13 @@ export const SponsorLogoThumbnail: React.FC<SponsorLogoThumbnailProps> = ({
     retry: 1,
   })
 
+  const [imgLoadError, setImgLoadError] = React.useState(false)
+
+  // Reset error state when data changes
+  React.useEffect(() => {
+    setImgLoadError(false)
+  }, [data])
+
   if (!fileId && !sponsorId) {
     return (
       <div className={containerClassName}>
@@ -57,12 +64,14 @@ export const SponsorLogoThumbnail: React.FC<SponsorLogoThumbnailProps> = ({
     )
   }
 
-  if (isError || !data) {
+  if (isError || !data || imgLoadError) {
     return (
       <div className={containerClassName}>
-        <div className="flex flex-col items-center justify-center text-center p-1">
-          <Building2 className="h-5 w-5 text-charcoal-muted/60" />
-          <span className="text-[9px] text-charcoal-muted font-medium truncate max-w-[70px]">{alt}</span>
+        <div className="flex flex-col items-center justify-center text-center p-1 min-w-0">
+          <Building2 className="h-5 w-5 text-charcoal-muted/60 shrink-0" />
+          <span className="text-[9px] text-charcoal-muted font-medium truncate max-w-[80px]" title={alt}>
+            {alt}
+          </span>
         </div>
       </div>
     )
@@ -76,14 +85,7 @@ export const SponsorLogoThumbnail: React.FC<SponsorLogoThumbnailProps> = ({
         className={className}
         loading="lazy"
         decoding="async"
-        onError={(e) => {
-          // If image fails to render, show fallback building icon
-          const target = e.currentTarget
-          target.style.display = 'none'
-          if (target.parentElement) {
-            target.parentElement.innerHTML = `<span class="text-[10px] font-semibold text-charcoal truncate px-1">${alt}</span>`
-          }
-        }}
+        onError={() => setImgLoadError(true)}
       />
     </div>
   )

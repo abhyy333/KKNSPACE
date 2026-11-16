@@ -7,6 +7,7 @@ import {
 } from '@/services/sponsorsApi'
 import { buildPartnershipContactDestination } from '@/lib/sponsorContact'
 import { SponsorLogoThumbnail } from '@/components/sponsors/SponsorLogoThumbnail'
+import { sanitizeExternalUrl } from '@/lib/urlSecurity'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   SPONSOR_CATEGORY_LABELS,
@@ -289,11 +290,11 @@ export const SponsorsPage: React.FC = () => {
                             </div>
 
                             {/* External Links */}
-                            {(sponsor.website_url || sponsor.social_media_url) && (
+                            {Boolean(sanitizeExternalUrl(sponsor.website_url) || sanitizeExternalUrl(sponsor.social_media_url)) && (
                               <div className="border-t border-warm-200/70 pt-4 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs">
-                                {sponsor.website_url && (
+                                {sanitizeExternalUrl(sponsor.website_url) && (
                                   <a
-                                    href={sponsor.website_url}
+                                    href={sanitizeExternalUrl(sponsor.website_url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 font-medium text-[#19382B] hover:text-[#B19A6B] transition-colors"
@@ -304,9 +305,9 @@ export const SponsorsPage: React.FC = () => {
                                   </a>
                                 )}
 
-                                {sponsor.social_media_url && (
+                                {sanitizeExternalUrl(sponsor.social_media_url) && (
                                   <a
-                                    href={sponsor.social_media_url}
+                                    href={sanitizeExternalUrl(sponsor.social_media_url)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 font-medium text-[#19382B] hover:text-[#B19A6B] transition-colors"
@@ -388,11 +389,11 @@ export const SponsorsPage: React.FC = () => {
                         </div>
 
                         {/* Footer Links */}
-                        {(sponsor.website_url || sponsor.social_media_url) && (
+                        {Boolean(sanitizeExternalUrl(sponsor.website_url) || sanitizeExternalUrl(sponsor.social_media_url)) && (
                           <div className="border-t border-warm-200/70 pt-3 flex items-center gap-4 text-xs">
-                            {sponsor.website_url && (
+                            {sanitizeExternalUrl(sponsor.website_url) && (
                               <a
-                                href={sponsor.website_url}
+                                href={sanitizeExternalUrl(sponsor.website_url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 font-medium text-[#19382B] hover:text-[#B19A6B] transition-colors"
@@ -403,9 +404,9 @@ export const SponsorsPage: React.FC = () => {
                               </a>
                             )}
 
-                            {sponsor.social_media_url && (
+                            {sanitizeExternalUrl(sponsor.social_media_url) && (
                               <a
-                                href={sponsor.social_media_url}
+                                href={sanitizeExternalUrl(sponsor.social_media_url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 font-medium text-[#19382B] hover:text-[#B19A6B] transition-colors"

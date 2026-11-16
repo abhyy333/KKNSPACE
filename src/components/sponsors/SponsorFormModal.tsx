@@ -10,6 +10,7 @@ import {
   fetchTeamProfilesForSelect,
   fetchSponsorshipPackages,
 } from '@/services/sponsorsApi'
+import { isSafeExternalUrl } from '@/lib/urlSecurity'
 import type {
   Sponsor,
   SponsorCategory,
@@ -194,6 +195,16 @@ export const SponsorFormModal: React.FC<SponsorFormModalProps> = ({
 
     if (!name.trim()) {
       setErrorMsg('Nama organisasi / perusahaan sponsor wajib diisi.')
+      return
+    }
+
+    if (websiteUrl.trim() && !isSafeExternalUrl(websiteUrl)) {
+      setErrorMsg('Tautan website harus diawali dengan http:// atau https:// dan tidak boleh menggunakan protokol berbahaya.')
+      return
+    }
+
+    if (socialMediaUrl.trim() && !isSafeExternalUrl(socialMediaUrl)) {
+      setErrorMsg('Tautan media sosial harus diawali dengan http:// atau https:// dan tidak boleh menggunakan protokol berbahaya.')
       return
     }
 

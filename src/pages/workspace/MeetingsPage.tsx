@@ -22,6 +22,7 @@ import {
 } from '@/services/meetingsApi'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/components/ui/toast'
+import { sanitizeExternalUrl, isSafeExternalUrl } from '@/lib/urlSecurity'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -623,6 +624,11 @@ const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
     e.preventDefault()
     if (!meeting || !title.trim() || !meetingDate) return
 
+    if (meetingLink.trim() && !isSafeExternalUrl(meetingLink)) {
+      alert('Tautan meeting harus diawali dengan http:// atau https:// dan tidak boleh menggunakan protokol berbahaya.')
+      return
+    }
+
     const startDateTime = new Date(`${meetingDate}T${startTime}:00`).toISOString()
     const endDateTime = endTime ? new Date(`${meetingDate}T${endTime}:00`).toISOString() : undefined
 
@@ -1125,11 +1131,11 @@ export const MeetingsPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {meeting.meeting_link ? (
+                      {sanitizeExternalUrl(meeting.meeting_link) ? (
                         <>
                           <Video className="h-3.5 w-3.5 text-sage-700 shrink-0" />
                           <a
-                            href={meeting.meeting_link}
+                            href={sanitizeExternalUrl(meeting.meeting_link)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sage-800 underline truncate hover:text-sage-900"
@@ -1481,11 +1487,11 @@ const MeetingDetailModal: React.FC<MeetingDetailModalProps> = ({
                       <MapPin className="h-3.5 w-3.5 text-sage-700" />
                       Lokasi Pertemuan
                     </span>
-                    {meeting.meeting_link ? (
+                    {sanitizeExternalUrl(meeting.meeting_link) ? (
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-charcoal">Pertemuan Daring</p>
                         <a
-                          href={meeting.meeting_link}
+                          href={sanitizeExternalUrl(meeting.meeting_link)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sage-800 underline flex items-center gap-1"
@@ -1916,6 +1922,11 @@ const CreateMeetingModal: React.FC<CreateMeetingModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !meetingDate) return
+
+    if (meetingLink.trim() && !isSafeExternalUrl(meetingLink)) {
+      alert('Tautan meeting harus diawali dengan http:// atau https:// dan tidak boleh menggunakan protokol berbahaya.')
+      return
+    }
 
     const startDateTime = new Date(`${meetingDate}T${startTime}:00`).toISOString()
     const endDateTime = endTime ? new Date(`${meetingDate}T${endTime}:00`).toISOString() : undefined

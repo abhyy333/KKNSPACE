@@ -24,6 +24,12 @@ verify_jwt = true
 [functions.public-team-photo]
 verify_jwt = false
 
+[functions.public-sponsor-logo]
+verify_jwt = false
+
+[functions.public-documentation-photo]
+verify_jwt = false
+
 [auth]
 site_url = "https://kknspace.vercel.app"
 additional_redirect_urls = [
