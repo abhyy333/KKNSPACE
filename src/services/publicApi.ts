@@ -28,8 +28,13 @@ export interface PublicMediaAsset {
   id: string
   title: string | null
   caption: string | null
+  category?: string | null
+  event_date?: string | null
+  location?: string | null
   slug?: string | null
+  cover_file_id?: string | null
   cover_url?: string | null
+  photo_count?: number
   publication_status: 'published'
   published_at: string | null
   created_at: string
@@ -79,7 +84,7 @@ export interface HomePublicOverview {
   programsCount: number
   announcements: PublicAnnouncement[]
   announcementsCount: number
-  media: PublicMediaAsset[]
+  media: PublicDocumentation[]
   mediaCount: number
 }
 
@@ -120,7 +125,7 @@ export async function fetchPublishedAnnouncements(limit = 10): Promise<PublicAnn
 export async function fetchPublishedMediaAssets(limit = 40): Promise<PublicMediaAsset[]> {
   const { data, error } = await supabase
     .from('media_assets')
-    .select('id, title, caption, publication_status, published_at, created_at')
+    .select('id, title, caption, category, event_date, location, slug, cover_file_id, file_id, publication_status, published_at, created_at')
     .eq('publication_status', 'published')
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -130,7 +135,20 @@ export async function fetchPublishedMediaAssets(limit = 40): Promise<PublicMedia
     throw new Error(`Gagal memuat dokumentasi publik: ${error.message}`)
   }
 
-  return (data ?? []) as PublicMediaAsset[]
+  return ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+    id: d.id as string,
+    title: d.title as string | null,
+    caption: d.caption as string | null,
+    category: d.category as string | null,
+    event_date: d.event_date as string | null,
+    location: d.location as string | null,
+    slug: d.slug as string | null,
+    cover_file_id: (d.cover_file_id ?? d.file_id) as string | null,
+    cover_url: null,
+    publication_status: 'published' as const,
+    published_at: d.published_at as string | null,
+    created_at: d.created_at as string,
+  }))
 }
 
 // ─────────────────────────────────────────────
@@ -337,7 +355,7 @@ export async function fetchHomePublicOverview(): Promise<HomePublicOverview> {
     programsCountRes,
     announcementsRes,
     announcementsCountRes,
-    mediaRes,
+    docsResult,
     mediaCountRes,
   ] = await Promise.all([
     supabase
@@ -364,13 +382,10 @@ export async function fetchHomePublicOverview(): Promise<HomePublicOverview> {
       .from('announcements')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'published'),
-    supabase
-      .from('media_assets')
-      .select('id, title, caption, publication_status, published_at, created_at')
-      .eq('publication_status', 'published')
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(3),
+    fetchPublicDocumentationList({ limit: 3 }).catch((err) => {
+      console.warn('Gagal memuat galeri beranda via RPC, mencoba fallback:', err)
+      return fetchPublicDocumentationListFallback({ limit: 3 }).catch(() => [])
+    }),
     supabase
       .from('media_assets')
       .select('id', { count: 'exact', head: true })
@@ -382,7 +397,6 @@ export async function fetchHomePublicOverview(): Promise<HomePublicOverview> {
     programsCountRes.error ||
     announcementsRes.error ||
     announcementsCountRes.error ||
-    mediaRes.error ||
     mediaCountRes.error
 
   if (firstError) {
@@ -394,7 +408,7 @@ export async function fetchHomePublicOverview(): Promise<HomePublicOverview> {
     programsCount: programsCountRes.count ?? 0,
     announcements: (announcementsRes.data ?? []) as PublicAnnouncement[],
     announcementsCount: announcementsCountRes.count ?? 0,
-    media: (mediaRes.data ?? []) as PublicMediaAsset[],
+    media: (docsResult ?? []) as PublicDocumentation[],
     mediaCount: mediaCountRes.count ?? 0,
   }
 }

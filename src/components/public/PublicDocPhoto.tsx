@@ -13,6 +13,7 @@ interface Props {
   fill?: boolean
   /** Aspect ratio class e.g. 'aspect-[4/3]'. Only used when fill=false */
   aspectClass?: string
+  imgClassName?: string
 }
 
 /**
@@ -26,7 +27,9 @@ export const PublicDocPhoto: React.FC<Props> = ({
   alt = 'Foto dokumentasi kegiatan',
   className = '',
   fallbackClassName = '',
+  fill = false,
   aspectClass = 'aspect-[4/3]',
+  imgClassName = '',
 }) => {
   const [imgError, setImgError] = useState(false)
 
@@ -39,9 +42,10 @@ export const PublicDocPhoto: React.FC<Props> = ({
   })
 
   const hasPhoto = signedUrl && !imgError
+  const containerClass = fill ? 'h-full w-full' : aspectClass
 
   return (
-    <div className={`relative overflow-hidden bg-warm-200/70 ${aspectClass} ${className}`}>
+    <div className={`relative overflow-hidden bg-warm-200/70 ${containerClass} ${className}`}>
       {isLoading ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-sage-500" />
@@ -53,7 +57,7 @@ export const PublicDocPhoto: React.FC<Props> = ({
           loading="lazy"
           decoding="async"
           onError={() => setImgError(true)}
-          className="absolute inset-0 h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full object-cover ${imgClassName}`}
         />
       ) : (
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal-muted ${fallbackClassName}`}>

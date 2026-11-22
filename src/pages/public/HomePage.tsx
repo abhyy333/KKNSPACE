@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { PublicDocPhoto } from '@/components/public/PublicDocPhoto'
 import { fetchHomePublicOverview } from '@/services/publicApi'
 import {
   formatPublicDate,
@@ -357,29 +358,36 @@ export const HomePage: React.FC = () => {
                   to={`/dokumentasi/${media.slug || media.id}`}
                   className="flex flex-col flex-1"
                 >
-                  <div className="relative h-40 bg-warm-200 overflow-hidden">
-                    <img
-                      src={media.cover_url || '/brand/kkn-pringgasela-selatan-2026-2027.png'}
+                  <div className="relative h-44 sm:h-48 bg-warm-200 overflow-hidden">
+                    <PublicDocPhoto
+                      fileId={media.cover_file_id}
+                      assetId={media.id}
                       alt={media.title || 'Dokumentasi KKN'}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        if (!target.src.includes('brand/kkn-pringgasela-selatan-2026-2027.png')) {
-                          target.src = '/brand/kkn-pringgasela-selatan-2026-2027.png'
-                          target.className = 'h-full w-full object-contain p-4 bg-warm-100'
-                        }
-                      }}
+                      fill
+                      className="h-full w-full"
+                      imgClassName="transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute top-2.5 left-2.5">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                       <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] text-white">
                         <ImageIcon className="h-2.5 w-2.5 text-sage-300" />
                         Album Posko
                       </span>
+                      {media.photo_count && media.photo_count > 1 ? (
+                        <span className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded text-[10px] text-warm-200">
+                          {media.photo_count} foto
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="absolute bottom-2 left-3 right-3 text-[11px] text-warm-100 truncate">
-                      <span>{formatPublicDate(media.published_at || media.created_at, 'Terbaru')}</span>
+                    {media.category ? (
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-charcoal border border-warm-200 backdrop-blur-xs shadow-xs">
+                          {media.category}
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="absolute bottom-2 left-3 right-3 text-[11px] text-warm-100 truncate pointer-events-none">
+                      <span>{formatPublicDate(media.event_date || media.published_at || media.created_at, 'Terbaru')}</span>
                     </div>
                   </div>
                   <CardContent className="p-4 flex-1 flex flex-col justify-between gap-3">
