@@ -24,6 +24,8 @@ export type SeoRouteKey =
   | 'villageCulture'
   | 'villageEconomy'
   | 'villageGallery'
+  | 'developerProfile'
+  | 'projectShowcase'
 
 export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>> = {
   'id-ID': {
@@ -111,6 +113,34 @@ export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>>
       title: 'Sponsor & Mitra Kolaborasi KKN Pringgasela Selatan | KKN SPACE',
       description: 'Direktori kemitraan dan apresiasi sponsor pendukung program Kuliah Kerja Nyata mahasiswa Universitas Mataram di Desa Pringgasela Selatan.',
     },
+    developerProfile: {
+      title: 'Abdul Habir Al Majdi — Web Developer & Digital Technology Enthusiast',
+      description: 'Profil profesional Abdul Habir Al Majdi, Mahasiswa Teknik Elektro Universitas Mataram dan developer aplikasi KKN SPACE Desa Pringgasela Selatan. Fokus pada Web Development, Full-Stack, dan IoT.',
+      keywords: [
+        'Abdul Habir Al Majdi',
+        'Web Developer',
+        'Digital Technology Enthusiast',
+        'Teknik Elektro Universitas Mataram',
+        'Universitas Mataram',
+        'Developer KKN SPACE',
+        'Pengembang KKN SPACE',
+        'Full Stack Developer Lombok',
+        'Mahasiswa UNRAM',
+      ],
+    },
+    projectShowcase: {
+      title: 'KKN SPACE — Web Application untuk KKN Desa Pringgasela Selatan',
+      description: 'KKN SPACE merupakan platform digital untuk mendukung pengelolaan dan koordinasi kegiatan Kuliah Kerja Nyata di Desa Pringgasela Selatan, Universitas Mataram. Dikembangkan oleh Abdul Habir Al Majdi.',
+      keywords: [
+        'KKN SPACE',
+        'Web Application KKN',
+        'KKN Desa Pringgasela Selatan',
+        'Universitas Mataram',
+        'Abdul Habir Al Majdi',
+        'Digital Workspace KKN',
+        'Geoportal Desa Pringgasela Selatan',
+      ],
+    },
   },
 
   'en-US': {
@@ -166,6 +196,16 @@ export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>>
     sponsors: {
       title: 'Sponsors & Collaborative Partners | KKN SPACE',
       description: 'Partnership directory and recognition for sponsors and collaborative institutions supporting our community fieldwork initiatives.',
+    },
+    developerProfile: {
+      title: 'Abdul Habir Al Majdi — Web Developer & Digital Technology Enthusiast',
+      description: 'Professional profile of Abdul Habir Al Majdi, Electrical Engineering student at Universitas Mataram and developer of KKN SPACE web application for South Pringgasela Village.',
+      keywords: ['Abdul Habir Al Majdi', 'Web Developer', 'Universitas Mataram', 'KKN SPACE Developer'],
+    },
+    projectShowcase: {
+      title: 'KKN SPACE — Web Application for South Pringgasela Community Fieldwork',
+      description: 'KKN SPACE is a digital platform supporting community-service fieldwork management and coordination in South Pringgasela Village, Universitas Mataram. Developed by Abdul Habir Al Majdi.',
+      keywords: ['KKN SPACE', 'Web Application', 'Universitas Mataram', 'South Pringgasela', 'Abdul Habir Al Majdi'],
     },
   },
 
@@ -223,6 +263,16 @@ export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>>
       title: 'Sponsors & Collaborative Partners | KKN SPACE',
       description: 'Partnership directory and recognition for sponsors and collaborative institutions supporting our community fieldwork initiatives.',
     },
+    developerProfile: {
+      title: 'Abdul Habir Al Majdi — Web Developer & Digital Technology Enthusiast',
+      description: 'Professional profile of Abdul Habir Al Majdi, Electrical Engineering student at Universitas Mataram and developer of KKN SPACE web application for South Pringgasela Village.',
+      keywords: ['Abdul Habir Al Majdi', 'Web Developer', 'Universitas Mataram', 'KKN SPACE Developer'],
+    },
+    projectShowcase: {
+      title: 'KKN SPACE — Web Application for South Pringgasela Community Fieldwork',
+      description: 'KKN SPACE is a digital platform supporting community-service fieldwork management and coordination in South Pringgasela Village, Universitas Mataram. Developed by Abdul Habir Al Majdi.',
+      keywords: ['KKN SPACE', 'Web Application', 'Universitas Mataram', 'South Pringgasela', 'Abdul Habir Al Majdi'],
+    },
   },
 
   'zh-CN': {
@@ -279,6 +329,16 @@ export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>>
       title: '社会实践赞助商与战略合作伙伴 | KKN SPACE',
       description: '马塔兰大学南普灵加塞拉村社会实践项目合作伙伴名录与致谢专区。',
     },
+    developerProfile: {
+      title: 'Abdul Habir Al Majdi — 网页开发者与数字化技术爱好者',
+      description: 'Abdul Habir Al Majdi 个人职业档案，印度尼西亚马塔兰大学电气工程系学子，KKN SPACE 南普灵加塞拉村社会实践数字化系统开发者。',
+      keywords: ['Abdul Habir Al Majdi', '网页开发者', '马塔兰大学', 'KKN SPACE 开发者'],
+    },
+    projectShowcase: {
+      title: 'KKN SPACE — 南普灵加塞拉村社会实践数字化协作系统',
+      description: 'KKN SPACE 是为印度尼西亚马塔兰大学在东龙目县南普灵加塞拉村开展的基层社会实践研发的数字化工作空间与地理信息平台。由 Abdul Habir Al Majdi 开发。',
+      keywords: ['KKN SPACE', '网页应用', '马塔兰大学', '南普灵加塞拉村', 'Abdul Habir Al Majdi'],
+    },
   },
 
   'ru-RU': {
@@ -334,6 +394,16 @@ export const SEO_DICTIONARY: Record<string, Record<SeoRouteKey, RouteSeoConfig>>
     sponsors: {
       title: 'Спонсоры и партнёры проекта | KKN SPACE',
       description: 'Каталог партнёрских организаций и благодарность спонсорам общественно-полевой практики в Южной Принггаселе.',
+    },
+    developerProfile: {
+      title: 'Abdul Habir Al Majdi — Веб-разработчик и энтузиаст цифровых технологий',
+      description: 'Профессиональный профиль Абдула Хабира Аль Мажди (Abdul Habir Al Majdi), студента электротехники Университета Матарам и разработчика веб-платформы KKN SPACE.',
+      keywords: ['Abdul Habir Al Majdi', 'Веб-разработчик', 'Университет Матарам', 'KKN SPACE'],
+    },
+    projectShowcase: {
+      title: 'KKN SPACE — Веб-приложение для практики в деревне Южная Принггасела',
+      description: 'KKN SPACE — цифровая платформа для координации и ведения общественно-полевой практики студентов Университета Матарам в Южной Принггаселе. Разработано Abdul Habir Al Majdi.',
+      keywords: ['KKN SPACE', 'Веб-приложение', 'Университет Матарам', 'Южная Принггасела', 'Abdul Habir Al Majdi'],
     },
   },
 }
@@ -418,3 +488,10 @@ export function generateBreadcrumbSchema(items: { name: string; url: string }[])
     })),
   }
 }
+
+export {
+  generateDeveloperPersonSchema,
+  generateDeveloperProfilePageSchema,
+  generateProjectWebApplicationSchema,
+} from './developer.ts'
+

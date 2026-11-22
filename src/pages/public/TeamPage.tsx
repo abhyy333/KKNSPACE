@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Building2, GraduationCap, Users } from 'lucide-react'
+import { Building2, GraduationCap, Users, Code2, ArrowRight } from 'lucide-react'
 import {
   PublicCardGridSkeleton,
   PublicEmptyState,
@@ -149,10 +150,28 @@ export const TeamPage: React.FC = () => {
                     <Badge variant={getRoleBadgeVariant(member.role)}>
                       {member.position_label}
                     </Badge>
+                    {member.full_name.toLowerCase().includes('abdul habir') && (
+                      <Badge variant="outline" className="border-sage-400 text-sage-800 bg-sage-50 text-[10px]">
+                        Developer
+                      </Badge>
+                    )}
                   </div>
-                  <h3 className="text-sm font-semibold text-charcoal pt-1 break-words">
-                    {member.full_name}
-                  </h3>
+                  {member.full_name.toLowerCase().includes('abdul habir') ? (
+                    <Link
+                      to="/developer/abdul-habir-al-majdi"
+                      className="group block pt-1 text-sm font-semibold text-sage-800 hover:text-sage-900 transition-colors"
+                      title="Lihat Profil Developer Abdul Habir Al Majdi"
+                    >
+                      <span>{member.full_name}</span>
+                      <span className="block text-[11px] font-normal text-sage-600 group-hover:underline">
+                        Lihat Profil Developer →
+                      </span>
+                    </Link>
+                  ) : (
+                    <h3 className="text-sm font-semibold text-charcoal pt-1 break-words">
+                      {member.full_name}
+                    </h3>
+                  )}
                   <div className="flex items-start gap-1.5 text-xs text-charcoal-muted pt-0.5">
                     <Building2 className="h-3.5 w-3.5 text-sage-600 shrink-0 mt-0.5" />
                     <span className="break-words">
@@ -172,6 +191,39 @@ export const TeamPage: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Project Authorship Notice */}
+      <div className="rounded-2xl border border-warm-200 bg-white/80 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sage-100 text-sage-800 border border-sage-200">
+            <Code2 className="h-4 w-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-semibold text-charcoal">
+              Pengembangan Sistem &amp; Digital Workspace
+            </h4>
+            <p className="text-[11px] text-charcoal-muted">
+              Platform KKN SPACE dirancang dan dikembangkan oleh <strong>Abdul Habir Al Majdi</strong> (Teknik Elektro UNRAM).
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to="/projects/kkn-space"
+            className="inline-flex items-center gap-1 text-xs font-medium text-sage-700 hover:text-sage-800 underline underline-offset-4"
+          >
+            <span>Detail Project</span>
+          </Link>
+          <span className="text-warm-300">·</span>
+          <Link
+            to="/developer/abdul-habir-al-majdi"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-sage-700 hover:text-sage-800 underline underline-offset-4"
+          >
+            <span>Profil Developer</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

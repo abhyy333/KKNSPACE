@@ -2,7 +2,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {
   SITE_URL,
-  DEFAULT_OG_IMAGE,
   SITE_NAME,
   SEO_DICTIONARY,
   getCanonicalPath,
@@ -10,6 +9,9 @@ import {
   generateGlobalWebsiteSchema,
   generateVillagePlaceSchema,
   generateBreadcrumbSchema,
+  generateDeveloperPersonSchema,
+  generateDeveloperProfilePageSchema,
+  generateProjectWebApplicationSchema,
   type SeoRouteKey,
 } from '../src/config/seo.ts'
 import type { Locale } from '../src/i18n/types.ts'
@@ -132,6 +134,24 @@ const PUBLIC_ROUTE_TARGETS: RouteTarget[] = [
       { name: 'Galeri Foto Desa', url: '/profil-desa/galeri' },
     ],
   },
+  {
+    routeKey: 'developerProfile',
+    canonicalPath: '/developer/abdul-habir-al-majdi',
+    breadcrumbs: [
+      { name: 'Beranda', url: '/' },
+      { name: 'Developer', url: '/developer/abdul-habir-al-majdi' },
+      { name: 'Abdul Habir Al Majdi', url: '/developer/abdul-habir-al-majdi' },
+    ],
+  },
+  {
+    routeKey: 'projectShowcase',
+    canonicalPath: '/projects/kkn-space',
+    breadcrumbs: [
+      { name: 'Beranda', url: '/' },
+      { name: 'Projects', url: '/projects/kkn-space' },
+      { name: 'KKN SPACE', url: '/projects/kkn-space' },
+    ],
+  },
 ]
 
 const ALL_LOCALES: Locale[] = ['id-ID', 'en-US', 'en-GB', 'zh-CN', 'ru-RU']
@@ -188,6 +208,11 @@ export function runPrerender() {
       if (target.breadcrumbs && target.breadcrumbs.length > 0) {
         schemas.push(generateBreadcrumbSchema(target.breadcrumbs))
       }
+      if (target.routeKey === 'developerProfile') {
+        schemas.push(generateDeveloperProfilePageSchema(), generateDeveloperPersonSchema())
+      } else if (target.routeKey === 'projectShowcase') {
+        schemas.push(generateProjectWebApplicationSchema())
+      }
       const jsonLdScript = `<script type="application/ld+json" id="kkn-structured-data">\n    ${JSON.stringify(schemas, null, 2)}\n    </script>`
 
       // Modify HTML tags
@@ -239,16 +264,68 @@ export function runPrerender() {
         html = html.replace('</head>', `    ${jsonLdScript}\n  </head>`)
       }
 
-      // Update noscript block with contextual title & summary
+      // Update noscript block with contextual title, rich semantic content & navigation
+      let noscriptContent = `
+        <h1>${escapeHtml(activeTitle)}</h1>
+        <p>${escapeHtml(activeDesc)}</p>
+        <p>Portal resmi informasi Kuliah Kerja Nyata (KKN) mahasiswa Universitas Mataram di Desa Pringgasela Selatan, Lombok Timur.</p>`
+
+      if (target.routeKey === 'developerProfile') {
+        noscriptContent = `
+        <h1>Abdul Habir Al Majdi — Web Developer &amp; Digital Technology Enthusiast</h1>
+        <p><strong>Identitas:</strong> Mahasiswa Teknik Elektro Universitas Mataram (UNRAM), Lombok, Nusa Tenggara Barat.</p>
+        <p><strong>Deskripsi:</strong> Mahasiswa Teknik Elektro Universitas Mataram yang memiliki ketertarikan pada pengembangan aplikasi web, sistem informasi, teknologi digital, dan Internet of Things.</p>
+        <h2>Developer Focus</h2>
+        <ul>
+          <li><strong>Web Development:</strong> Arsitektur antarmuka web modern, responsif, dan aksesibel menggunakan React 19, TypeScript, dan Tailwind CSS.</li>
+          <li><strong>Full-Stack Development:</strong> Integrasi frontend dengan backend Supabase, database relasional PostgreSQL, dan Row-Level Security (RLS).</li>
+          <li><strong>System Development:</strong> Perancangan sistem manajemen digital (program kerja, logbook digital, keuangan transparan, inventaris posko).</li>
+          <li><strong>IoT Development:</strong> Integrasi telemetri perangkat keras dan mikrokontroler berbasis keilmuan Teknik Elektro.</li>
+        </ul>
+        <h2>Technical Stack</h2>
+        <p>React 19, TypeScript, JavaScript (ESNext), HTML5, CSS3, Tailwind CSS, Vite, Supabase, PostgreSQL, Leaflet, MapLibre GL, Git, GitHub, Node.js, Vercel.</p>
+        <h2>Featured Project</h2>
+        <p><strong><a href="/projects/kkn-space">KKN SPACE</a></strong> — Platform digital kolaborasi dan geoportal untuk kegiatan KKN mahasiswa Universitas Mataram di Desa Pringgasela Selatan, Lombok Timur.</p>
+        <h2>Kontribusi Utama dalam KKN SPACE</h2>
+        <p>Merancang arsitektur perangkat lunak end-to-end, pemodelan database PostgreSQL, implementasi keamanan RLS, 10 modul sistem digital, geoportal 7 dusun, serta pipeline technical SEO dan static prerendering.</p>
+        <h2>Profil Publik Terverifikasi</h2>
+        <ul>
+          <li>GitHub: <a href="https://github.com/abhyy333">https://github.com/abhyy333</a></li>
+          <li>Repository KKN SPACE: <a href="https://github.com/abhyy333/KKNSPACE">https://github.com/abhyy333/KKNSPACE</a></li>
+        </ul>`
+      } else if (target.routeKey === 'projectShowcase') {
+        noscriptContent = `
+        <h1>KKN SPACE — Web Application untuk KKN Desa Pringgasela Selatan</h1>
+        <p><strong>Deskripsi Project:</strong> KKN SPACE merupakan platform digital untuk mendukung pengelolaan dan koordinasi kegiatan Kuliah Kerja Nyata di Desa Pringgasela Selatan, Universitas Mataram.</p>
+        <p><strong>Developer:</strong> <a href="/developer/abdul-habir-al-majdi">Abdul Habir Al Majdi</a> (Mahasiswa Teknik Elektro Universitas Mataram).</p>
+        <p><strong>Institusi:</strong> Universitas Mataram · <strong>Lokasi:</strong> Desa Pringgasela Selatan, Lombok Timur, NTB · <strong>Status:</strong> Production (Aktif digunakan 2026–2027).</p>
+        <h2>10 Fitur Utama Platform</h2>
+        <ul>
+          <li>Dashboard dan koordinasi kelompok terpadu.</li>
+          <li>Manajemen program kerja dan indikator capaian mingguan.</li>
+          <li>Agenda posko dan kalender kegiatan masyarakat.</li>
+          <li>Digital logbook dan presensi piket posko (Duty).</li>
+          <li>Dokumentasi visual foto resolusi tinggi terhubung Supabase Storage.</li>
+          <li>Pencatatan kas dan transparansi keuangan pengabdian.</li>
+          <li>Manajemen inventaris dan peminjaman aset logistik posko.</li>
+          <li>Direktori 10 mahasiswa KKN dengan sistem hak akses bertingkat.</li>
+          <li>Workspace Dosen Pembimbing Lapangan (DPL) untuk supervisi dan evaluasi.</li>
+          <li>Geoportal interaktif 7 dusun dan direktori sentra tenun Sasak Pringgasela Selatan.</li>
+        </ul>
+        <h2>Teknologi</h2>
+        <p>React 19, TypeScript, Vite, Tailwind CSS, Supabase, PostgreSQL, Row-Level Security (RLS), Leaflet GIS, MapLibre GL, Vercel Edge Hosting.</p>
+        <p><strong>Tautan Proyek:</strong> <a href="https://kknspace.vercel.app">Website Resmi KKN SPACE</a> | <a href="https://github.com/abhyy333/KKNSPACE">GitHub Repository</a> | <a href="/developer/abdul-habir-al-majdi">Profil Pengembang (Abdul Habir Al Majdi)</a></p>`
+      }
+
       const noscriptBlock = `
     <noscript>
       <div style="padding: 2rem; font-family: sans-serif; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-        <h1>${escapeHtml(activeTitle)}</h1>
-        <p>${escapeHtml(activeDesc)}</p>
-        <p>Portal resmi informasi Kuliah Kerja Nyata (KKN) mahasiswa Universitas Mataram di Desa Pringgasela Selatan, Lombok Timur.</p>
+        ${noscriptContent}
         <nav aria-label="Navigasi Utama">
           <ul>
             <li><a href="/">Beranda</a></li>
+            <li><a href="/projects/kkn-space">Project KKN SPACE</a></li>
+            <li><a href="/developer/abdul-habir-al-majdi">Developer: Abdul Habir Al Majdi</a></li>
             <li><a href="/tim">Tim KKN &amp; DPL</a></li>
             <li><a href="/profil-desa">Profil Desa Pringgasela Selatan</a></li>
             <li><a href="/program-kerja">Program Kerja KKN</a></li>
@@ -293,6 +370,8 @@ export function generateSitemap(distDir: string) {
     documentation: { changefreq: 'weekly', priority: '0.8', comment: 'Galeri Dokumentasi Kegiatan' },
     timeline: { changefreq: 'monthly', priority: '0.8', comment: 'Timeline & Tahapan KKN' },
     sponsors: { changefreq: 'weekly', priority: '0.8', comment: 'Sponsor & Mitra Kolaborasi' },
+    developerProfile: { changefreq: 'monthly', priority: '0.8', comment: 'Developer Profile — Abdul Habir Al Majdi' },
+    projectShowcase: { changefreq: 'monthly', priority: '0.8', comment: 'Project Showcase — KKN SPACE Web Application' },
   }
 
   const urlBlocks: string[] = []

@@ -4,7 +4,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://kknspace.vercel.app/</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -12,7 +12,7 @@
   <!-- Tim KKN Universitas Mataram -->
   <url>
     <loc>https://kknspace.vercel.app/tim</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -20,7 +20,7 @@
   <!-- Program Kerja KKN -->
   <url>
     <loc>https://kknspace.vercel.app/program-kerja</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -28,7 +28,7 @@
   <!-- Galeri Dokumentasi Kegiatan -->
   <url>
     <loc>https://kknspace.vercel.app/dokumentasi</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -36,7 +36,7 @@
   <!-- Timeline & Tahapan KKN -->
   <url>
     <loc>https://kknspace.vercel.app/timeline-kkn</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -44,7 +44,7 @@
   <!-- Sponsor & Mitra Kolaborasi -->
   <url>
     <loc>https://kknspace.vercel.app/sponsors</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -52,7 +52,7 @@
   <!-- Profil Desa (Village Profile Overview) -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -60,7 +60,7 @@
   <!-- Profil Desa — Sejarah -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/sejarah</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -68,7 +68,7 @@
   <!-- Profil Desa — Peta & 7 Dusun -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/wilayah</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -76,7 +76,7 @@
   <!-- Profil Desa — Pariwisata -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/pariwisata</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -84,7 +84,7 @@
   <!-- Profil Desa — Budaya & Sentra Tenun Sasak -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/budaya</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -92,7 +92,7 @@
   <!-- Profil Desa — Potensi Ekonomi & UMKM -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/potensi-desa</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -100,8 +100,24 @@
   <!-- Profil Desa — Galeri Foto -->
   <url>
     <loc>https://kknspace.vercel.app/profil-desa/galeri</loc>
-    <lastmod>2026-11-16T00:16:52.439Z</lastmod>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+  </url>
+
+  <!-- Developer Profile — Abdul Habir Al Majdi -->
+  <url>
+    <loc>https://kknspace.vercel.app/developer/abdul-habir-al-majdi</loc>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Project Showcase — KKN SPACE Web Application -->
+  <url>
+    <loc>https://kknspace.vercel.app/projects/kkn-space</loc>
+    <lastmod>2026-11-22T13:38:02.609Z</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

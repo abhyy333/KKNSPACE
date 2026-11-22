@@ -433,6 +433,38 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
+      {/* Platform Digital & Authorship Showcase */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-warm-300 bg-gradient-to-r from-warm-50 via-white to-sage-50/50 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2 text-xs text-sage-700 font-semibold uppercase tracking-wider">
+              <BrandLogo size="xs" className="h-4 w-4" />
+              <span>Platform Kolaborasi Digital</span>
+            </div>
+            <h3 className="text-xl font-serif font-semibold text-charcoal">
+              Didukung Platform KKN SPACE
+            </h3>
+            <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed">
+              Platform tata kelola dan transparansi kegiatan KKN Universitas Mataram di Desa Pringgasela Selatan.
+              Dikembangkan oleh <strong>Abdul Habir Al Majdi</strong> (Teknik Elektro UNRAM) untuk
+              mendukung manajemen program kerja, logbook digital, transparansi keuangan, dan geoportal 7 dusun.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link to="/projects/kkn-space">
+              <Button variant="default" className="bg-sage-700 hover:bg-sage-800 text-xs">
+                Tentang KKN SPACE
+              </Button>
+            </Link>
+            <Link to="/developer/abdul-habir-al-majdi">
+              <Button variant="outline" className="text-xs">
+                Profil Developer
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Our Sponsors & Partners Section */}
       <HomeSponsorsSection />
     </div>

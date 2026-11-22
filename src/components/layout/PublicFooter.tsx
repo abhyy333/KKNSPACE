@@ -75,6 +75,16 @@ export const PublicFooter: React.FC = () => {
                   {t('nav.sponsors')}
                 </Link>
               </li>
+              <li>
+                <Link to="/projects/kkn-space" className="hover:text-sage-700 transition-colors">
+                  Tentang KKN SPACE
+                </Link>
+              </li>
+              <li>
+                <Link to="/developer/abdul-habir-al-majdi" className="hover:text-sage-700 transition-colors">
+                  Developer
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -98,8 +108,20 @@ export const PublicFooter: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-warm-300 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-charcoal-muted gap-2">
-          <p>© 2026–2027 KKN Pringgasela Selatan Universitas Mataram · Platform KKN SPACE.</p>
+        <div className="mt-8 border-t border-warm-300 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-charcoal-muted gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-center sm:text-left">
+            <p>© 2026–2027 KKN Pringgasela Selatan Universitas Mataram · Platform KKN SPACE.</p>
+            <span className="hidden sm:inline text-warm-300">·</span>
+            <p>
+              Developed by{' '}
+              <Link
+                to="/developer/abdul-habir-al-majdi"
+                className="font-medium text-sage-700 hover:text-sage-900 underline underline-offset-2 transition-colors"
+              >
+                Abdul Habir Al Majdi
+              </Link>
+            </p>
+          </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" /> posko@pringgaselaselatan.desa.id

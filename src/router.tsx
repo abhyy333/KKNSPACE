@@ -86,6 +86,14 @@ const SponsorsPage = lazyWithRetry(() =>
   import('@/pages/public/SponsorsPage').then((m) => ({ default: m.SponsorsPage })),
   'SponsorsPage'
 )
+const DeveloperProfilePage = lazyWithRetry(() =>
+  import('@/pages/public/DeveloperProfilePage').then((m) => ({ default: m.DeveloperProfilePage })),
+  'DeveloperProfilePage'
+)
+const ProjectShowcasePage = lazyWithRetry(() =>
+  import('@/pages/public/ProjectShowcasePage').then((m) => ({ default: m.ProjectShowcasePage })),
+  'ProjectShowcasePage'
+)
 
 // Workspace Pages
 const OverviewPage = lazyWithRetry(() =>
@@ -247,6 +255,11 @@ const publicChildrenRoutes = [
   { path: 'sponsor', element: <Navigate to="/sponsors" replace /> },
   { path: 'partners', element: <Navigate to="/sponsors" replace /> },
   { path: 'mitra', element: <Navigate to="/sponsors" replace /> },
+  { path: 'developer/abdul-habir-al-majdi', element: withSuspense(<DeveloperProfilePage />) },
+  { path: 'developer', element: <Navigate to="/developer/abdul-habir-al-majdi" replace /> },
+  { path: 'projects/kkn-space', element: withSuspense(<ProjectShowcasePage />) },
+  { path: 'projects', element: <Navigate to="/projects/kkn-space" replace /> },
+  { path: 'project', element: <Navigate to="/projects/kkn-space" replace /> },
 ]
 
 const SUPPORTED_LOCALE_PREFIXES = ['en-us', 'en-gb', 'zh-cn', 'ru-ru'] as const
