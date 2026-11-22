@@ -1,7 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ExternalLink,
   CheckCircle2,
   ArrowRight,
   ShieldCheck,
@@ -16,7 +15,6 @@ import {
   Users,
   Award,
   ChevronRight,
-  FolderGit2,
   UserCheck,
   Building2,
   Sparkles,
@@ -251,16 +249,13 @@ export const ProjectShowcasePage: React.FC = () => {
               <span>Buka Digital Workspace</span>
             </Link>
 
-            <a
-              href="https://github.com/abhyy333/KKNSPACE"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 px-5 py-3 text-xs font-semibold backdrop-blur-xs transition-all shadow-xs"
             >
-              <FolderGit2 className="h-4 w-4" />
-              <span>Repository GitHub</span>
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </a>
+              <Globe className="h-4 w-4 text-sage-200" />
+              <span>Jelajahi Portal Publik</span>
+            </Link>
 
             <Link
               to="/developer/abdul-habir-al-majdi"
@@ -322,17 +317,12 @@ export const ProjectShowcasePage: React.FC = () => {
 
         <div className="rounded-2xl border border-warm-200 bg-white p-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-charcoal-muted">
-            Source Code
+            Arsitektur
           </div>
-          <a
-            href="https://github.com/abhyy333/KKNSPACE"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs sm:text-sm font-semibold text-sage-700 hover:text-sage-800 underline underline-offset-2 mt-1 block"
-          >
-            GitHub Repo
-          </a>
-          <div className="text-[11px] text-charcoal-muted mt-0.5">Open Repository</div>
+          <div className="text-xs sm:text-sm font-semibold text-charcoal mt-1">
+            React &amp; Supabase
+          </div>
+          <div className="text-[11px] text-charcoal-muted mt-0.5">Full-Stack &amp; GIS</div>
         </div>
       </section>
 
@@ -535,16 +525,13 @@ export const ProjectShowcasePage: React.FC = () => {
               <span>Kunjungi Profil Lengkap</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-            <a
-              href="https://github.com/abhyy333"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/"
               className="inline-flex items-center gap-1.5 rounded-xl border border-warm-300 bg-white hover:bg-warm-50 text-charcoal px-3.5 py-2.5 text-xs font-semibold transition-colors"
             >
-              <FolderGit2 className="h-4 w-4" />
-              <span>GitHub</span>
-              <ExternalLink className="h-3 w-3 text-charcoal-muted" />
-            </a>
+              <Globe className="h-4 w-4 text-sage-700" />
+              <span>Beranda Portal</span>
+            </Link>
           </div>
         </div>
       </section>

@@ -132,7 +132,7 @@ export const DEVELOPER_PROFILE: DeveloperProfileConfig = {
     { name: 'Leaflet', category: 'Mapping & GIS', description: 'Peta interaktif ringan untuk pemetaan wilayah desa' },
     { name: 'MapLibre GL', category: 'Mapping & GIS', description: 'Visualisasi geoportal vektor untuk 7 dusun' },
 
-    { name: 'Git & GitHub', category: 'Tools & Deployment', description: 'Version control dan kolaborasi kode sumber' },
+    { name: 'Git & Version Control', category: 'Tools & Deployment', description: 'Version control dan kolaborasi kode sumber terdistribusi' },
     { name: 'Vercel', category: 'Tools & Deployment', description: 'Platform hosting edge global dan Continuous Deployment' },
     { name: 'Node.js Scripting', category: 'Tools & Deployment', description: 'Automasi static SEO prerendering & sitemap generator' },
 
@@ -150,7 +150,6 @@ export const DEVELOPER_PROFILE: DeveloperProfileConfig = {
         'KKN SPACE merupakan sistem terintegrasi yang menghubungkan mahasiswa KKN, Dosen Pembimbing Lapangan (DPL), dan publik. Dilengkapi modul manajemen program kerja, digital logbook, keuangan transparan, inventaris posko, direktori anggota, hingga etalase potensi desa dan sentra tenun Sasak Pringgasela Selatan.',
       routePath: '/projects/kkn-space',
       liveUrl: 'https://kknspace.vercel.app',
-      repoUrl: 'https://github.com/abhyy333/KKNSPACE',
       status: 'Production (Aktif Digunakan)',
       techStack: ['React 19', 'TypeScript', 'Vite', 'Tailwind CSS', 'Supabase', 'PostgreSQL', 'Leaflet', 'Vercel'],
       metrics: [
@@ -199,18 +198,18 @@ export const DEVELOPER_PROFILE: DeveloperProfileConfig = {
   ],
   publicProfiles: [
     {
-      platform: 'GitHub',
-      label: 'abhyy333',
-      url: 'https://github.com/abhyy333',
+      platform: 'Platform Resmi',
+      label: 'KKN SPACE Portal',
+      url: 'https://kknspace.vercel.app',
       verified: true,
-      iconName: 'Github',
+      iconName: 'Globe',
     },
     {
-      platform: 'GitHub Repository',
-      label: 'abhyy333/KKNSPACE',
-      url: 'https://github.com/abhyy333/KKNSPACE',
+      platform: 'Showcase Project',
+      label: 'Detail KKN SPACE',
+      url: 'https://kknspace.vercel.app/projects/kkn-space',
       verified: true,
-      iconName: 'Code2',
+      iconName: 'Layout',
     },
   ],
 }
@@ -238,9 +237,6 @@ export function generateDeveloperPersonSchema() {
       name: DEVELOPER_PROFILE.academicAffiliation.institution,
       url: DEVELOPER_PROFILE.academicAffiliation.institutionUrl,
     },
-    sameAs: DEVELOPER_PROFILE.publicProfiles
-      .filter((p) => p.verified && p.platform === 'GitHub')
-      .map((p) => p.url),
     knowsAbout: [
       'Web Development',
       'Full-Stack Development',
@@ -300,7 +296,6 @@ export function generateProjectWebApplicationSchema() {
       name: DEVELOPER_PROFILE.fullName,
       jobTitle: DEVELOPER_PROFILE.professionalTitle,
       url: `${SITE_URL}/developer/abdul-habir-al-majdi`,
-      sameAs: 'https://github.com/abhyy333',
     },
     publisher: {
       '@type': 'EducationalOrganization',
@@ -322,7 +317,6 @@ export function generateProjectWebApplicationSchema() {
       '@type': 'AdministrativeArea',
       name: 'Desa Pringgasela Selatan, Lombok Timur, Nusa Tenggara Barat',
     },
-    codeRepository: 'https://github.com/abhyy333/KKNSPACE',
     offers: {
       '@type': 'Offer',
       price: '0',

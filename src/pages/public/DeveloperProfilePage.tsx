@@ -2,7 +2,6 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import {
   Code2,
-  ExternalLink,
   GraduationCap,
   MapPin,
   CheckCircle2,
@@ -14,7 +13,6 @@ import {
   Layout,
   Cpu,
   Radio,
-  FolderGit2,
   ChevronRight,
   Compass,
 } from 'lucide-react'
@@ -139,16 +137,13 @@ export const DeveloperProfilePage: React.FC = () => {
 
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap sm:flex-col gap-3 shrink-0">
-            <a
-              href="https://github.com/abhyy333"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 text-xs font-semibold backdrop-blur-xs transition-all shadow-xs"
             >
-              <FolderGit2 className="h-4 w-4" />
-              <span>GitHub @abhyy333</span>
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </a>
+              <Globe className="h-4 w-4 text-sage-200" />
+              <span>Portal KKN SPACE</span>
+            </Link>
 
             <Link
               to="/projects/kkn-space"
@@ -290,16 +285,13 @@ export const DeveloperProfilePage: React.FC = () => {
                     <span>Detail Project</span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
-                  <a
-                    href="https://github.com/abhyy333/KKNSPACE"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/"
                     className="inline-flex items-center gap-1.5 rounded-xl border border-warm-300 bg-white hover:bg-warm-50 text-charcoal px-3.5 py-2 text-xs font-medium transition-colors"
                   >
-                    <FolderGit2 className="h-3.5 w-3.5" />
-                    <span>Repository</span>
-                    <ExternalLink className="h-3 w-3 text-charcoal-muted" />
-                  </a>
+                    <Globe className="h-3.5 w-3.5 text-sage-700" />
+                    <span>Portal KKN SPACE</span>
+                  </Link>
                 </div>
               </div>
 
@@ -384,13 +376,11 @@ export const DeveloperProfilePage: React.FC = () => {
                 <a
                   key={idx}
                   href={profile.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="group flex items-center justify-between rounded-xl border border-warm-200 bg-warm-50/50 p-4 hover:border-sage-400 hover:bg-white transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-warm-200 group-hover:border-sage-300">
-                      <FolderGit2 className="h-5 w-5 text-charcoal group-hover:text-sage-700 transition-colors" />
+                      <Globe className="h-5 w-5 text-charcoal group-hover:text-sage-700 transition-colors" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -402,7 +392,7 @@ export const DeveloperProfilePage: React.FC = () => {
                       <span className="text-xs text-charcoal-muted">{profile.label}</span>
                     </div>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-warm-400 group-hover:text-sage-700 transition-colors" />
+                  <ArrowRight className="h-4 w-4 text-warm-400 group-hover:text-sage-700 transition-colors" />
                 </a>
               ))}
             </div>

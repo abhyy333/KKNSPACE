@@ -283,15 +283,15 @@ export function runPrerender() {
           <li><strong>IoT Development:</strong> Integrasi telemetri perangkat keras dan mikrokontroler berbasis keilmuan Teknik Elektro.</li>
         </ul>
         <h2>Technical Stack</h2>
-        <p>React 19, TypeScript, JavaScript (ESNext), HTML5, CSS3, Tailwind CSS, Vite, Supabase, PostgreSQL, Leaflet, MapLibre GL, Git, GitHub, Node.js, Vercel.</p>
+        <p>React 19, TypeScript, JavaScript (ESNext), HTML5, CSS3, Tailwind CSS, Vite, Supabase, PostgreSQL, Leaflet, MapLibre GL, Git, Node.js, Vercel.</p>
         <h2>Featured Project</h2>
         <p><strong><a href="/projects/kkn-space">KKN SPACE</a></strong> — Platform digital kolaborasi dan geoportal untuk kegiatan KKN mahasiswa Universitas Mataram di Desa Pringgasela Selatan, Lombok Timur.</p>
         <h2>Kontribusi Utama dalam KKN SPACE</h2>
         <p>Merancang arsitektur perangkat lunak end-to-end, pemodelan database PostgreSQL, implementasi keamanan RLS, 10 modul sistem digital, geoportal 7 dusun, serta pipeline technical SEO dan static prerendering.</p>
         <h2>Profil Publik Terverifikasi</h2>
         <ul>
-          <li>GitHub: <a href="https://github.com/abhyy333">https://github.com/abhyy333</a></li>
-          <li>Repository KKN SPACE: <a href="https://github.com/abhyy333/KKNSPACE">https://github.com/abhyy333/KKNSPACE</a></li>
+          <li>Platform Resmi KKN SPACE: <a href="https://kknspace.vercel.app">https://kknspace.vercel.app</a></li>
+          <li>Showcase KKN SPACE: <a href="https://kknspace.vercel.app/projects/kkn-space">https://kknspace.vercel.app/projects/kkn-space</a></li>
         </ul>`
       } else if (target.routeKey === 'projectShowcase') {
         noscriptContent = `
@@ -314,7 +314,7 @@ export function runPrerender() {
         </ul>
         <h2>Teknologi</h2>
         <p>React 19, TypeScript, Vite, Tailwind CSS, Supabase, PostgreSQL, Row-Level Security (RLS), Leaflet GIS, MapLibre GL, Vercel Edge Hosting.</p>
-        <p><strong>Tautan Proyek:</strong> <a href="https://kknspace.vercel.app">Website Resmi KKN SPACE</a> | <a href="https://github.com/abhyy333/KKNSPACE">GitHub Repository</a> | <a href="/developer/abdul-habir-al-majdi">Profil Pengembang (Abdul Habir Al Majdi)</a></p>`
+        <p><strong>Tautan Proyek:</strong> <a href="https://kknspace.vercel.app">Website Resmi KKN SPACE</a> | <a href="/developer/abdul-habir-al-majdi">Profil Pengembang (Abdul Habir Al Majdi)</a></p>`
       }
 
       const noscriptBlock = `
