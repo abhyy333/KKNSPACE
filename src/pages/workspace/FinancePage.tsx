@@ -21,6 +21,7 @@ import {
   BookOpen,
   Sparkles,
 } from 'lucide-react'
+import { Modal } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -81,8 +82,9 @@ export const FinancePage: React.FC = () => {
   const [reclassifyTarget, setReclassifyTarget] = useState<FinanceTransaction | null>(null)
   const [openingFileId, setOpeningFileId] = useState<string | null>(null)
 
-  // Cash Book Selection (Active vs Archived)
-  const [selectedBookId, setSelectedBookId] = useState<string>('active')
+  // Historical Archive Viewing State (null = Buku Kas Utama Langsung)
+  const [viewingArchiveBookId, setViewingArchiveBookId] = useState<string | null>(null)
+  const [isArchiveHistoryOpen, setIsArchiveHistoryOpen] = useState<boolean>(false)
 
   // Filters
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -128,22 +130,23 @@ export const FinancePage: React.FC = () => {
   const transactions = ledger?.transactions ?? EMPTY_TRANSACTIONS
   const books = ledger?.books ?? []
   const activeBook = ledger?.activeBook ?? books.find((b) => b.status === 'active') ?? null
+  const archivedBooks = useMemo(() => books.filter((b) => b.status === 'archived'), [books])
   const attachmentsByTransaction = ledger?.attachmentsByTransaction ?? {}
   const membersById = ledger?.membersById ?? EMPTY_MEMBERS
 
-  const isViewingArchive = selectedBookId !== 'active' && activeBook && selectedBookId !== activeBook.id
-  const currentSelectedBook = isViewingArchive
-    ? books.find((b) => b.id === selectedBookId) || null
-    : activeBook
+  const isViewingArchive = Boolean(viewingArchiveBookId)
+  const viewingArchiveBook = isViewingArchive
+    ? books.find((b) => b.id === viewingArchiveBookId) || null
+    : null
 
   // Filter transactions belonging to current cash book
   const scopedTransactions = useMemo(() => {
-    if (isViewingArchive) {
-      return transactions.filter((t) => t.book_id === selectedBookId)
+    if (viewingArchiveBookId) {
+      return transactions.filter((t) => t.book_id === viewingArchiveBookId)
     }
-    // Active cash book
+    // Main active cash book: all transactions belonging to the active KKN execution
     return transactions.filter((t) => !t.is_archived || (activeBook && t.book_id === activeBook.id))
-  }, [transactions, isViewingArchive, selectedBookId, activeBook])
+  }, [transactions, viewingArchiveBookId, activeBook])
 
   const categoryById = useMemo(() => {
     const map = new Map<string, (typeof categories)[number]>()
@@ -303,27 +306,31 @@ export const FinancePage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Cash Book Selector */}
-          <div className="flex items-center gap-1.5 bg-warm-100/70 border border-warm-300 rounded-lg px-2.5 py-1">
+          {/* Buku Kas Utama Indicator (One Single Cashbook for KKN) */}
+          <div className="flex items-center gap-1.5 bg-sage-50 border border-sage-300 rounded-lg px-2.5 py-1">
             <BookOpen className="h-3.5 w-3.5 text-sage-700 shrink-0" />
-            <select
-              aria-label="Pilih Buku Kas"
-              value={selectedBookId}
-              onChange={(e) => setSelectedBookId(e.target.value)}
-              className="bg-transparent text-xs text-charcoal font-medium focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="active">
-                {activeBook ? `${activeBook.title} (Aktif)` : 'Buku Kas Aktif'}
-              </option>
-              {books
-                .filter((b) => b.status === 'archived')
-                .map((b) => (
-                  <option key={b.id} value={b.id}>
-                    📁 {b.title} (Arsip)
-                  </option>
-                ))}
-            </select>
+            <span className="text-xs text-sage-900 font-semibold">
+              Buku Kas Utama KKN
+            </span>
+            <Badge variant="outline" className="text-[10px] bg-white text-sage-800 border-sage-200 ml-1">
+              Aktif
+            </Badge>
           </div>
+
+          {/* Simple History / Archive Access if historical archives exist */}
+          {archivedBooks.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsArchiveHistoryOpen(true)}
+              className="text-xs h-8 gap-1.5 border-warm-300 bg-white hover:bg-warm-50 text-charcoal"
+              title="Akses riwayat arsip buku kas lama secara terpisah"
+            >
+              <Archive className="h-3.5 w-3.5 text-amber-600" />
+              <span>Riwayat Arsip ({archivedBooks.length})</span>
+            </Button>
+          )}
 
           <Button
             type="button"
@@ -335,25 +342,6 @@ export const FinancePage: React.FC = () => {
             <Download className="h-3.5 w-3.5 text-sage-700" />
             <span>Ekspor CSV</span>
           </Button>
-
-          {isSuperAdmin && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setResetModalOpen(true)}
-              disabled={Boolean(isViewingArchive)}
-              className="text-xs gap-1.5 border-rose-300 text-rose-700 hover:bg-rose-50"
-              title={
-                isViewingArchive
-                  ? 'Kembali ke Buku Kas Aktif untuk melakukan reset'
-                  : 'Arsipkan buku kas saat ini dan buka periode baru'
-              }
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span>Reset Keuangan</span>
-            </Button>
-          )}
 
           {canManageFinance ? (
             <>
@@ -389,7 +377,7 @@ export const FinancePage: React.FC = () => {
       </div>
 
       {/* Archive Warning Banner */}
-      {isViewingArchive && currentSelectedBook && (
+      {isViewingArchive && viewingArchiveBook && (
         <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-start sm:items-center gap-3">
             <div className="rounded-lg bg-amber-200/80 p-2 text-amber-800 shrink-0">
@@ -397,18 +385,18 @@ export const FinancePage: React.FC = () => {
             </div>
             <div>
               <div className="font-semibold text-sm">
-                Menampilkan Arsip: {currentSelectedBook.title}
+                Menampilkan Arsip Historis: {viewingArchiveBook.title}
               </div>
               <div className="text-[11px] text-amber-800/90 mt-0.5">
                 Diarsipkan pada:{' '}
-                {currentSelectedBook.archived_at
-                  ? formatFinanceDate(currentSelectedBook.archived_at.slice(0, 10))
+                {viewingArchiveBook.archived_at
+                  ? formatFinanceDate(viewingArchiveBook.archived_at.slice(0, 10))
                   : '-'}{' '}
                 • Saldo Akhir Tercatat:{' '}
                 <span className="font-semibold text-amber-950">
-                  {formatRupiah(currentSelectedBook.snapshot_final_balance ?? 0)}
+                  {formatRupiah(viewingArchiveBook.snapshot_final_balance ?? 0)}
                 </span>
-                {currentSelectedBook.notes && ` • Catatan: ${currentSelectedBook.notes}`}
+                {viewingArchiveBook.notes && ` • Catatan: ${viewingArchiveBook.notes}`}
               </div>
             </div>
           </div>
@@ -416,10 +404,10 @@ export const FinancePage: React.FC = () => {
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => setSelectedBookId('active')}
+            onClick={() => setViewingArchiveBookId(null)}
             className="text-xs border-amber-400 bg-white hover:bg-amber-100 text-amber-900 shrink-0"
           >
-            Kembali ke Buku Kas Aktif
+            Kembali ke Buku Kas Utama
           </Button>
         </div>
       )}
@@ -448,7 +436,7 @@ export const FinancePage: React.FC = () => {
           }`}
         >
           <PieChart className="h-4 w-4" />
-          <span>Analisis Penggunaan Dana</span>
+          <span>Analisis Pengeluaran</span>
         </button>
         <button
           type="button"
@@ -1089,6 +1077,7 @@ export const FinancePage: React.FC = () => {
             onClose={() => setTxModalOpen(false)}
             categories={categories}
             onOpenCategoryManager={() => setCatModalOpen(true)}
+            activeBookId={activeBook?.id || null}
           />
           <FinanceCategoryModal
             open={catModalOpen}
@@ -1107,6 +1096,89 @@ export const FinancePage: React.FC = () => {
             workPrograms={workPrograms}
           />
         </>
+      )}
+
+      {/* Modal: Akses Riwayat Arsip Historis Buku Kas Lama */}
+      {isArchiveHistoryOpen && (
+        <Modal
+          open={isArchiveHistoryOpen}
+          onClose={() => setIsArchiveHistoryOpen(false)}
+          title="Riwayat Arsip Buku Kas Terdahulu"
+          description="Akses catatan historis buku kas yang telah diarsipkan. Data bersifat read-only untuk kebutuhan audit."
+          maxWidthClass="max-w-2xl"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="space-y-3">
+              {archivedBooks.map((book) => (
+                <div
+                  key={book.id}
+                  className="rounded-xl border border-warm-200 bg-warm-50/60 p-4 space-y-2 hover:bg-warm-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Archive className="h-4 w-4 text-amber-700" />
+                      <span className="font-semibold text-charcoal text-sm">{book.title}</span>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-300">
+                      Arsip Historis
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-charcoal-muted pt-1">
+                    <div>
+                      <span>Waktu Arsip:</span>
+                      <p className="font-medium text-charcoal">
+                        {book.archived_at ? formatFinanceDate(book.archived_at.slice(0, 10)) : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <span>Total Pemasukan:</span>
+                      <p className="font-medium text-emerald-700">
+                        {formatRupiah(book.snapshot_total_income ?? 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <span>Total Pengeluaran:</span>
+                      <p className="font-medium text-rose-700">
+                        {formatRupiah(book.snapshot_total_expense ?? 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <span>Saldo Akhir:</span>
+                      <p className="font-bold text-charcoal">
+                        {formatRupiah(book.snapshot_final_balance ?? 0)}
+                      </p>
+                    </div>
+                  </div>
+                  {book.notes && (
+                    <p className="text-[11px] text-charcoal-muted bg-white p-2 rounded border border-warm-200 italic">
+                      Catatan: {book.notes}
+                    </p>
+                  )}
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setViewingArchiveBookId(book.id)
+                        setIsArchiveHistoryOpen(false)
+                      }}
+                      className="text-xs h-7 border-amber-300 text-amber-900 hover:bg-amber-100"
+                    >
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      <span>Lihat Rincian Transaksi Arsip Ini</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-2 border-t border-warm-200">
+              <Button size="sm" variant="outline" onClick={() => setIsArchiveHistoryOpen(false)}>
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {isSuperAdmin && (

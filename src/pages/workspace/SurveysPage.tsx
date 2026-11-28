@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchSurveyForms,
@@ -9,6 +9,7 @@ import {
   submitSurveyResponse,
   verifySurveyResponse,
   calculateSurveyStats,
+  generateSurveyFormResponsesCSV,
   DUSUN_PRINGGASELA_SELATAN,
   PREDEFINED_SURVEY_TEMPLATES,
   type SurveyFormDetail,
@@ -30,7 +31,6 @@ import {
   ClipboardList,
   FileSpreadsheet,
   CheckCircle2,
-  Clock,
   Download,
   Plus,
   RefreshCw,
@@ -44,6 +44,10 @@ import {
   Users2,
   Activity,
   FileCheck2,
+  Archive,
+  RotateCcw,
+  Calendar,
+  AlertCircle,
 } from 'lucide-react'
 
 const CATEGORY_META: Record<SurveyCategory, { label: string; icon: any; color: string }> = {
@@ -71,15 +75,20 @@ export const SurveysPage: React.FC = () => {
 
   const canManage = isSuperAdmin || membership?.role === 'ketua' || membership?.role === 'sekretaris'
 
-  const [activeTab, setActiveTab] = useState<'forms' | 'responses' | 'analytics'>('forms')
+  const [activeTab, setActiveTab] = useState<'forms' | 'archived' | 'responses' | 'analytics'>('forms')
   const [selectedCategory, setSelectedCategory] = useState<SurveyCategory | 'all'>('all')
   const [selectedDusun, setSelectedDusun] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<SurveyResponseStatus | 'all'>('all')
+  const [selectedFormFilter, setSelectedFormFilter] = useState<string>('all')
 
-  // Modals
+  // Modals & Action Confirmation Dialogs
   const [isCreateFormModalOpen, setIsCreateFormModalOpen] = useState(false)
   const [answeringForm, setAnsweringForm] = useState<SurveyFormDetail | null>(null)
   const [viewingResponseId, setViewingResponseId] = useState<string | null>(null)
+  const [formToClose, setFormToClose] = useState<SurveyFormDetail | null>(null)
+  const [formToReopen, setFormToReopen] = useState<SurveyFormDetail | null>(null)
+  const [previewFormDetail, setPreviewFormDetail] = useState<SurveyFormDetail | null>(null)
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false)
 
   // Queries
   const {
@@ -92,17 +101,22 @@ export const SurveysPage: React.FC = () => {
     queryFn: () => fetchSurveyForms({ category: selectedCategory }),
   })
 
+  // Split active and archived forms
+  const activeForms = useMemo(() => forms.filter((f) => f.status === 'active'), [forms])
+  const archivedForms = useMemo(() => forms.filter((f) => f.status === 'closed'), [forms])
+
   const {
     data: responses = [],
     isLoading: isLoadingResponses,
     refetch: refetchResponses,
   } = useQuery({
-    queryKey: ['survey-responses', selectedCategory, selectedDusun, selectedStatus],
+    queryKey: ['survey-responses', selectedCategory, selectedDusun, selectedStatus, selectedFormFilter],
     queryFn: () =>
       fetchSurveyResponses({
         category: selectedCategory,
         dusun: selectedDusun,
         status: selectedStatus,
+        formId: selectedFormFilter !== 'all' ? selectedFormFilter : undefined,
       }),
   })
 
@@ -116,6 +130,86 @@ export const SurveysPage: React.FC = () => {
     queryFn: () => (viewingResponseId ? fetchSurveyResponseById(viewingResponseId) : null),
     enabled: Boolean(viewingResponseId),
   })
+
+  const handleExportSingleFormCSV = (form: SurveyFormDetail) => {
+    const formResponses = responses.filter((r) => r.form_id === form.id)
+    if (formResponses.length === 0) {
+      toast({
+        title: 'Belum Ada Data Tersimpan',
+        description: 'Formulir ini belum memiliki respons yang terkumpul.',
+        variant: 'error',
+      })
+      return
+    }
+
+    const csvContent = generateSurveyFormResponsesCSV(form, formResponses)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute(
+      'download',
+      `Data_Survei_${form.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`
+    )
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: 'Data Survei Berhasil Diekspor',
+      description: `${formResponses.length} respons telah diekspor ke CSV.`,
+      variant: 'success',
+    })
+  }
+
+  const handleConfirmClose = async () => {
+    if (!formToClose) return
+    setIsActionSubmitting(true)
+    try {
+      await updateSurveyFormStatus(formToClose.id, 'closed')
+      toast({
+        title: 'Formulir Survei Ditutup & Diarsipkan',
+        description: `Formulir "${formToClose.title}" telah dipindahkan ke tab Arsip Survei.`,
+        variant: 'success',
+      })
+      setFormToClose(null)
+      refetchForms()
+      refetchStats()
+    } catch (err: any) {
+      toast({
+        title: 'Gagal Menutup Formulir',
+        description: err.message || 'Terjadi kesalahan sistem.',
+        variant: 'error',
+      })
+    } finally {
+      setIsActionSubmitting(false)
+    }
+  }
+
+  const handleConfirmReopen = async () => {
+    if (!formToReopen) return
+    setIsActionSubmitting(true)
+    try {
+      await updateSurveyFormStatus(formToReopen.id, 'active')
+      toast({
+        title: 'Formulir Survei Berhasil Diaktifkan Kembali',
+        description: `Formulir "${formToReopen.title}" sekarang aktif kembali untuk pengumpulan data.`,
+        variant: 'success',
+      })
+      setFormToReopen(null)
+      refetchForms()
+      refetchStats()
+    } catch (err: any) {
+      toast({
+        title: 'Gagal Mengaktifkan Formulir',
+        description: err.message || 'Terjadi kesalahan sistem.',
+        variant: 'error',
+      })
+    } finally {
+      setIsActionSubmitting(false)
+    }
+  }
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -228,26 +322,24 @@ export const SurveysPage: React.FC = () => {
 
         <Card className="bg-white">
           <CardContent className="p-3.5 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warm-100 text-charcoal">
-              <FileSpreadsheet className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+              <Archive className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-[11px] text-charcoal-muted">Data Terkumpul</p>
-              <p className="text-base font-bold text-charcoal">{stats?.totalResponses || 0}</p>
+              <p className="text-[11px] text-charcoal-muted">Arsip Formulir</p>
+              <p className="text-base font-bold text-amber-700">{stats?.archivedForms || 0}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white">
           <CardContent className="p-3.5 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
-              <Clock className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warm-100 text-charcoal">
+              <FileSpreadsheet className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-[11px] text-charcoal-muted">Draft / Review</p>
-              <p className="text-base font-bold text-amber-700">
-                {(stats?.totalResponses || 0) - (stats?.verifiedResponses || 0)}
-              </p>
+              <p className="text-[11px] text-charcoal-muted">Data Terkumpul</p>
+              <p className="text-base font-bold text-charcoal">{stats?.totalResponses || 0}</p>
             </div>
           </CardContent>
         </Card>
@@ -274,7 +366,15 @@ export const SurveysPage: React.FC = () => {
               activeTab === 'forms' ? 'bg-white text-charcoal shadow-xs' : 'text-charcoal-muted hover:text-charcoal'
             }`}
           >
-            Instrumen Formulir ({forms.length})
+            Instrumen Aktif ({activeForms.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              activeTab === 'archived' ? 'bg-white text-charcoal shadow-xs' : 'text-charcoal-muted hover:text-charcoal'
+            }`}
+          >
+            Arsip Survei ({archivedForms.length})
           </button>
           <button
             onClick={() => setActiveTab('responses')}
@@ -313,6 +413,19 @@ export const SurveysPage: React.FC = () => {
           {activeTab === 'responses' && (
             <>
               <select
+                value={selectedFormFilter}
+                onChange={(e) => setSelectedFormFilter(e.target.value)}
+                className="text-xs h-9 px-2 rounded-md border border-warm-300 bg-white text-charcoal max-w-[200px] truncate"
+              >
+                <option value="all">Semua Formulir Survei</option>
+                {forms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.title} ({f.status === 'active' ? 'Aktif' : 'Arsip'})
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={selectedDusun}
                 onChange={(e) => setSelectedDusun(e.target.value)}
                 className="text-xs h-9 px-2 rounded-md border border-warm-300 bg-white text-charcoal"
@@ -340,7 +453,7 @@ export const SurveysPage: React.FC = () => {
         </div>
       </div>
 
-      {/* TAB 1: FORMULIR SURVEI */}
+      {/* TAB 1: INSTRUMEN SURVEI AKTIF */}
       {activeTab === 'forms' && (
         <div className="space-y-4">
           {isLoadingForms ? (
@@ -349,7 +462,7 @@ export const SurveysPage: React.FC = () => {
               <Skeleton className="h-44 w-full" />
               <Skeleton className="h-44 w-full" />
             </div>
-          ) : forms.length === 0 ? (
+          ) : activeForms.length === 0 ? (
             <Card className="border-dashed border-warm-300 bg-white">
               <CardContent className="p-12 text-center space-y-3">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
@@ -357,10 +470,10 @@ export const SurveysPage: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-charcoal">
-                    Belum Ada Formulir Survei
+                    Belum Ada Formulir Survei Aktif
                   </h3>
                   <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
-                    Pilih salah satu dari 5 template survei resmi KKN untuk mulai mengumpulkan data lapangan.
+                    Pilih salah satu dari 5 template survei resmi KKN atau aktifkan kembali formulir dari Arsip Survei.
                   </p>
                 </div>
                 {canManage && (
@@ -377,7 +490,7 @@ export const SurveysPage: React.FC = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {forms.map((form) => {
+              {activeForms.map((form) => {
                 const catMeta = CATEGORY_META[form.category] || CATEGORY_META.lainnya
                 const Icon = catMeta.icon
 
@@ -396,10 +509,10 @@ export const SurveysPage: React.FC = () => {
                         </span>
 
                         <Badge
-                          variant={form.status === 'active' ? 'success' : 'outline'}
+                          variant="success"
                           className="text-[10px]"
                         >
-                          {form.status === 'active' ? 'Aktif' : form.status === 'draft' ? 'Draft' : 'Ditutup'}
+                          Aktif
                         </Badge>
                       </div>
 
@@ -429,30 +542,167 @@ export const SurveysPage: React.FC = () => {
                       )}
 
                       <div className="pt-2 border-t border-warm-200 flex items-center justify-between gap-2">
-                        {form.status === 'active' && (
-                          <Button
-                            size="sm"
-                            onClick={() => setAnsweringForm(form)}
-                            className="w-full text-xs h-7 bg-sage-700 hover:bg-sage-800 text-white"
-                          >
-                            Isi Data Survei Ini
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => setAnsweringForm(form)}
+                          className="w-full text-xs h-7 bg-sage-700 hover:bg-sage-800 text-white"
+                        >
+                          Isi Data Survei Ini
+                        </Button>
 
                         {canManage && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={async () => {
-                              const nextStatus = form.status === 'active' ? 'closed' : 'active'
-                              await updateSurveyFormStatus(form.id, nextStatus)
-                              refetchForms()
-                            }}
-                            className="text-xs h-7 shrink-0 text-charcoal-muted"
+                            onClick={() => setFormToClose(form)}
+                            className="text-xs h-7 shrink-0 text-rose-700 border-rose-200 hover:bg-rose-50"
+                            title="Tutup formulir dan pindahkan ke tab Arsip Survei"
                           >
-                            {form.status === 'active' ? 'Tutup' : 'Aktifkan'}
+                            Tutup
                           </Button>
                         )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: ARSIP SURVEI (Requirement 3.A, 3.B, 3.C) */}
+      {activeTab === 'archived' && (
+        <div className="space-y-4">
+          {isLoadingForms ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ) : archivedForms.length === 0 ? (
+            <Card className="border-dashed border-warm-300 bg-white">
+              <CardContent className="p-12 text-center space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-warm-100 text-charcoal-muted">
+                  <Archive className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-semibold text-charcoal">
+                    Belum Ada Formulir yang Diarsipkan
+                  </h3>
+                  <p className="text-xs text-charcoal-muted max-w-sm mx-auto">
+                    Formulir survei aktif yang telah selesai pengumpulan datanya dapat ditutup agar berpindah ke tab arsip ini.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedForms.map((form) => {
+                const catMeta = CATEGORY_META[form.category] || CATEGORY_META.lainnya
+                const Icon = catMeta.icon
+
+                return (
+                  <Card
+                    key={form.id}
+                    className="bg-white border-warm-300 hover:border-warm-400 transition-all flex flex-col justify-between"
+                  >
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded flex items-center gap-1 ${catMeta.color}`}
+                        >
+                          <Icon className="h-3 w-3" />
+                          <span>{catMeta.label}</span>
+                        </span>
+
+                        <Badge variant="outline" className="text-[10px] bg-warm-100 text-charcoal-muted border-warm-300">
+                          <Archive className="h-2.5 w-2.5 mr-1 text-amber-700" />
+                          Arsip
+                        </Badge>
+                      </div>
+
+                      <CardTitle className="text-sm font-serif font-semibold text-charcoal mt-2 line-clamp-1">
+                        {form.title}
+                      </CardTitle>
+                      {form.description && (
+                        <CardDescription className="text-xs line-clamp-2">
+                          {form.description}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+
+                    <CardContent className="p-4 pt-1 space-y-3">
+                      <div className="p-2.5 rounded-lg border border-warm-200 bg-warm-50/70 text-xs flex items-center justify-between">
+                        <span className="text-charcoal-muted">{form.fields?.length || 0} Pertanyaan</span>
+                        <span className="font-semibold text-charcoal">
+                          {form.response_count || 0} Data Terkumpul
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-[11px] text-charcoal-muted">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3 text-charcoal-muted shrink-0" />
+                          <span>Dibuat: {new Date(form.created_at).toLocaleDateString('id-ID')}</span>
+                        </div>
+                        {form.target_dusun && (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3 text-charcoal-muted shrink-0" />
+                            <span className="truncate">Wilayah: {form.target_dusun}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Archived actions: Detail, Responses, Export, Reactivate (NO "Isi Data Survei Ini" button!) */}
+                      <div className="pt-2 border-t border-warm-200 space-y-1.5">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setPreviewFormDetail(form)}
+                            className="text-xs h-7 text-charcoal gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            <span>Detail</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedFormFilter(form.id)
+                              setActiveTab('responses')
+                            }}
+                            className="text-xs h-7 text-charcoal gap-1"
+                          >
+                            <FileSpreadsheet className="h-3 w-3" />
+                            <span>Respons ({form.response_count || 0})</span>
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleExportSingleFormCSV(form)}
+                            className="w-full text-xs h-7 text-charcoal gap-1"
+                          >
+                            <Download className="h-3 w-3" />
+                            <span>Ekspor Data</span>
+                          </Button>
+
+                          {canManage && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setFormToReopen(form)}
+                              className="w-full text-xs h-7 border-emerald-300 text-emerald-800 hover:bg-emerald-50 gap-1"
+                              title="Kembalikan formulir ke status aktif"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              <span>Aktifkan</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -666,6 +916,261 @@ export const SurveysPage: React.FC = () => {
             refetchStats()
           }}
         />
+      )}
+
+      {/* MODAL 4: KONFIRMASI TUTUP & ARSIPKAN FORMULIR */}
+      {formToClose && (
+        <Modal
+          open={Boolean(formToClose)}
+          onClose={() => !isActionSubmitting && setFormToClose(null)}
+          title="Tutup & Arsipkan Formulir Survei"
+          maxWidthClass="max-w-md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2.5">
+              <AlertCircle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-amber-900">
+                  Konfirmasi Penutupan Formulir
+                </p>
+                <p className="text-amber-800 leading-relaxed">
+                  Apakah Anda yakin ingin menutup dan mengarsipkan formulir{' '}
+                  <span className="font-semibold">"{formToClose.title}"</span>?
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-warm-200 bg-white p-3 space-y-2 text-charcoal">
+              <p className="font-medium text-charcoal text-[11px] uppercase tracking-wider">
+                Konsekuensi Penutupan:
+              </p>
+              <ul className="list-disc pl-4 space-y-1 text-charcoal-muted">
+                <li>Formulir tidak lagi muncul di daftar instrumen aktif.</li>
+                <li>Anggota tim tidak dapat mengisi respons baru untuk formulir ini.</li>
+                <li>
+                  Seluruh data yang terkumpul ({formToClose.response_count || 0} respons) dan butir pertanyaan tetap tersimpan utuh.
+                </li>
+                <li>
+                  Formulir dipindahkan ke tab <strong>Arsip Survei</strong> dan dapat diaktifkan kembali jika diperlukan.
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-warm-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormToClose(null)}
+                disabled={isActionSubmitting}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmClose}
+                disabled={isActionSubmitting}
+                className="bg-amber-700 hover:bg-amber-800 text-white"
+              >
+                {isActionSubmitting ? 'Memproses...' : 'Ya, Tutup & Arsipkan'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL 5: KONFIRMASI AKTIFKAN KEMBALI FORMULIR */}
+      {formToReopen && (
+        <Modal
+          open={Boolean(formToReopen)}
+          onClose={() => !isActionSubmitting && setFormToReopen(null)}
+          title="Aktifkan Kembali Formulir Survei"
+          maxWidthClass="max-w-md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2.5">
+              <CheckCircle2 className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-semibold text-emerald-900">
+                  Aktivasi Formulir Survei
+                </p>
+                <p className="text-emerald-800 leading-relaxed">
+                  Apakah Anda ingin mengaktifkan kembali formulir{' '}
+                  <span className="font-semibold">"{formToReopen.title}"</span>?
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-warm-200 bg-white p-3 space-y-2 text-charcoal">
+              <p className="font-medium text-charcoal text-[11px] uppercase tracking-wider">
+                Setelah Diaktifkan:
+              </p>
+              <ul className="list-disc pl-4 space-y-1 text-charcoal-muted">
+                <li>Formulir kembali berstatus Aktif di daftar instrumen utama.</li>
+                <li>Anggota tim KKN dapat kembali menginput data survei di lapangan.</li>
+                <li>
+                  Data lama ({formToReopen.response_count || 0} respons) tetap utuh dan bertambah.
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-warm-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFormToReopen(null)}
+                disabled={isActionSubmitting}
+              >
+                Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleConfirmReopen}
+                disabled={isActionSubmitting}
+                className="bg-sage-700 hover:bg-sage-800 text-white"
+              >
+                {isActionSubmitting ? 'Mengaktifkan...' : 'Aktifkan Formulir'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* MODAL 6: DETAIL & BUTIR PERTANYAAN FORMULIR */}
+      {previewFormDetail && (
+        <Modal
+          open={Boolean(previewFormDetail)}
+          onClose={() => setPreviewFormDetail(null)}
+          title={`Detail Formulir: ${previewFormDetail.title}`}
+          maxWidthClass="max-w-2xl"
+        >
+          <div className="space-y-4 text-xs max-h-[75vh] overflow-y-auto pr-1">
+            <div className="p-3.5 rounded-lg border border-warm-200 bg-warm-50 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-sage-600 text-sage-800 bg-white">
+                    {CATEGORY_META[previewFormDetail.category]?.label || previewFormDetail.category}
+                  </Badge>
+                  <Badge
+                    variant={previewFormDetail.status === 'active' ? 'success' : 'outline'}
+                    className={
+                      previewFormDetail.status === 'closed'
+                        ? 'border-amber-300 text-amber-700 bg-amber-50'
+                        : ''
+                    }
+                  >
+                    {previewFormDetail.status === 'active' ? 'Status: Aktif' : 'Status: Diarsipkan'}
+                  </Badge>
+                </div>
+                <span className="text-[11px] text-charcoal-muted font-mono">
+                  Dibuat: {new Date(previewFormDetail.created_at).toLocaleDateString('id-ID')}
+                </span>
+              </div>
+
+              {previewFormDetail.description && (
+                <p className="text-charcoal leading-relaxed">{previewFormDetail.description}</p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-4 text-[11px] text-charcoal-muted pt-1 border-t border-warm-200">
+                <span>
+                  Target Wilayah:{' '}
+                  <strong className="text-charcoal">
+                    {previewFormDetail.target_dusun || 'Seluruh Dusun'}
+                  </strong>
+                </span>
+                <span>
+                  Respons Terkumpul:{' '}
+                  <strong className="text-charcoal">
+                    {previewFormDetail.response_count || 0} entri
+                  </strong>
+                </span>
+                <span>
+                  Jumlah Pertanyaan:{' '}
+                  <strong className="text-charcoal">
+                    {previewFormDetail.fields?.length || 0} butir
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            {/* List of Fields */}
+            <div className="space-y-2.5">
+              <p className="font-semibold text-charcoal text-[11px] uppercase tracking-wider">
+                Daftar Butir Pertanyaan ({previewFormDetail.fields?.length || 0}):
+              </p>
+              {!previewFormDetail.fields || previewFormDetail.fields.length === 0 ? (
+                <p className="text-charcoal-muted text-center py-4">
+                  Belum ada butir pertanyaan pada formulir ini.
+                </p>
+              ) : (
+                previewFormDetail.fields.map((f, idx) => (
+                  <div
+                    key={f.id || idx}
+                    className="p-3 rounded-lg border border-warm-200 bg-white space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-charcoal">
+                        {idx + 1}. {f.label} {f.required && <span className="text-red-500">*</span>}
+                      </span>
+                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-warm-100 text-charcoal-muted">
+                        {f.field_type}
+                      </span>
+                    </div>
+
+                    {f.options && f.options.length > 0 && (
+                      <div className="pt-1">
+                        <p className="text-[10px] text-charcoal-muted mb-1">Pilihan Jawaban:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {f.options.map((opt, oIdx) => (
+                            <span
+                              key={oIdx}
+                              className="text-[11px] px-2 py-0.5 rounded border border-warm-200 bg-warm-50 text-charcoal"
+                            >
+                              • {opt}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-warm-200">
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleExportSingleFormCSV(previewFormDetail)}
+                  disabled={!previewFormDetail.response_count}
+                  className="text-xs gap-1"
+                >
+                  <Download className="h-3 w-3" />
+                  <span>Ekspor Respons CSV ({previewFormDetail.response_count || 0})</span>
+                </Button>
+                {previewFormDetail.response_count ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedFormFilter(previewFormDetail.id)
+                      setActiveTab('responses')
+                      setPreviewFormDetail(null)
+                    }}
+                    className="text-xs gap-1"
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span>Buka Daftar Respons</span>
+                  </Button>
+                ) : null}
+              </div>
+
+              <Button size="sm" variant="outline" onClick={() => setPreviewFormDetail(null)}>
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

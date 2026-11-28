@@ -420,6 +420,11 @@ export async function updateSurveyFormStatus(
   id: string,
   status: 'draft' | 'active' | 'closed'
 ): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Sesi pengguna tidak valid. Silakan masuk ulang.')
+
   const { error } = await supabase.from('survey_forms').update({ status }).eq('id', id)
   if (error) {
     throw new Error(`Gagal memperbarui status formulir: ${error.message}`)
@@ -503,6 +508,23 @@ export async function submitSurveyResponse(input: {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Sesi pengguna tidak valid.')
 
+  // Backend verification: target survey form must exist and must be active
+  const { data: formRecord, error: formFetchErr } = await supabase
+    .from('survey_forms')
+    .select('id, status, title')
+    .eq('id', input.form_id)
+    .single()
+
+  if (formFetchErr || !formRecord) {
+    throw new Error('Formulir survei tidak ditemukan.')
+  }
+
+  if (formRecord.status === 'closed') {
+    throw new Error(
+      `Formulir survei "${formRecord.title}" telah ditutup dan diarsipkan, sehingga tidak dapat menerima pengisian respons baru.`
+    )
+  }
+
   const { data: response, error: respError } = await supabase
     .from('survey_responses')
     .insert({
@@ -567,6 +589,7 @@ export async function verifySurveyResponse(
 export async function calculateSurveyStats(): Promise<{
   totalForms: number
   activeForms: number
+  archivedForms: number
   totalResponses: number
   verifiedResponses: number
   draftResponses: number
@@ -578,6 +601,7 @@ export async function calculateSurveyStats(): Promise<{
 
   const totalForms = forms?.length || 0
   const activeForms = forms?.filter((f) => f.status === 'active').length || 0
+  const archivedForms = forms?.filter((f) => f.status === 'closed').length || 0
   const totalResponses = responses?.length || 0
   const verifiedResponses = responses?.filter((r) => r.status === 'verified').length || 0
   const draftResponses = responses?.filter((r) => r.status === 'draft').length || 0
@@ -596,10 +620,56 @@ export async function calculateSurveyStats(): Promise<{
   return {
     totalForms,
     activeForms,
+    archivedForms,
     totalResponses,
     verifiedResponses,
     draftResponses,
     byDusun,
     byCategory,
   }
+}
+
+export function generateSurveyFormResponsesCSV(
+  form: SurveyFormDetail,
+  responses: SurveyResponseDetail[]
+): string {
+  const headers = [
+    'ID Respons',
+    'Judul Formulir',
+    'Kategori',
+    'Dusun',
+    'Nama Responden / Subjek',
+    'Status',
+    'Pengumpul Data',
+    'Waktu Pengumpulan',
+  ]
+  const fieldHeaders = (form.fields || []).map((f) => `"${f.label.replace(/"/g, '""')}"`)
+  const fullHeaders = [...headers, ...fieldHeaders]
+
+  const rows = responses.map((resp) => {
+    const answerMap = new Map<string, string>()
+    resp.answers?.forEach((a) => {
+      answerMap.set(a.field_id, a.answer_text || (a.answer_json ? JSON.stringify(a.answer_json) : '-'))
+    })
+
+    const baseRow = [
+      resp.id,
+      `"${(form.title || '').replace(/"/g, '""')}"`,
+      `"${form.category || '-'}"`,
+      resp.dusun || '-',
+      `"${(resp.respondent_name || '-').replace(/"/g, '""')}"`,
+      resp.status,
+      `"${(resp.submitter?.full_name || '-').replace(/"/g, '""')}"`,
+      new Date(resp.created_at).toLocaleString('id-ID'),
+    ]
+
+    const fieldValues = (form.fields || []).map((f) => {
+      const val = answerMap.get(f.id) || '-'
+      return `"${val.replace(/"/g, '""')}"`
+    })
+
+    return [...baseRow, ...fieldValues].join(',')
+  })
+
+  return '\uFEFF' + [fullHeaders.join(','), ...rows].join('\n')
 }

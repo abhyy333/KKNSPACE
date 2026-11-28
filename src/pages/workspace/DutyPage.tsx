@@ -15,12 +15,14 @@ import {
 } from '@/services/agendaApi'
 import { DutyDocumentationFormModal } from '@/components/duty/DutyDocumentationFormModal'
 import { DutyDocumentationDetailModal } from '@/components/duty/DutyDocumentationDetailModal'
+import { PhotoLightboxModal, type LightboxPhotoItem } from '@/components/common/PhotoLightboxModal'
 import type { DutyShift, WorkspaceMemberSummary } from '@/types/database'
 import {
   AlertCircle,
   Camera,
   Calendar,
   Edit3,
+  Eye,
   Loader2,
   Plus,
   RefreshCw,
@@ -42,6 +44,23 @@ export const DutyPage: React.FC = () => {
   const [detailShift, setDetailShift] = useState<DutyShift | null>(null)
   const [deletingShift, setDeletingShift] = useState<DutyShift | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [lightboxPhotos, setLightboxPhotos] = useState<LightboxPhotoItem[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0)
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false)
+
+  const handleOpenPhotoLightbox = (shift: DutyShift, initialIndex = 0) => {
+    const docs = shift.documentations || []
+    if (docs.length === 0) return
+    const items: LightboxPhotoItem[] = docs.map((d) => ({
+      id: d.id,
+      file_id: d.file_id,
+      caption: d.caption,
+      title: shift.title || shift.notes || 'Dokumentasi Piket Posko',
+    }))
+    setLightboxPhotos(items)
+    setLightboxIndex(initialIndex)
+    setIsLightboxOpen(true)
+  }
 
   // Fetch duty shifts (ordered by newest first)
   const {
@@ -270,8 +289,8 @@ export const DutyPage: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        /* Visual Documentation Cards Grid (Larger Preview Cards) */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        /* Visual Documentation Cards Grid (Flexible Ratio Cards with items-start) */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
           {filteredShifts.map((shift) => (
             <DutyDocumentationCard
               key={shift.id}
@@ -285,6 +304,7 @@ export const DutyPage: React.FC = () => {
                 setFormModalOpen(true)
               }}
               onDelete={() => setDeletingShift(shift)}
+              onOpenPhoto={(idx) => handleOpenPhotoLightbox(shift, idx || 0)}
             />
           ))}
         </div>
@@ -318,6 +338,14 @@ export const DutyPage: React.FC = () => {
         userRole={membership?.role}
       />
 
+      {/* Standalone Fullscreen Lightbox Modal */}
+      <PhotoLightboxModal
+        open={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        photos={lightboxPhotos}
+        initialIndex={lightboxIndex}
+      />
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={Boolean(deletingShift)}
@@ -337,7 +365,7 @@ export const DutyPage: React.FC = () => {
 }
 
 /**
- * Visual Documentation Card Component (Larger Visual Preview)
+ * Visual Documentation Card Component (Flexible Ratio Cards)
  */
 interface DutyDocumentationCardProps {
   shift: DutyShift
@@ -347,6 +375,7 @@ interface DutyDocumentationCardProps {
   onClick: () => void
   onEdit: () => void
   onDelete: () => void
+  onOpenPhoto: (photoIndex?: number) => void
 }
 
 const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
@@ -357,6 +386,7 @@ const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
   onClick,
   onEdit,
   onDelete,
+  onOpenPhoto,
 }) => {
   const docs = shift.documentations || []
   const firstPhoto = docs.length > 0 ? docs[0] : null
@@ -389,43 +419,45 @@ const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
     : 'Hari ini'
 
   return (
-    <Card className="group flex flex-col justify-between overflow-hidden border-warm-200 bg-white hover:border-forest/40 hover:shadow-md transition-all duration-200 rounded-xl cursor-pointer">
-      <div onClick={onClick}>
-        {/* Top Visual Thumbnail (4:3 ratio) */}
-        <DutyCardThumbnail
-          fileId={firstPhoto?.file_id}
-          alt={title}
-          photoCount={photoCount}
-        />
+    <Card className="group flex flex-col overflow-hidden border border-warm-200 bg-white hover:border-forest/40 hover:shadow-md transition-all duration-200 rounded-xl">
+      {/* Top Visual Thumbnail with Flexible Aspect Ratio & Contain Fit */}
+      <DutyCardThumbnail
+        fileId={firstPhoto?.file_id}
+        alt={title}
+        photoCount={photoCount}
+        onOpenPhoto={() => onOpenPhoto(0)}
+      />
 
-        {/* Card Body */}
-        <CardContent className="p-4 sm:p-5 space-y-2">
-          {/* Judul Piket */}
-          <h3 className="font-serif font-semibold text-base sm:text-lg text-charcoal group-hover:text-forest transition-colors line-clamp-1">
-            {title}
-          </h3>
+      {/* Card Body */}
+      <CardContent
+        className="p-4 sm:p-5 space-y-2 cursor-pointer flex-1"
+        onClick={onClick}
+      >
+        {/* Judul Piket */}
+        <h3 className="font-serif font-semibold text-base sm:text-lg text-charcoal group-hover:text-forest transition-colors line-clamp-2 leading-snug">
+          {title}
+        </h3>
 
-          {/* Keterangan Singkat */}
-          {notes ? (
-            <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-2">
-              {notes}
-            </p>
-          ) : (
-            <p className="text-xs text-charcoal-muted/60 italic">
-              Tidak ada keterangan tambahan.
-            </p>
-          )}
-        </CardContent>
-      </div>
+        {/* Keterangan Singkat */}
+        {notes ? (
+          <p className="text-xs text-charcoal-muted leading-relaxed line-clamp-3">
+            {notes}
+          </p>
+        ) : (
+          <p className="text-xs text-charcoal-muted/60 italic">
+            Tidak ada keterangan tambahan.
+          </p>
+        )}
+      </CardContent>
 
       {/* Card Footer (Author & Action Buttons) */}
-      <div className="px-4 sm:px-5 pb-4 pt-3 border-t border-warm-100 flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2 min-w-0" onClick={onClick}>
+      <div className="px-4 sm:px-5 pb-4 pt-3 border-t border-warm-100 flex items-center justify-between gap-2 text-xs mt-auto bg-warm-50/20">
+        <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={onClick}>
           <div className="h-6 w-6 rounded-full bg-forest/10 border border-forest/20 text-forest font-semibold text-[10px] flex items-center justify-center shrink-0">
             {creatorInitials}
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium text-charcoal truncate max-w-28 sm:max-w-32">
+            <p className="text-[11px] font-medium text-charcoal truncate max-w-28 sm:max-w-36">
               {creatorName}
             </p>
             <p className="text-[10px] text-charcoal-muted flex items-center gap-1">
@@ -469,13 +501,23 @@ const DutyDocumentationCard: React.FC<DutyDocumentationCardProps> = ({
 }
 
 /**
- * Thumbnail Loader for Duty Card
+ * Thumbnail Loader for Duty Card (Object-Contain & Dynamic Aspect Height)
  */
-const DutyCardThumbnail: React.FC<{
+interface DutyCardThumbnailProps {
   fileId?: string
   alt: string
   photoCount: number
-}> = ({ fileId, alt, photoCount }) => {
+  onOpenPhoto?: () => void
+}
+
+const DutyCardThumbnail: React.FC<DutyCardThumbnailProps> = ({
+  fileId,
+  alt,
+  photoCount,
+  onOpenPhoto,
+}) => {
+  const [dimensions, setDimensions] = useState<{ width: number; height: number; ratio: number } | null>(null)
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['signed-url', fileId, false],
     queryFn: () => (fileId ? getPrivateFileSignedUrl(fileId, false) : null),
@@ -487,7 +529,7 @@ const DutyCardThumbnail: React.FC<{
   // 1. Placeholder when no photo is attached
   if (!fileId) {
     return (
-      <div className="relative w-full aspect-4/3 bg-linear-to-br from-warm-100 to-warm-200 border-b border-warm-200 flex flex-col items-center justify-center p-6 text-center">
+      <div className="relative w-full h-44 bg-linear-to-br from-warm-100 to-warm-200 border-b border-warm-200 flex flex-col items-center justify-center p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-forest/10 text-forest flex items-center justify-center mb-2">
           <Camera className="h-6 w-6 opacity-60" />
         </div>
@@ -499,12 +541,9 @@ const DutyCardThumbnail: React.FC<{
   // 2. Loading state
   if (isLoading) {
     return (
-      <div className="relative w-full aspect-4/3 bg-warm-200/80 animate-pulse border-b border-warm-200 flex flex-col items-center justify-center text-charcoal-muted">
-        <Skeleton className="absolute inset-0 w-full h-full" />
-        <div className="relative z-10 flex flex-col items-center gap-1.5">
-          <Loader2 className="h-6 w-6 text-forest animate-spin" />
-          <span className="text-[11px] font-medium">Memuat foto...</span>
-        </div>
+      <div className="relative w-full h-52 bg-warm-200/70 animate-pulse border-b border-warm-200 flex flex-col items-center justify-center text-charcoal-muted">
+        <Loader2 className="h-6 w-6 text-forest animate-spin mb-1.5" />
+        <span className="text-[11px] font-medium">Memuat foto...</span>
       </div>
     )
   }
@@ -512,7 +551,7 @@ const DutyCardThumbnail: React.FC<{
   // 3. Error state
   if (isError || !data?.signedUrl) {
     return (
-      <div className="relative w-full aspect-4/3 bg-warm-100 border-b border-warm-200 flex flex-col items-center justify-center p-4 text-center">
+      <div className="relative w-full h-44 bg-warm-100 border-b border-warm-200 flex flex-col items-center justify-center p-4 text-center">
         <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-1.5">
           <AlertCircle className="h-5 w-5" />
         </div>
@@ -524,21 +563,53 @@ const DutyCardThumbnail: React.FC<{
     )
   }
 
-  // 4. Render actual image
+  // Responsive container height bounded cleanly between min 180px and max 350px
+  // Landscape (e.g. 16:9): ~180px - 220px
+  // Square (1:1): ~280px - 320px
+  // Portrait (e.g. 3:4, 9:16): ~320px - 350px (never exceeds 350px to prevent monstrously tall cards)
+  const containerHeight = dimensions
+    ? Math.min(350, Math.max(180, Math.round(320 / dimensions.ratio)))
+    : 240
+
+  // 4. Render actual image with object-contain
   return (
-    <div className="relative w-full aspect-4/3 overflow-hidden bg-charcoal/5 border-b border-warm-200">
+    <div
+      className="relative w-full overflow-hidden flex items-center justify-center bg-warm-100/60 border-b border-warm-200 transition-all duration-200 group/thumb cursor-zoom-in"
+      style={{ height: `${containerHeight}px` }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onOpenPhoto?.()
+      }}
+      title="Klik untuk melihat foto ukuran penuh"
+    >
       <img
         src={data.signedUrl}
         alt={alt}
-        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover/thumb:scale-[1.02]"
         loading="lazy"
+        onLoad={(e) => {
+          const { naturalWidth, naturalHeight } = e.currentTarget
+          if (naturalWidth && naturalHeight) {
+            setDimensions({
+              width: naturalWidth,
+              height: naturalHeight,
+              ratio: naturalWidth / naturalHeight,
+            })
+          }
+        }}
       />
       {photoCount > 0 && (
-        <div className="absolute top-3 right-3 bg-charcoal/70 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+        <div className="absolute top-2.5 right-2.5 bg-charcoal/75 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-xs z-10 pointer-events-none">
           <Camera className="h-3 w-3" />
           <span>{photoCount} Foto</span>
         </div>
       )}
+      <div className="absolute inset-0 bg-charcoal/15 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+        <span className="rounded-full bg-charcoal/80 backdrop-blur-xs px-3 py-1.5 text-xs text-white font-medium shadow-sm flex items-center gap-1.5">
+          <Eye className="h-3.5 w-3.5 text-emerald-300" />
+          <span>Lihat Gambar Utuh</span>
+        </span>
+      </div>
     </div>
   )
 }

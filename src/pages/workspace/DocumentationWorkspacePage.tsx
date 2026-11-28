@@ -74,7 +74,8 @@ const PrivateMediaThumb: React.FC<{
     <button
       type="button"
       onClick={onOpenPreview}
-      className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-warm-200/70 flex items-center justify-center group"
+      className="relative h-56 sm:h-64 w-full overflow-hidden rounded-t-lg bg-warm-100/70 border-b border-warm-200 flex items-center justify-center group cursor-zoom-in"
+      title="Klik untuk melihat dokumentasi"
     >
       {isLoading ? (
         <Skeleton className="h-full w-full rounded-none" />
@@ -92,10 +93,10 @@ const PrivateMediaThumb: React.FC<{
         <img
           src={data.signedUrl}
           alt={alt}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
         />
       )}
-      <span className="absolute bottom-2 right-2 rounded-md bg-charcoal/75 px-2 py-1 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1">
+      <span className="absolute bottom-2 right-2 rounded-md bg-charcoal/75 px-2 py-1 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 z-10">
         <Eye className="h-3 w-3" />
         Lihat
       </span>
@@ -437,7 +438,7 @@ export const DocumentationWorkspacePage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
               <Skeleton className="aspect-video w-full rounded-b-none" />
@@ -480,7 +481,7 @@ export const DocumentationWorkspacePage: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {filteredAssets.map((asset) => {
             const meta = PUB_META[asset.publication_status]
             const uploader = memberMap.get(asset.uploaded_by)

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/toast'
 import { getPrivateFileSignedUrl } from '@/services/storageApi'
+import { PhotoLightboxModal, type LightboxPhotoItem } from '@/components/common/PhotoLightboxModal'
 import type { DutyShift, DutyShiftDocumentation, WorkspaceMemberSummary } from '@/types/database'
 import {
   Camera,
@@ -12,7 +13,6 @@ import {
   Eye,
   Trash2,
   Edit3,
-  X,
   Calendar,
   AlertCircle,
   Loader2,
@@ -42,13 +42,19 @@ export const DutyDocumentationDetailModal: React.FC<DutyDocumentationDetailModal
   userRole,
 }) => {
   const { toast } = useToast()
-  const [lightboxPhoto, setLightboxPhoto] = useState<DutyShiftDocumentation | null>(null)
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
-  const [isLoadingLightbox, setIsLoadingLightbox] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   if (!shift) return null
 
   const docs = shift.documentations || []
+  const lightboxPhotos: LightboxPhotoItem[] = docs.map((d) => ({
+    id: d.id,
+    file_id: d.file_id,
+    caption: d.caption,
+    title: shift.title || shift.notes || 'Dokumentasi Piket Posko',
+  }))
+
   const canManage =
     Boolean(isSuperAdmin) ||
     userRole === 'ketua' ||
@@ -80,21 +86,9 @@ export const DutyDocumentationDetailModal: React.FC<DutyDocumentationDetailModal
       })
     : 'Hari ini'
 
-  const handleOpenLightbox = async (photo: DutyShiftDocumentation) => {
-    setLightboxPhoto(photo)
-    setIsLoadingLightbox(true)
-    try {
-      const res = await getPrivateFileSignedUrl(photo.file_id, false)
-      setLightboxUrl(res?.signedUrl || null)
-    } catch {
-      toast({
-        title: 'Gagal Memuat Foto',
-        description: 'Tidak dapat memperoleh tautan akses foto.',
-        variant: 'error',
-      })
-    } finally {
-      setIsLoadingLightbox(false)
-    }
+  const handleOpenLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setIsLightboxOpen(true)
   }
 
   const handleDownload = async (fileId: string) => {
@@ -222,11 +216,11 @@ export const DutyDocumentationDetailModal: React.FC<DutyDocumentationDetailModal
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {docs.map((photo) => (
+                {docs.map((photo, idx) => (
                   <DetailPhotoCard
                     key={photo.id}
                     photo={photo}
-                    onClick={() => handleOpenLightbox(photo)}
+                    onClick={() => handleOpenLightbox(idx)}
                     onDownload={() => handleDownload(photo.file_id)}
                   />
                 ))}
@@ -249,71 +243,20 @@ export const DutyDocumentationDetailModal: React.FC<DutyDocumentationDetailModal
         </div>
       </Modal>
 
-      {/* Lightbox Modal (Click to zoom photo) */}
-      {lightboxPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/90 p-4 backdrop-blur-xs overscroll-none"
-          onClick={() => {
-            setLightboxPhoto(null)
-            setLightboxUrl(null)
-          }}
-        >
-          <div
-            className="relative max-h-[90vh] max-w-4xl w-full flex flex-col items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setLightboxPhoto(null)
-                setLightboxUrl(null)
-              }}
-              className="absolute -top-10 right-0 p-1.5 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
-              title="Tutup foto"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {isLoadingLightbox ? (
-              <div className="flex h-80 w-full items-center justify-center text-white">
-                <Skeleton className="h-80 w-full max-w-lg bg-white/10 rounded-lg animate-pulse" />
-              </div>
-            ) : lightboxUrl ? (
-              <div className="space-y-3 w-full flex flex-col items-center">
-                <img
-                  src={lightboxUrl}
-                  alt={lightboxPhoto.caption || 'Foto dokumentasi piket'}
-                  className="max-h-[75vh] w-auto max-w-full rounded-lg object-contain shadow-2xl"
-                />
-                <div className="flex items-center justify-between w-full px-2 text-white/90 text-xs">
-                  <span className="truncate max-w-md">
-                    {lightboxPhoto.caption || shift.title || 'Foto Kegiatan Piket Posko'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(lightboxPhoto.file_id)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors text-xs shrink-0"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>Unduh Asli</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="p-8 text-white text-center">
-                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-rose-400" />
-                <p className="text-xs">Gagal memuat pratinjau gambar.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Standalone Fullscreen Lightbox Modal with Zoom & Keyboard Controls */}
+      <PhotoLightboxModal
+        open={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        photos={lightboxPhotos}
+        initialIndex={lightboxIndex}
+        onDownload={handleDownload}
+      />
     </>
   )
 }
 
 /**
- * Single card in detail photo gallery
+ * Single card in detail photo gallery (Contain fit)
  */
 const DetailPhotoCard: React.FC<{
   photo: DutyShiftDocumentation
@@ -328,9 +271,12 @@ const DetailPhotoCard: React.FC<{
   })
 
   return (
-    <div className="group relative aspect-4/3 rounded-xl overflow-hidden bg-charcoal/5 border border-warm-200 shadow-2xs hover:shadow-md transition-shadow">
+    <div
+      onClick={onClick}
+      className="group relative aspect-4/3 rounded-xl overflow-hidden bg-warm-100/70 border border-warm-200 shadow-2xs hover:shadow-md transition-shadow flex items-center justify-center cursor-zoom-in"
+    >
       {isLoading ? (
-        <div className="w-full h-full bg-warm-200 animate-pulse flex flex-col items-center justify-center gap-1.5 text-charcoal-muted">
+        <div className="w-full h-full bg-warm-200/60 animate-pulse flex flex-col items-center justify-center gap-1.5 text-charcoal-muted">
           <Skeleton className="absolute inset-0 w-full h-full" />
           <Loader2 className="relative z-10 h-5 w-5 text-forest animate-spin" />
         </div>
@@ -347,12 +293,11 @@ const DetailPhotoCard: React.FC<{
           <img
             src={data.signedUrl}
             alt={photo.caption || 'Foto piket'}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
           <div
-            onClick={onClick}
-            className="absolute inset-0 bg-charcoal/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer gap-2"
+            className="absolute inset-0 bg-charcoal/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none"
           >
             <div className="p-2 rounded-full bg-white/90 text-charcoal hover:bg-white transition-colors shadow-sm">
               <Eye className="h-4 w-4 text-forest" />
@@ -363,7 +308,7 @@ const DetailPhotoCard: React.FC<{
                 e.stopPropagation()
                 onDownload()
               }}
-              className="p-2 rounded-full bg-white/90 text-charcoal hover:bg-white transition-colors shadow-sm"
+              className="p-2 rounded-full bg-white/90 text-charcoal hover:bg-white transition-colors shadow-sm pointer-events-auto"
               title="Unduh foto"
             >
               <Download className="h-4 w-4 text-charcoal" />

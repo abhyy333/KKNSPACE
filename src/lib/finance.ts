@@ -1,4 +1,9 @@
-import type { FinanceCategory, FinanceTransaction, FinanceTransactionType } from '@/types/database'
+import type {
+  FinanceCategory,
+  FinanceTransaction,
+  FinanceTransactionType,
+  WorkspaceMemberSummary,
+} from '@/types/database'
 
 export const KKN_TIMEZONE = 'Asia/Makassar'
 
@@ -400,6 +405,14 @@ export function computeFinanceSummaryAndRecap(
   }
 }
 
+export interface RecipientBreakdownItem {
+  recipientName: string
+  totalAmount: number
+  percentage: number
+  transactionCount: number
+  isUnspecified: boolean
+}
+
 export interface ExpenditureAnalytics {
   totalEffectiveExpense: number
   expenseCount: number
@@ -420,6 +433,15 @@ export interface ExpenditureAnalytics {
     totalAmount: number
     percentage: number
   } | null
+  topRecipient: {
+    recipientName: string
+    totalAmount: number
+    percentage: number
+    transactionCount: number
+  } | null
+  unspecifiedRecipientCount: number
+  unspecifiedRecipientAmount: number
+  unspecifiedPurposeCount: number
   averageExpensePerTransaction: number
   remainingBalance: number
   categoryDistribution: Array<{
@@ -429,6 +451,7 @@ export interface ExpenditureAnalytics {
     percentage: number
     transactionCount: number
   }>
+  recipientDistribution: RecipientBreakdownItem[]
   programBreakdown: Array<{
     programId: string | null
     programTitle: string
@@ -528,6 +551,11 @@ export function computeExpenditureAnalytics(params: {
   const catSums = new Map<string, { categoryId: string | null; name: string; amount: number; count: number }>()
   const progSums = new Map<string, { programId: string | null; title: string; amount: number; count: number }>()
   const dailySums = new Map<string, { amount: number; count: number }>()
+  const recipientSums = new Map<string, { name: string; amount: number; count: number; isUnspecified: boolean }>()
+
+  let unspecifiedRecipientCount = 0
+  let unspecifiedRecipientAmount = 0
+  let unspecifiedPurposeCount = 0
 
   for (const tx of effectiveExpenses) {
     const amt = Number(tx.amount) || 0
@@ -547,6 +575,31 @@ export function computeExpenditureAnalytics(params: {
     currentCat.amount += amt
     currentCat.count += 1
     catSums.set(catId, currentCat)
+
+    // Recipient aggregation
+    const rawRecipient = tx.recipient_or_vendor?.trim()
+    const isUnspecifiedRecipient = !rawRecipient
+    const recipientKey = isUnspecifiedRecipient ? '__unspecified__' : rawRecipient
+    const recipientDisplayName = isUnspecifiedRecipient ? 'Belum Dicatat / Belum Ada Rincian' : rawRecipient
+
+    if (isUnspecifiedRecipient) {
+      unspecifiedRecipientCount += 1
+      unspecifiedRecipientAmount += amt
+    }
+
+    if (!tx.spending_purpose?.trim()) {
+      unspecifiedPurposeCount += 1
+    }
+
+    const currentRec = recipientSums.get(recipientKey) || {
+      name: recipientDisplayName,
+      amount: 0,
+      count: 0,
+      isUnspecified: isUnspecifiedRecipient,
+    }
+    currentRec.amount += amt
+    currentRec.count += 1
+    recipientSums.set(recipientKey, currentRec)
 
     // Program aggregation
     const pId = tx.program_id ?? 'general'
@@ -578,6 +631,33 @@ export function computeExpenditureAnalytics(params: {
       transactionCount: c.count,
     }))
     .sort((a, b) => b.totalAmount - a.totalAmount)
+
+  const recipientDistribution: RecipientBreakdownItem[] = Array.from(recipientSums.values())
+    .map((r) => ({
+      recipientName: r.name,
+      totalAmount: r.amount,
+      percentage: totalEffectiveExpense > 0 ? (r.amount / totalEffectiveExpense) * 100 : 0,
+      transactionCount: r.count,
+      isUnspecified: r.isUnspecified,
+    }))
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+
+  const topSpecifiedRecipient = recipientDistribution.find((r) => !r.isUnspecified)
+  const topRecipient = topSpecifiedRecipient
+    ? {
+        recipientName: topSpecifiedRecipient.recipientName,
+        totalAmount: topSpecifiedRecipient.totalAmount,
+        percentage: topSpecifiedRecipient.percentage,
+        transactionCount: topSpecifiedRecipient.transactionCount,
+      }
+    : recipientDistribution.length > 0 && recipientDistribution[0].isUnspecified
+    ? {
+        recipientName: recipientDistribution[0].recipientName,
+        totalAmount: recipientDistribution[0].totalAmount,
+        percentage: recipientDistribution[0].percentage,
+        transactionCount: recipientDistribution[0].transactionCount,
+      }
+    : null
 
   const programBreakdown = Array.from(progSums.values())
     .map((p) => ({
@@ -643,11 +723,88 @@ export function computeExpenditureAnalytics(params: {
     expenseCount,
     maxExpense,
     topCategory,
+    topRecipient,
+    unspecifiedRecipientCount,
+    unspecifiedRecipientAmount,
+    unspecifiedPurposeCount,
     averageExpensePerTransaction,
     remainingBalance: currentCashBalance,
     categoryDistribution,
+    recipientDistribution,
     programBreakdown,
     dailyTrend,
     topExpensesList,
   }
+}
+
+export function generateExpenditureAnalyticsCSV(params: {
+  analytics: ExpenditureAnalytics
+  dateRangeLabel?: string
+  expenses: Array<{
+    id: string
+    transaction_date: string
+    category_id: string | null
+    amount: number | string
+    description: string
+    recipient_or_vendor?: string | null
+    spending_purpose?: string | null
+    recorded_by: string
+  }>
+  categoriesById: Map<string, FinanceCategory>
+  membersById: Record<string, WorkspaceMemberSummary>
+}): string {
+  const { analytics, dateRangeLabel = 'Semua Transaksi', expenses, categoriesById, membersById } = params
+
+  const lines: string[] = []
+
+  lines.push('LAPORAN ANALISIS PENGELUARAN KAS KKN SPACE')
+  lines.push(`Periode: "${dateRangeLabel}"`)
+  lines.push(`Tanggal Dibuat: "${new Date().toLocaleString('id-ID')}"`)
+  lines.push(`Total Pengeluaran Efektif: ${analytics.totalEffectiveExpense}`)
+  lines.push(`Jumlah Transaksi Pengeluaran: ${analytics.expenseCount}`)
+  lines.push(`Rata-rata per Transaksi: ${Math.round(analytics.averageExpensePerTransaction)}`)
+  lines.push(`Kategori Terbesar: "${analytics.topCategory?.categoryName || '-'}" (${analytics.topCategory?.percentage.toFixed(1) || 0}%)`)
+  lines.push(`Penerima Terbesar: "${analytics.topRecipient?.recipientName || '-'}" (${analytics.topRecipient?.percentage.toFixed(1) || 0}%)`)
+  lines.push('')
+
+  // Section 1: Ringkasan per Kategori
+  lines.push('--- RINGKASAN PENGELUARAN PER KATEGORI ---')
+  lines.push('Kategori,Jumlah Transaksi,Total Pengeluaran (Rp),Persentase (%)')
+  for (const cat of analytics.categoryDistribution) {
+    lines.push(`"${cat.categoryName}",${cat.transactionCount},${cat.totalAmount},${cat.percentage.toFixed(2)}%`)
+  }
+  lines.push('')
+
+  // Section 2: Ringkasan per Penerima / Toko
+  lines.push('--- RINGKASAN PENGELUARAN PER PENERIMA / TUJUAN PEMBAYARAN ---')
+  lines.push('Penerima / Vendor / Tujuan,Jumlah Transaksi,Total Dibayarkan (Rp),Persentase (%)')
+  for (const rec of analytics.recipientDistribution) {
+    lines.push(`"${rec.recipientName}",${rec.transactionCount},${rec.totalAmount},${rec.percentage.toFixed(2)}%`)
+  }
+  lines.push('')
+
+  // Section 3: Daftar Transaksi Pengeluaran
+  lines.push('--- RINCIAN TRANSAKSI PENGELUARAN ---')
+  lines.push('ID Transaksi,Tanggal,Kategori,Penerima / Toko,Keperluan Dana,Deskripsi,Nominal (Rp),Pencatat')
+  for (const tx of expenses) {
+    const catName = tx.category_id ? categoriesById.get(tx.category_id)?.name || 'Kategori Lain' : 'Tanpa Kategori'
+    const recorderName = membersById[tx.recorded_by]?.full_name || '-'
+    const vendor = tx.recipient_or_vendor?.trim() || 'Belum ada rincian'
+    const purpose = tx.spending_purpose?.trim() || 'Belum ada rincian'
+
+    lines.push(
+      [
+        tx.id,
+        tx.transaction_date,
+        `"${catName.replace(/"/g, '""')}"`,
+        `"${vendor.replace(/"/g, '""')}"`,
+        `"${purpose.replace(/"/g, '""')}"`,
+        `"${(tx.description || '').replace(/"/g, '""')}"`,
+        tx.amount,
+        `"${recorderName.replace(/"/g, '""')}"`,
+      ].join(',')
+    )
+  }
+
+  return '\uFEFF' + lines.join('\n')
 }
